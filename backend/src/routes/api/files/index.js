@@ -1,8 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
 const rootDir = process.env.PUBLIC_FILE_PATCH;
-console.log(rootDir);
-
 
 module.exports = async (ctx) => {
     const files = await fs.readdir(rootDir);
@@ -18,7 +16,7 @@ module.exports = async (ctx) => {
             }
         }
     }
-    ctx.body = fileList;
+    ctx.success(fileList);
 };
 
 function makeFileInfo(filePath, stats) {

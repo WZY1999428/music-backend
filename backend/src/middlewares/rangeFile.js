@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto= require('crypto');
 const mime = require('mime-types');
-// rootDir：你文件根目录，比如 /home/files
 module.exports = function  rangeFile(rootDir) {
   return async (ctx, next) => {
     try {
