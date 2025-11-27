@@ -19,6 +19,7 @@
     "mime-types": "^3.0.2",
     "mongoose": "^8.20.0",
     "multer": "^2.0.2",
+    "sqlite3": "^5.1.7",
     "vite": "^7.2.4"
   },
   "scripts": {
