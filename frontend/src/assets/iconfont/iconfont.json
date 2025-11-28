@@ -1,0 +1,89 @@
+{
+  "id": "4030191",
+  "name": "文件图标",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "10580647",
+      "name": "记录",
+      "font_class": "record"
+    },
+    {
+      "icon_id": "24955146",
+      "name": "转换",
+      "font_class": "translate"
+    },
+    {
+      "icon_id": "11955422",
+      "name": "安卓文件",
+      "font_class": "apk"
+    },
+    {
+      "icon_id": "21721551",
+      "name": "目录",
+      "font_class": "folder"
+    },
+    {
+      "icon_id": "21721566",
+      "name": "ppt文件",
+      "font_class": "ppt"
+    },
+    {
+      "icon_id": "21721567",
+      "name": "文本文件",
+      "font_class": "note"
+    },
+    {
+      "icon_id": "21721568",
+      "name": "excel文件",
+      "font_class": "sheet"
+    },
+    {
+      "icon_id": "21721569",
+      "name": "视频文件",
+      "font_class": "video"
+    },
+    {
+      "icon_id": "21721570",
+      "name": "图片文件",
+      "font_class": "image"
+    },
+    {
+      "icon_id": "21721571",
+      "name": "未知文件",
+      "font_class": "unknown"
+    },
+    {
+      "icon_id": "21721572",
+      "name": "缩略图",
+      "font_class": "thumbnail"
+    },
+    {
+      "icon_id": "21721573",
+      "name": "压缩包",
+      "font_class": "zip"
+    },
+    {
+      "icon_id": "21721574",
+      "name": "word文档",
+      "font_class": "word"
+    },
+    {
+      "icon_id": "21721575",
+      "name": "PDF文件",
+      "font_class": "pdf"
+    },
+    {
+      "icon_id": "21721576",
+      "name": "音频文件",
+      "font_class": "audio"
+    },
+    {
+      "icon_id": "21721577",
+      "name": "链接文件",
+      "font_class": "link"
+    }
+  ]
+}

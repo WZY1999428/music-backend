@@ -1,21 +1,20 @@
 // middleware/rangeFile.js
 const fs = require('fs');
 const path = require('path');
-const crypto= require('crypto');
+const crypto = require('crypto');
 const mime = require('mime-types');
-module.exports = function  rangeFile(rootDir) {
+module.exports = function rangeFile(rootDir) {
   return async (ctx, next) => {
     try {
       const requestPath = decodeURIComponent(ctx.path);
-      const filePath = path.join(rootDir, requestPath);
 
+      const filePath = path.join(rootDir, requestPath);
       if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
         return next(); // 目录或者不存在 → 交给下一个中间件
       }
 
       const stat = fs.statSync(filePath);
       const fileSize = stat.size;
-
       const ext = path.extname(filePath);
       const contentType = mime.lookup(ext) || "application/octet-stream";
 
@@ -101,7 +100,7 @@ module.exports = function  rangeFile(rootDir) {
             this.push(null);
           },
         });
-
+        console.log(111111111111);
         return;
       }
 

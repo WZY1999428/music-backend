@@ -2,7 +2,7 @@
 const Koa = require('koa');
 const path = require('path');
 const registerRoutes = require('./utils/registerRoutes');
-const viteServerMiddleware = require('./middlewares/viteServer');
+const viteServerMiddleware = require('./modules/viteServer');
 const attachErrorHandler = require('./utils/errorHandler');
 const router = registerRoutes(path.join(__dirname, './routes'));
 
@@ -11,7 +11,7 @@ async function createServer() {
     attachErrorHandler(app);
     await viteServerMiddleware(app);
     app
-        .use(require('./middlewares/rangeFile')(path.join(__dirname, 'public')))
+        .use(require('./middlewares/rangeFile')(path.join(__dirname, '../public')))
         .use(require('./middlewares/httpResponse')())
         .use(require('./middlewares/auth')())
         .use(router.routes())

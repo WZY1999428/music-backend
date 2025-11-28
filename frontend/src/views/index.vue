@@ -2,6 +2,7 @@
    <el-container>
     <el-header>
       <el-button type="primary">按钮</el-button>
+      <IconSprite name="ppt"></IconSprite>
     </el-header>
     <el-container>
       <el-aside width="200px">Aside</el-aside>

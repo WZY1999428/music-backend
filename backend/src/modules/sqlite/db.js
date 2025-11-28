@@ -1,194 +1,283 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+/**
+ * Database：底层驱动
+ * ============================
+ * @class Database
+ * @description
+ *  Database 的底层驱动，使用 sqlite3
+ *  通过 Promise 来处理异步
+ * @constructor
+ * @param {string} dbFile - 数据库文件路径
+ */
+
+const sqlite3 = require("sqlite3");
+const path = require("path");
+
 class Database {
-    /**
-     * @constructor
-     * @param {string} dbFile - 数据库文件路径
-     */
     constructor(dbFile = path.resolve("", "app.db")) {
         this.db = new sqlite3.Database(dbFile);
     }
 
     /**
-     * @description 运行 SQL 语句
+     * 执行 SQL 语句
      * @param {string} sql - SQL 语句
-     * @param {array} params - SQL 语句参数
-     * @return {Promise} - Promise 对象
+     * @param {array} params - 参数数组
+     * @returns {Promise} - Promise 对象
      */
     run(sql, params = []) {
         return new Promise((resolve, reject) => {
             this.db.run(sql, params, function (err) {
                 if (err) reject(err);
-                else resolve(null);
+                else resolve(this);
             });
         });
     }
 
     /**
-     * @description 获取单个数据
+     * 查询单条数据
      * @param {string} sql - SQL 语句
-     * @param {array} params - SQL 语句参数
-     * @return {Promise} - Promise 对象
+     * @param {array} params - 参数数组
+     * @returns {Promise} - Promise 对象
      */
-    _get(sql, params = []) {
+    get(sql, params = []) {
         return new Promise((resolve, reject) => {
             this.db.get(sql, params, (err, row) => {
                 if (err) reject(err);
-                else resolve(row ? Database.parseJSON(row) : null);
+                else resolve(row || null);
             });
         });
     }
 
     /**
-     * @description 创建表
-     * @param {string} table - 表名
-     * @param {object} tableSchema - 表结构
-     * @param {array} foreignKeys - 外键
-     * @return {Promise} - Promise 对象
-     */
-    create(table, tableSchema = {}, foreignKeys = []) {
-        return new Promise((resolve, reject) => {
-            const cols = Object.entries(tableSchema).map(([key, type]) => `${key} ${type}`).join(", ");
-            const fks = foreignKeys.length > 0 ? `, ${foreignKeys.join(", ")}` : "";
-            const sql = `CREATE TABLE IF NOT EXISTS ${table} (${cols}${fks})`;
-            this.db.run(sql, (err) => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
-    }
-
-    /**
-     * @description 获取所有数据
+     * 查询多条数据
      * @param {string} sql - SQL 语句
-     * @param {array} params - SQL 语句参数
-     * @return {Promise} - Promise 对象
+     * @param {array} params - 参数数组
+     * @returns {Promise} - Promise 对象
      */
     all(sql, params = []) {
         return new Promise((resolve, reject) => {
             this.db.all(sql, params, (err, rows) => {
                 if (err) reject(err);
-                else resolve(rows.map(Database.parseJSON));
+                else resolve(rows);
             });
         });
     }
+}
 
-    /**
-     * @description 插入数据
-     * @param {string} table - 表名
-     * @param {object} data - 数据
-     * @return {Promise} - Promise 对象
-     */
-    async insert(table, data) {
-        const keys = Object.keys(data);
-        const values = Object.values(data).map(Database.stringifyIfObject);
-        const placeholders = keys.map(() => "?").join(",");
-        const sql = `INSERT INTO ${table} (${keys.join(",")}) VALUES (${placeholders})`;
-        return await this.run(sql, values);
-    }
-
-    /**
-     * @description 查询单个数据
-     * @param {string} table - 表名
-     * @param {object} where - 查询条件
-     * @return {Promise} - Promise 对象
-     */
-    async findOne(table, where = {}) {
-        const keys = Object.keys(where);
-        const values = Object.values(where).map(Database.stringifyIfObject);
-        const condition = keys.map((k) => `${k}=?`).join(" AND ");
-        const sql = `SELECT * FROM ${table} ${keys.length ? "WHERE " + condition : ""}`;
-        return await this._get(sql, values);
-    }
-
-    /**
-     * @description 分页查询数据
-     * @param {string} table - 表名
-     * @param {object} where - 查询条件
-     * @param {number} pageIndex - 页码
-     * @param {number} pageSize - 页大小
-     * @return {Promise} - Promise 对象
-     */
-    async find(
-        table, where = {}, pageIndex = 1, pageSize = 20) {
-        const keys = Object.keys(where);
-        const values = Object.values(where).map(Database.stringifyIfObject);
-        const condition = keys.map((k) => `${k}=?`).join(" AND ");
-        const offset = (pageIndex - 1) * pageSize;
-        const sql = `
-        SELECT * FROM ${table} 
-        ${keys.length ? "WHERE " + condition : ""} 
-        LIMIT ? OFFSET ?
-        `;
-        // 在 values 里加上 limit 和 offset
-        return await this.all(sql, [...values, pageSize, offset]);
-    }
-
-    /**
-     * @description 查询所有数据
-     * @param {string} table - 表名
-     * @return {Promise} - Promise 对象
-     */
-    async findAll(table) {
-        return await this.all(`SELECT * FROM ${table}`);
-    }
-
-    /**
-     * @description 更新数据
-     * @param {string} table - 表名
-     * @param {object} data - 数据
-     * @param {object} where - 查询条件
-     * @return {Promise} - Promise 对象
-     */
-    async update(table, data, where) {
-        const keys = Object.keys(data);
-        const values = Object.values(data).map(Database.stringifyIfObject);
-        const setClause = keys.map((k) => `${k}=?`).join(",");
-
-        const whereKeys = Object.keys(where);
-        const whereValues = Object.values(where).map(Database.stringifyIfObject);
-        const condition = whereKeys.map((k) => `${k}=?`).join(" AND ");
-
-        const sql = `UPDATE ${table} SET ${setClause} WHERE ${condition}`;
-        return await this.run(sql, [...values, ...whereValues]);
-    }
-
-    /**
-     * @description 删除数据
-     * @param {string} table - 表名
-     * @param {object} where - 查询条件
-     * @return {Promise} - Promise 对象
-     */
-    async delete(table, where) {
-        const keys = Object.keys(where);
-        const values = Object.values(where).map(Database.stringifyIfObject);
-        const condition = keys.map((k) => `${k}=?`).join(" AND ");
-        const sql = `DELETE FROM ${table} WHERE ${condition}`;
-        return await this.run(sql, values);
-    }
-
-    // ======= 辅助函数 =======
-    static stringifyIfObject(val) {
-        if (typeof val === "object" && val !== null) return JSON.stringify(val);
-        return val;
-    }
-
-    static parseJSON(row) {
-        const parsed = {};
-        for (const key in row) {
-            const value = row[key];
-            if (typeof value === "string") {
-                try {
-                    parsed[key] = JSON.parse(value);
-                } catch {
-                    parsed[key] = value;
-                }
-            } else {
-                parsed[key] = value;
-            }
-        }
-        return parsed;
+/**
+ * Schema：仅用于定义结构
+ * ============================
+ * @class Schema
+ * @description
+ *  Schema 用于定义表结构
+ * @constructor
+ * @param {object} definition - 结构定义对象
+ */
+class Schema {
+    constructor(definition) {
+        this.definition = definition;
     }
 }
 
-module.exports = Database;  
+/**
+ * Model：负责 CRUD
+ * ============================
+ * @class Model
+ * @description
+ *  Model 负责 CRUD 操作
+ * @constructor
+ * @param {string} table - 表名
+ * @param {Schema} schema - 表结构
+ * @param {Database} db - 底层驱动
+ */
+class Model {
+    constructor(table, schema, db) {
+        this.table = table;
+        this.schema = schema.definition;
+        this.db = db;
+
+        this._initTable();
+    }
+
+    /**
+     * 表初始化 (自动建表)
+     * @private
+     * @returns {Promise} - Promise 对象
+     */
+    async _initTable() {
+        const cols = Object.entries(this.schema)
+            .map(([key, type]) => `${key} ${type}`)
+            .join(", ");
+        const sql = `CREATE TABLE IF NOT EXISTS ${this.table} (${cols})`;
+        await this.db.run(sql);
+    }
+
+
+
+    // ======= 事务方法 =======
+    /**
+     * 开始事务
+     *  @returns {Promise} - Promise 对象
+     */
+    beginTransaction() {
+        return this.db.run("BEGIN TRANSACTION;");
+    }
+
+    /**
+     * 提交事务
+     * @returns {Promise} - Promise 对象
+     */
+    commit() {
+        return this.db.run("COMMIT;");
+    }
+
+    /**
+     * 回滚事务
+     * @returns {Promise} - Promise 对象
+     */
+    rollback() {
+        return this.db.run("ROLLBACK;");
+    }
+
+    /**
+     * 插入数据
+     * @param {object} data - 数据对象
+     * @returns {Promise} - Promise 对象
+     */
+    async insert(data) {
+        const keys = Object.keys(data);
+        const placeholders = keys.map(() => "?").join(", ");
+        const values = Object.values(data);
+
+        const sql = `INSERT INTO ${this.table} (${keys.join(",")}) VALUES (${placeholders})`;
+        await this.db.run(sql, values);
+        return data;
+    }
+
+    /**
+     * 查询单条数据
+     * @param {object} where - 条件对象
+     * @returns {Promise} - Promise 对象
+     */
+    async findOne(where = {}) {
+        const keys = Object.keys(where);
+        const condition = keys.map(k => `${k}=?`).join(" AND ");
+        const values = Object.values(where);
+
+        const sql = `SELECT * FROM ${this.table} ${condition ? "WHERE " + condition : ""}`;
+        return await this.db.get(sql, values);
+    }
+
+    /**
+     * 查询多条数据
+     * @param {array} filters - 条件数组 [{ field, value, op = '=', logic = 'AND' }]
+     * @param {number} pageIndex - 页码，从 1 开始
+     * @param {number} pageSize - 每页条数
+     * @returns {Promise} - Promise 对象
+     *await User.find([
+        { field: 'age', value: 18, op: '>=' },
+        { field: 'username', value: '小吴', op: 'LIKE', logic: 'AND' },
+        { field: 'id', value: [1,2,3], op: 'IN', logic: 'OR' }
+        ], 1, 20);
+     */
+    async find(filters = [], pageIndex = 1, pageSize = 20) {
+        const conditions = [];
+        const values = [];
+        filters.forEach((f, i) => {
+            const op = (f.op || '=').toUpperCase();
+            let val = f.value;
+            if (op === 'LIKE') val = `%${val}%`;
+            if (op === 'IN' && Array.isArray(val)) {
+                const placeholders = val.map(() => '?').join(', ');
+                values.push(...val);
+                conditions.push(`${f.field} IN (${placeholders})`);
+                return;
+            }
+            values.push(val);
+            if (i === 0) {
+                // 第一个条件不需要逻辑符
+                conditions.push(`${f.field} ${op} ?`);
+            } else {
+                conditions.push(`${f.logic || 'AND'} ${f.field} ${op} ?`);
+            }
+        });
+
+        const whereClause = conditions.length ? 'WHERE ' + conditions.join(' ') : '';
+        const offset = (pageIndex - 1) * pageSize;
+        const sql = `SELECT * FROM ${this.table} ${whereClause} LIMIT ? OFFSET ?`;
+        return await this.db.all(sql, [...values, pageSize, offset]);
+    }
+
+    /**
+     * 更新数据
+     * @param {object} where - 条件对象
+     * @param {object} data - 数据对象
+     * @returns {Promise} - Promise 对象
+     */
+    async update(where, data) {
+        const setKeys = Object.keys(data);
+        const setClause = setKeys.map(k => `${k}=?`).join(", ");
+        const whereKeys = Object.keys(where);
+        const condition = whereKeys.map(k => `${k}=?`).join(" AND ");
+
+        const values = [...Object.values(data), ...Object.values(where)];
+
+        const sql = `UPDATE ${this.table} SET ${setClause} WHERE ${condition}`;
+        return await this.db.run(sql, values);
+    }
+
+    /**
+     * 删除数据
+     * @param {object} where - 条件对象
+     * @returns {Promise} - Promise 对象
+     */
+    async delete(where) {
+        const keys = Object.keys(where);
+        const condition = keys.map(k => `${k}=?`).join(" AND ");
+
+        const values = Object.values(where);
+
+        const sql = `DELETE FROM ${this.table} WHERE ${condition}`;
+        return await this.db.run(sql, values);
+    }
+}
+
+/**
+ * 对外暴露的效果：mongoose 的 API
+ * ============================
+ * @class MongoSqlite
+ * @description
+ *  对外暴露的效果：mongoose 的 API
+ * @constructor
+ * @param {string} dbFile - 数据库文件路径
+ */
+class MongoSqlite {
+    constructor(dbFile) {
+        this.db = new Database(dbFile);
+        this.models = {};
+    }
+
+    /**
+     * 获取 Model 对象
+     * @param {string} name - 模型名称
+     * @param {Schema} schema - 表结构
+     * @returns {Model} - Model 对象
+     */
+    model(name, schema) {
+        if (!this.models[name]) {
+            this.models[name] = new Model(name, schema, this.db);
+        }
+        return this.models[name];
+    }
+
+    /**
+     * 获取 Schema 对象
+     * @param {object} definition - 结构定义对象
+     * @returns {Schema} - Schema 对象
+     */
+    Schema(def) {
+        return new Schema(def);
+    }
+}
+
+
+module.exports = MongoSqlite;
