@@ -1,30 +1,11 @@
-const fs = require('fs/promises');
-const path = require('path');
-const rootDir = process.env.PUBLIC_FILE_PATCH;
-
+const { FileTable } = require("../../../modules/sqlite/model");
 module.exports = async (ctx) => {
-    const files = await fs.readdir(rootDir);
-    const fileList = [];
-    for (const item of files) {
-        const fullPath = path.join(rootDir, item);
-        try {
-            const stat = await fs.stat(fullPath);
-            fileList.push(makeFileInfo(fullPath, stat));
-        } catch (error) {
-            if (error.code === 'EPERM') {
-                console.warn(`权限不足，跳过文件/目录: ${fullPath}`);
-            }
-        }
-    }
-    ctx.success(fileList);
+    const query = ctx.query;
+    console.log()
+    FileTable.find([]).then((fileList) => {
+        console.log(fileList)
+    })
+
+    ctx.success([]);
 };
 
-function makeFileInfo(filePath, stats) {
-    return {
-        name: path.basename(filePath),
-        path: path.relative(rootDir, filePath),
-        size: stats.size,
-        isDirectory: stats.isDirectory(),
-        mtime: stats.mtime,
-    };
-}

@@ -10,8 +10,8 @@ const db = new MongoSqlite(path.resolve("", process.env.SQLITE_DB_PATH));
 const User = db.model("users", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     username: "TEXT NOT NULL UNIQUE", // 唯一管理员账户名
-    password: "TEXT NOT NULL",         // 密码哈希值
-    created_at: "DATETIME DEFAULT CURRENT_TIMESTAMP"
+    password: "TEXT NOT NULL",         // 密码哈希值 
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP"
 }));
 
 
@@ -19,19 +19,30 @@ const User = db.model("users", db.Schema({
 // 2. 🥈 文件/文件夹模型 (File Model)
 // 统一管理所有文件、文件夹及回收站（软删除）
 // ----------------------------------------------------------------------
-const File = db.model("files", db.Schema({
+const FileTable = db.model("files", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     name: "TEXT NOT NULL",
-    is_folder: "INTEGER NOT NULL", // 0=文件, 1=文件夹
-    parent_id: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
+    ino: "INTEGER NOT NULL UNIQUE", // 文件 inode
+    isFolder: "INTEGER NOT NULL DEFAULT 0", // 0=文件, 1=文件夹 
+    parentId: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
     size: "INTEGER NOT NULL DEFAULT 0",
-    hash: "TEXT", // 文件内容的唯一哈希值（用于秒传/去重）
-    path_on_disk: "TEXT", // 服务器存储路径
-    created_at: "DATETIME DEFAULT CURRENT_TIMESTAMP",
-    updated_at: "DATETIME DEFAULT CURRENT_TIMESTAMP",
-    deleted_at: "DATETIME" // NULL: 正常；NOT NULL: 在回收站中
+    hash: "TEXT UNIQUE", // 文件内容的唯一哈希值（用于秒传/去重）
+    path: "TEXT UNIQUE ", // 服务器存储路径
+    rootPath: "TEXT NOT NULL", // 根目录路径
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
+    updatedAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
+    status: "INTEGER" // 0: 正常；1: 在回收站中 2：移动文件，重命名文件标记 
 }));
-
+  
+// 给 Model 原型挂 getter/setter
+Object.defineProperty(File.prototype, "is_folder", {
+    get() {
+        return this._is_folder === 1;
+    },
+    set(v) {
+        this._is_folder = v ? 1 : 0;
+    }
+});
 
 // ----------------------------------------------------------------------
 // 3. 🔑 会话令牌模型 (Token Model)
@@ -40,9 +51,9 @@ const File = db.model("files", db.Schema({
 const Token = db.model("tokens", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     token: "TEXT NOT NULL UNIQUE",
-    user_id: "INTEGER NOT NULL", // 关联到 users.id
-    expires_at: "DATETIME NOT NULL", // 令牌失效时间
-    created_at: "DATETIME DEFAULT CURRENT_TIMESTAMP"
+    userId: "INTEGER NOT NULL", // 关联到 users.id
+    expiresAt: "DATETIME NOT NULL", // 令牌失效时间
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP"
 }));
 
 
@@ -51,10 +62,10 @@ const Token = db.model("tokens", db.Schema({
 // 用于存储 Key-Value 形式的全局系统配置
 // ----------------------------------------------------------------------
 const Setting = db.model("settings", db.Schema({
-    key_name: "TEXT PRIMARY KEY NOT NULL", // e.g., 'system_version', 'default_limit'
+    keyName: "TEXT PRIMARY KEY NOT NULL", // e.g., 'system_version', 'default_limit'
     value: "TEXT",
     description: "TEXT",
-    updated_at: "DATETIME DEFAULT CURRENT_TIMESTAMP"
+    updatedAt: "DATETIME DEFAULT CURRENT_TIMESTAMP"
 }));
 
 
@@ -64,15 +75,15 @@ const Setting = db.model("settings", db.Schema({
 // ----------------------------------------------------------------------
 const Upload = db.model("uploads", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
-    file_hash: "TEXT NOT NULL",
-    file_name: "TEXT NOT NULL",
-    total_chunks: "INTEGER NOT NULL",
-    uploaded_chunks: "TEXT NOT NULL", // JSON string of uploaded chunk indexes
-    temp_path: "TEXT NOT NULL", // 服务器存储临时块的目录
-    user_id: "INTEGER NOT NULL",
-    expires_at: "DATETIME NOT NULL" // 临时记录的失效时间
+    fileHash: "TEXT NOT NULL",
+    fileName: "TEXT NOT NULL",
+    totalChunks: "INTEGER NOT NULL",
+    uploadedChunks: "TEXT NOT NULL", // JSON string of uploaded chunk indexes
+    tempPath: "TEXT NOT NULL", // 服务器存储临时块的目录
+    userId: "INTEGER NOT NULL",
+    expiresAt: "DATETIME NOT NULL" // 临时记录的失效时间
 }));
 
 
 // 导出所有模型供其他模块使用
-module.exports = { User, File, Token, Setting, Upload };
+module.exports = { User, FileTable, Token, Setting, Upload };
