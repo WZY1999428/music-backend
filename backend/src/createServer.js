@@ -1,6 +1,7 @@
 
 const Koa = require('koa');
 const path = require('path');
+const { bodyParser } = require('@koa/bodyparser');
 const registerRoutes = require('./utils/registerRoutes');
 const viteServerMiddleware = require('./modules/viteServer');
 const attachErrorHandler = require('./utils/errorHandler');
@@ -11,6 +12,7 @@ async function createServer() {
     attachErrorHandler(app);
     await viteServerMiddleware(app);
     app
+        .use(bodyParser())
         .use(require('./middlewares/rangeFile')(path.join(__dirname, '../public')))
         .use(require('./middlewares/httpResponse')())
         .use(require('./middlewares/auth')())

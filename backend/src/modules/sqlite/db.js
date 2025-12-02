@@ -149,8 +149,8 @@ class Model {
         const values = Object.values(data);
 
         const sql = `INSERT INTO ${this.table} (${keys.join(",")}) VALUES (${placeholders})`;
-        await this.db.run(sql, values);
-        return data;
+        const result = await this.db.run(sql, values);
+        return {...data,id:result.lastID};
     }
 
     /**
@@ -158,11 +158,11 @@ class Model {
      * @param {object} where - 条件对象
      * @returns {Promise} - Promise 对象
      */
-    async findOne(where = {}) {
+    async findOne(where = {}, op = 'AND') {
         const keys = Object.keys(where);
-        const condition = keys.map(k => `${k}=?`).join(" AND ");
+        op = op.trim().toUpperCase();
+        const condition = keys.map(k => `${k}=?`).join(["ADN", "OR"].includes(op) ? ` ${op} ` : " AND ");
         const values = Object.values(where);
-
         const sql = `SELECT * FROM ${this.table} ${condition ? "WHERE " + condition : ""}`;
         return await this.db.get(sql, values);
     }

@@ -16,7 +16,6 @@ module.exports = async function viteServerMiddleware(app) {
     app.use(async (ctx, next) => {
         const url = ctx.path;
         console.log(url);
-        
         const startsWithsWhiteList = ["/api", "/@vite/", "/public"]
         const endsWithsWhiteList = [".js", ".ts", ".css", ".png", ".jpg", ".jpeg", ".gif"]
         if (startsWithsWhiteList.some(item => url.startsWith(item)) || endsWithsWhiteList.some(item => url.endsWith(item))) {

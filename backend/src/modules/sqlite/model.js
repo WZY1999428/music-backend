@@ -41,7 +41,8 @@ const Token = db.model("tokens", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     token: "TEXT NOT NULL UNIQUE",
     user_id: "INTEGER NOT NULL", // 关联到 users.id
-    expires_at: "DATETIME NOT NULL", // 令牌失效时间
+    expires_at: "INTEGER NOT NULL", // 令牌失效时间
+    enabled: "INTEGER NOT NULL DEFAULT 1",  // 0=禁用, 1=启用
     created_at: "DATETIME DEFAULT CURRENT_TIMESTAMP"
 }));
 
