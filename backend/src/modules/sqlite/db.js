@@ -105,10 +105,16 @@ class Model {
      */
     async _initTable() {
         const cols = Object.entries(this.schema)
-            .map(([key, type]) => `${key} ${type}`)
+            .map(([key, type]) => key === 'id'
+                ? `${key} INTEGER PRIMARY KEY AUTOINCREMENT`
+                : `${key} ${type}`)
             .join(", ");
-        const sql = `CREATE TABLE IF NOT EXISTS ${this.table} (${cols})`;
-        await this.db.run(sql);
+        // 创建表
+        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (${cols})`);
+        // 设置自增起始值为 1000
+        await this.db.run(`
+        INSERT OR REPLACE INTO sqlite_sequence(name, seq) VALUES('${this.table}', 999)
+    `);
     }
 
 
@@ -149,8 +155,13 @@ class Model {
         const values = Object.values(data);
 
         const sql = `INSERT INTO ${this.table} (${keys.join(",")}) VALUES (${placeholders})`;
-        const result = await this.db.run(sql, values);
-        return {...data,id:result.lastID};
+        const lastID = await this.db.run(sql, values).then(res => {
+            return res.lastID
+        })
+        return {
+            ...data,
+            id: lastID
+        };
     }
 
     /**
@@ -218,25 +229,37 @@ class Model {
         const setClause = setKeys.map(k => `${k}=?`).join(", ");
         const whereKeys = Object.keys(where);
         const condition = whereKeys.map(k => `${k}=?`).join(" AND ");
-
         const values = [...Object.values(data), ...Object.values(where)];
-
         const sql = `UPDATE ${this.table} SET ${setClause} WHERE ${condition}`;
         return await this.db.run(sql, values);
     }
 
-    /**
-     * 删除数据
-     * @param {object} where - 条件对象
-     * @returns {Promise} - Promise 对象
-     */
-    async delete(where) {
+    async deleteOne(where) {
         const keys = Object.keys(where);
+        if (!keys.length) throw new Error("deleteOne: 条件不能为空");
         const condition = keys.map(k => `${k}=?`).join(" AND ");
-
         const values = Object.values(where);
+        const sql = `DELETE FROM ${this.table} WHERE ${condition} LIMIT 1`;
+        return await this.db.run(sql, values);
+    }
 
-        const sql = `DELETE FROM ${this.table} WHERE ${condition}`;
+    // -------------------- 删除多条 --------------------
+    async deleteMany(where) {
+        const keys = Object.keys(where);
+        if (!keys.length) throw new Error("deleteMany: 条件不能为空");
+
+        const values = [];
+        const conditions = keys.map(key => {
+            if (Array.isArray(where[key])) {
+                values.push(...where[key]);
+                return `${key} IN (${where[key].map(() => '?').join(',')})`;
+            } else {
+                values.push(where[key]);
+                return `${key}=?`;
+            }
+        });
+
+        const sql = `DELETE FROM ${this.table} WHERE ${conditions.join(' AND ')}`;
         return await this.db.run(sql, values);
     }
 }

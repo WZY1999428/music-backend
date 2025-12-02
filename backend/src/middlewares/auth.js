@@ -8,7 +8,7 @@ const apiWhiteList = [
 
 module.exports = function auth() {
     return async (ctx, next) => {
-        const path = ctx.path;
+        // const path = ctx.path;
 
         // 1️⃣ 静态资源 /public/* 直接放行
         if (path.startsWith('/public/')) {
