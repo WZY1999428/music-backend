@@ -89,6 +89,17 @@ class Schema {
  * @param {Schema} schema - 表结构
  * @param {Database} db - 底层驱动
  */
+
+const opMap = {
+    $gt: '>',
+    $lt: '<',
+    $gte: '>=',
+    $lte: '<=',
+    $ne: '!=',
+    $eq: '=',
+    $like: 'LIKE'
+};
+
 class Model {
     constructor(table, schema, db) {
         this.table = table;
@@ -169,14 +180,38 @@ class Model {
      * @param {object} where - 条件对象
      * @returns {Promise} - Promise 对象
      */
+
+
+
     async findOne(where = {}, op = 'AND') {
         const keys = Object.keys(where);
         op = op.trim().toUpperCase();
-        const condition = keys.map(k => `${k}=?`).join(["ADN", "OR"].includes(op) ? ` ${op} ` : " AND ");
-        const values = Object.values(where);
+
+        const conditionList = [];
+        const values = [];
+
+        for (const k of keys) {
+            const v = where[k];
+            if (typeof v === 'object' && v !== null) {
+                // operator
+                const opKey = Object.keys(v)[0];
+                const sqlOp = opMap[opKey];
+                conditionList.push(`${k} ${sqlOp} ?`);
+                values.push(v[opKey]);
+            } else {
+                conditionList.push(`${k} = ?`);
+                values.push(v);
+            }
+        }
+
+        const condition = conditionList.join(
+            ["AND", "OR"].includes(op) ? ` ${op} ` : " AND "
+        );
+
         const sql = `SELECT * FROM ${this.table} ${condition ? "WHERE " + condition : ""}`;
         return await this.db.get(sql, values);
     }
+
 
     /**
      * 查询多条数据
@@ -239,7 +274,7 @@ class Model {
         if (!keys.length) throw new Error("deleteOne: 条件不能为空");
         const condition = keys.map(k => `${k}=?`).join(" AND ");
         const values = Object.values(where);
-        const sql = `DELETE FROM ${this.table} WHERE ${condition} LIMIT 1`;
+        const sql = `DELETE FROM ${this.table} WHERE ${condition}`;
         return await this.db.run(sql, values);
     }
 
@@ -249,19 +284,35 @@ class Model {
         if (!keys.length) throw new Error("deleteMany: 条件不能为空");
 
         const values = [];
-        const conditions = keys.map(key => {
-            if (Array.isArray(where[key])) {
-                values.push(...where[key]);
-                return `${key} IN (${where[key].map(() => '?').join(',')})`;
-            } else {
-                values.push(where[key]);
-                return `${key}=?`;
+        const conditions = [];
+
+        for (const key of keys) {
+            const cond = where[key];
+            // 简单值：rootPath: "xxx"
+            if (typeof cond !== "object" || cond === null) {
+                values.push(cond);
+                conditions.push(`${key} = ?`);
+                continue;
             }
-        });
+            // 对象形式条件
+            if (cond.$not !== undefined) {
+                values.push(cond.$not);
+                conditions.push(`${key} != ?`);
+            } else if (cond.$ne !== undefined) {
+                values.push(cond.$ne);
+                conditions.push(`${key} != ?`);
+            } else if (Array.isArray(cond.$in)) {
+                values.push(...cond.$in);
+                conditions.push(`${key} IN (${cond.$in.map(() => '?').join(',')})`);
+            } else {
+                throw new Error(`deleteMany: 不支持的条件: ${JSON.stringify(cond)}`);
+            }
+        }
 
         const sql = `DELETE FROM ${this.table} WHERE ${conditions.join(' AND ')}`;
         return await this.db.run(sql, values);
     }
+
 }
 
 /**

@@ -18,6 +18,7 @@ const User = db.model("users", db.Schema({
 // ----------------------------------------------------------------------
 // 2. 🥈 文件/文件夹模型 (File Model)
 // 统一管理所有文件、文件夹及回收站（软删除）
+// 注意windows的ino可能会随着文件移动而改变
 // ----------------------------------------------------------------------
 const FileTable = db.model("files", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -26,7 +27,7 @@ const FileTable = db.model("files", db.Schema({
     isFolder: "INTEGER NOT NULL DEFAULT 0", // 0=文件, 1=文件夹 
     parentId: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
     size: "INTEGER NOT NULL DEFAULT 0",
-    hash: "TEXT UNIQUE", // 文件内容的唯一哈希值（用于秒传/去重）
+    hash: "TEXT", // 文件内容的唯一哈希值（用于秒传/去重）
     path: "TEXT UNIQUE ", // 服务器存储路径
     rootPath: "TEXT NOT NULL", // 根目录路径
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",

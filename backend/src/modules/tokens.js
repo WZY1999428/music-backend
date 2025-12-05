@@ -32,7 +32,7 @@ async function checkToken(token) {
     if (!record) throw new Error("Token revoked or expired");
     return payload; // 返回 payload，更通用
   } catch (err) {
-    throw new Error("Invalid token");
+    throw new Error(err.message);
   }
 }
 /**

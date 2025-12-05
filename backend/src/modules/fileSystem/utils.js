@@ -1,10 +1,10 @@
 // -------------------- 构建数据库记录 --------------------
 const crypto = require("crypto");
 const { createReadStream } = require("fs");
-const fs = require("fs/promises");
+const fs = require("fs-extra");
 const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
-const {FileTable} = require("../sqlite/model");
+const { FileTable } = require("../sqlite/model");
 async function buildFileRecord(fullPath, stat, parent_id = 0) {
     let hash = null;
     if (stat.isFile()) {
@@ -41,7 +41,6 @@ async function scanDir(p, level = 0, parent_id = 0) {
         const fullPath = path.join(p, entryName);
         const stat = await fs.stat(fullPath);
         const record = await buildFileRecord(fullPath, stat, parent_id);
-        // 插入数据库，返回自增 id
         let data;
         try {
             data = await FileTable.insert(record);
@@ -56,7 +55,6 @@ async function scanDir(p, level = 0, parent_id = 0) {
         }
     }
 }
-
 
 
 module.exports = { buildFileRecord, hashFile, scanDir };
