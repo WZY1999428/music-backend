@@ -27,12 +27,13 @@ const FileTable = db.model("files", db.Schema({
     isFolder: "INTEGER NOT NULL DEFAULT 0", // 0=文件, 1=文件夹 
     parentId: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
     size: "INTEGER NOT NULL DEFAULT 0",
+    fileType: "TEXT",
     hash: "TEXT", // 文件内容的唯一哈希值（用于秒传/去重）
     path: "TEXT UNIQUE ", // 服务器存储路径
     rootPath: "TEXT NOT NULL", // 根目录路径
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
     updatedAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
-    status: "INTEGER" // 0: 正常；1: 在回收站中 2：移动文件，重命名文件标记 
+    status: "INTEGER NOT NULL DEFAULT 0" // 0: 正常；1: 在回收站中 2：移动文件，重命名文件标记 
 }));
   
 // 给 Model 原型挂 getter/setter

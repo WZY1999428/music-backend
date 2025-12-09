@@ -2,7 +2,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const { FileTable } = require("@/modules/sqlite/model");
 const { scanDir } = require("@/modules/fileSystem/utils");
-
+const scanning = {}; // 简单锁
 module.exports = async (ctx) => {
     try {
         const parentId = ctx.query.parentId || 0;
@@ -13,8 +13,13 @@ module.exports = async (ctx) => {
             const filePath = path.join(file.rootPath, file.path);
             const stat = await fs.stat(filePath);
             if (stat.isDirectory()) {
-                await scanDir(filePath, 0, parentId);
-                files = await FileTable.find([{ field: "parentId", value: parentId }]);
+                // 避免重复扫描
+                if (!scanning[parentId]) {
+                    scanning[parentId] = true;
+                    await scanDir(filePath, 0, parentId);
+                    files = await FileTable.find([{ field: "parentId", value: parentId }]);
+                    delete scanning[parentId];
+                }
             }
         }
         ctx.success(files);
