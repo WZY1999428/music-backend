@@ -1,25 +1,34 @@
 // -------------------- 构建数据库记录 --------------------
 const crypto = require("crypto");
 const { createReadStream } = require("fs");
+const { fileTypeFromBuffer } = require('file-type');
+const { readChunk } = require('read-chunk');
 const fs = require("fs-extra");
 const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 const { FileTable } = require("../sqlite/model");
 async function buildFileRecord(fullPath, stat, parent_id = 0) {
-    let hash = null;
-    if (stat.isFile()) {
-        hash = await hashFile(fullPath);
-    }
-    return {
+    const record = {
         name: path.basename(fullPath),
         isFolder: stat.isDirectory() ? 1 : 0,
         parentId: parent_id,
         rootPath: fileDir,
         ino: stat.ino,
+        mimeType: null,
+        extension: null,
         size: stat.isFile() ? stat.size : 0,
-        hash,
+        hash: null,
         path: path.relative(fileDir, fullPath)
     };
+    if (stat.isFile()) {
+        record.hash = await hashFile(fullPath);
+        const buffer = await readChunk(fullPath, { length: 4100 });
+        const { ext, mime } = await fileTypeFromBuffer(buffer)
+        record.mimeType = mime;
+        record.extension = ext;
+    }
+
+    return record
 }
 
 // -------------------- 文件 MD5 --------------------
@@ -58,3 +67,4 @@ async function scanDir(p, level = 0, parent_id = 0) {
 
 
 module.exports = { buildFileRecord, hashFile, scanDir };
+

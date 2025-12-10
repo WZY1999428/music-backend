@@ -253,6 +253,105 @@ class Model {
         return await this.db.all(sql, [...values, pageSize, offset]);
     }
 
+
+    /**
+        * 执行链表查询 (JOIN) 并支持筛选和分页。
+        * * @param {Array<Object>} tables - 表连接定义
+        * @param {Array<Object>} filters - 筛选条件 (与 find 方法相同)
+        * @param {number} pageIndex - 页码
+        * @param {number} pageSize - 每页大小
+        * @returns {Promise<Array<Object>>} 查询结果
+        * 
+        * 
+        * await fileModel.joinFind({
+            fields: ['t1.*', 't2.createdAt AS collectTime'], 
+            joins: [
+                {
+                    name: 'collections',
+                    type: 'LEFT JOIN',
+                    on: 't2.fileId = t1.id'
+                }
+            ],
+            filters: [
+                { field: 't1.status', op: '=', value: 0 }
+            ],
+            pageIndex: 1,
+            pageSize: 20
+        });
+     */
+    async joinFind({
+        fields = ['t1.*'],   // 要查询的字段
+        joins = [],          // join 表信息
+        filters = [],        // where 条件
+        pageIndex = 1,
+        pageSize = 20
+    } = {}) {
+
+        // ----------------------------------------------------
+        // 1. WHERE 条件
+        // ----------------------------------------------------
+        const conditions = [];
+        const values = [];
+
+        filters.forEach((f, i) => {
+            const op = (f.op || '=').toUpperCase();
+            let val = f.value;
+
+            if (op === 'LIKE') val = `%${val}%`;
+
+            if (op === 'IN' && Array.isArray(val)) {
+                const placeholders = val.map(() => '?').join(', ');
+                values.push(...val);
+                conditions.push(`${i === 0 ? '' : f.logic || 'AND'} ${f.field} IN (${placeholders})`);
+                return;
+            }
+
+            values.push(val);
+            conditions.push(`${i === 0 ? '' : f.logic || 'AND'} ${f.field} ${op} ?`);
+        });
+
+        // 拼接 WHERE
+        let whereClause = '';
+        if (conditions.length > 0) {
+            const first = conditions[0].replace(/^(AND|OR)\s+/i, '');
+            const rest = conditions.slice(1).join(' ');
+            whereClause = `WHERE ${first} ${rest}`.trim();
+        }
+
+        // ----------------------------------------------------
+        // 2. JOIN 子句
+        // ----------------------------------------------------
+        let joinSQL = `FROM ${this.table} AS t1`;
+
+        joins.forEach((j, index) => {
+            const alias = `t${index + 2}`;
+            const type = j.type ? j.type.toUpperCase() : 'INNER JOIN';
+
+            if (!j.on) {
+                throw new Error(`Join '${j.name}' 必须指定 on`);
+            }
+
+            joinSQL += `
+            ${type} ${j.name} AS ${alias} ON ${j.on}
+        `;
+        });
+
+        // ----------------------------------------------------
+        // 3. SQL 拼接
+        // ----------------------------------------------------
+        const offset = (pageIndex - 1) * pageSize;
+
+        const sql = `
+        SELECT ${fields.join(', ')}
+        ${joinSQL}
+        ${whereClause}
+        LIMIT ? OFFSET ?
+    `;
+
+        return await this.db.all(sql, [...values, pageSize, offset]);
+    }
+
+
     /**
      * 更新数据
      * @param {object} where - 条件对象

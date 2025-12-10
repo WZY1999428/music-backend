@@ -4,25 +4,22 @@ use napi::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
-use notify::{Event, RecursiveMode, Watcher};
-use std::sync::Mutex;
-use std::{path::Path, sync::mpsc};
-use std::{sync::Arc, thread};
 
-// #[napi(constructor)]
-// pub struct Watcher {
-//   pub watcher: Arc<Mutex<notify::RecommendedWatcher>>,
-// }
+#[napi(constructor)]
+pub struct Watcher {
 
-// #[napi]
-// impl Watcher {
-//   #[napi(constructor)]
-//   pub fn new() -> Self {
-//     Watcher {
-//       engine: QueryEngine::new(),
-//     }
-//   }
-// }
+  
+}
+
+#[napi]
+impl Watcher {
+  #[napi(constructor)]
+  pub fn new() -> Self {
+    Watcher {
+
+    }
+  }
+}
 
 // #[napi]
 // pub fn call_threadsafe_function(

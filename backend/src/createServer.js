@@ -22,7 +22,11 @@ async function createServer() {
         .use(require('./middlewares/auth')())
         .use(router.routes())
         .use(router.allowedMethods())
-        .listen(process.env.SERVER_PORT, () => console.log(`http://localhost:${process.env.SERVER_PORT}`));
+        .listen(process.env.SERVER_PORT, () => console.blueLog(` http://localhost:${process.env.SERVER_PORT}`));
+
 }
+
+
+
 
 module.exports = createServer;

@@ -4,6 +4,26 @@
 # 忽略所有 yarn.lock / package-lock.json
 **/yarn.lock
 **/package-lock.json
+native-code/target
+**/**.node
 
 # 忽略所有 dist 输出目录
 **/dist/
+# Auto detect text files and perform LF normalization
+* text=auto
+
+
+*.ts    text eol=lf merge=union
+*.tsx   text eol=lf merge=union
+*.rs    text eol=lf merge=union
+*.js    text eol=lf merge=union
+*.json  text eol=lf merge=union
+*.debug text eol=lf merge=union
+
+# Generated codes
+index.js                         linguist-detectable=false
+index.d.ts                       linguist-detectable=false
+native-code.wasi-browser.js linguist-detectable=false
+native-code.wasi.cjs        linguist-detectable=false
+wasi-worker-browser.mjs          linguist-detectable=false
+wasi-worker.mjs                  linguist-detectable=false

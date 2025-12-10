@@ -27,7 +27,8 @@ const FileTable = db.model("files", db.Schema({
     isFolder: "INTEGER NOT NULL DEFAULT 0", // 0=文件, 1=文件夹 
     parentId: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
     size: "INTEGER NOT NULL DEFAULT 0",
-    fileType: "TEXT",
+    mimeType: "TEXT",       // ← 文件内容真实类型
+    extension: "TEXT",      // ← 文件后缀（含 or 不含 . 均可）
     hash: "TEXT", // 文件内容的唯一哈希值（用于秒传/去重）
     path: "TEXT UNIQUE ", // 服务器存储路径
     rootPath: "TEXT NOT NULL", // 根目录路径
@@ -35,16 +36,7 @@ const FileTable = db.model("files", db.Schema({
     updatedAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
     status: "INTEGER NOT NULL DEFAULT 0" // 0: 正常；1: 在回收站中 2：移动文件，重命名文件标记 
 }));
-  
-// 给 Model 原型挂 getter/setter
-Object.defineProperty(File.prototype, "is_folder", {
-    get() {
-        return this._is_folder === 1;
-    },
-    set(v) {
-        this._is_folder = v ? 1 : 0;
-    }
-});
+
 
 // ----------------------------------------------------------------------
 // 3. 🔑 会话令牌模型 (Token Model)
@@ -88,5 +80,18 @@ const Upload = db.model("uploads", db.Schema({
 }));
 
 
+// ----------------------------------------------------------------------
+// 6. 🌟 收藏模型 (Collection Model)
+// 用于管理用户收藏的文件
+// ----------------------------------------------------------------------
+const Collection = db.model("collections", db.Schema({
+    id: "INTEGER PRIMARY KEY AUTOINCREMENT",
+    fileId: "INTEGER NOT NULL",       // 指向 files.id
+    rootPath: "TEXT NOT NULL",        // 对应 files.rootPath（可选，根据你业务来）
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
+}));
+
+
+
 // 导出所有模型供其他模块使用
-module.exports = { User, FileTable, Token, Setting, Upload };
+module.exports = { User, FileTable, Token, Setting, Upload, Collection };
