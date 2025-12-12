@@ -10,13 +10,6 @@ Object.defineProperty(Array.prototype, 'isEmpty', {
   enumerable: false
 });
 
-Object.defineProperty(Object.prototype, 'isEmpty', {
-  value: function() {
-    return Object.keys(this).length === 0;
-  },
-  enumerable: false
-});
-
 
 // 给 Date 扩展一个 format 方法
 Object.defineProperty(Date.prototype, 'format', {
@@ -25,6 +18,8 @@ Object.defineProperty(Date.prototype, 'format', {
   },
   enumerable: false // 不会被 for..in 枚举
 });
+
+
 
 
 //  Array.prototype.isEmpty = function () { return this.length === 0; } 可能导致逻辑错误，尤其是你的代码里有用 for..in 遍历对象或数组的时候。

@@ -3,8 +3,8 @@
  * ============================
  * @class Database
  * @description
- *  Database 的底层驱动，使用 sqlite3
- *  通过 Promise 来处理异步
+ * Database 的底层驱动，使用 sqlite3
+ * 通过 Promise 来处理异步
  * @constructor
  * @param {string} dbFile - 数据库文件路径
  */
@@ -15,6 +15,8 @@ const path = require("path");
 class Database {
     constructor(dbFile = path.resolve("", "app.db")) {
         this.db = new sqlite3.Database(dbFile);
+        this.db.run(`PRAGMA journal_mode = WAL;`);
+        this.db.run(`PRAGMA busy_timeout = 3000;`);
     }
 
     /**
@@ -47,6 +49,24 @@ class Database {
         });
     }
 
+    serialize(cb) {
+        return this.db.serialize(cb);
+    }
+
+    /**
+     * 【修正】准备预处理语句 (Promisified)
+     * @param {string} sql - SQL 语句
+     * @returns {Promise<sqlite3.Statement>} - Statement 对象
+     */
+    prepare(sql) {
+        return new Promise((resolve, reject) => {
+            const stmt = this.db.prepare(sql, (err) => {
+                if (err) reject(err);
+                else resolve(stmt); // Resolve with the Statement object
+            });
+        });
+    }
+
     /**
      * 查询多条数据
      * @param {string} sql - SQL 语句
@@ -64,26 +84,28 @@ class Database {
 }
 
 /**
- * Schema：仅用于定义结构
- * ============================
- * @class Schema
- * @description
- *  Schema 用于定义表结构
+ * Schema：仅用于定义结构 (支持复合约束)
  * @constructor
  * @param {object} definition - 结构定义对象
+ * @class Schema
+ * @param {object} definition - 结构定义对象
+ * @param {object} [options={}] - 额外的表选项，如 constraints
  */
 class Schema {
-    constructor(definition) {
+    constructor(definition, options = {}) {
         this.definition = definition;
+        // 存储额外的约束列表，例如 ["UNIQUE (userId, fileId)"]
+        this.constraints = options.constraints || [];
     }
 }
+// -------------------------------------------------------------------
 
 /**
  * Model：负责 CRUD
  * ============================
  * @class Model
  * @description
- *  Model 负责 CRUD 操作
+ * Model 负责 CRUD 操作
  * @constructor
  * @param {string} table - 表名
  * @param {Schema} schema - 表结构
@@ -105,7 +127,7 @@ class Model {
         this.table = table;
         this.schema = schema.definition;
         this.db = db;
-
+        this.constraints = schema.constraints;
         this._initTable();
     }
 
@@ -115,42 +137,38 @@ class Model {
      * @returns {Promise} - Promise 对象
      */
     async _initTable() {
+        // 1. 拼接列定义
         const cols = Object.entries(this.schema)
             .map(([key, type]) => key === 'id'
                 ? `${key} INTEGER PRIMARY KEY AUTOINCREMENT`
                 : `${key} ${type}`)
             .join(", ");
-        // 创建表
-        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (${cols})`);
-        // 设置自增起始值为 1000
+
+        // 2. 拼接完整的表定义，包含约束
+        let fullDefinition = cols;
+
+        if (this.constraints && this.constraints.length) {
+            fullDefinition += ', ' + this.constraints.join(', ');
+        }
+
+        // 3. 创建表，使用完整的定义
+        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (${fullDefinition})`);
+
+        // 设置自增起始值
         await this.db.run(`
-        INSERT OR REPLACE INTO sqlite_sequence(name, seq) VALUES('${this.table}', 999)
-    `);
+            INSERT OR REPLACE INTO sqlite_sequence(name, seq) VALUES('${this.table}', 999)
+        `);
     }
 
-
-
     // ======= 事务方法 =======
-    /**
-     * 开始事务
-     *  @returns {Promise} - Promise 对象
-     */
     beginTransaction() {
         return this.db.run("BEGIN TRANSACTION;");
     }
 
-    /**
-     * 提交事务
-     * @returns {Promise} - Promise 对象
-     */
     commit() {
         return this.db.run("COMMIT;");
     }
 
-    /**
-     * 回滚事务
-     * @returns {Promise} - Promise 对象
-     */
     rollback() {
         return this.db.run("ROLLBACK;");
     }
@@ -176,13 +194,92 @@ class Model {
     }
 
     /**
+     * 【重构核心】批量插入的基础方法
+     * @param {Array<Object>} datas 要插入的数据对象数组。
+     * @param {string} mode - 'INSERT' (默认) 或 'INSERT OR IGNORE' (用于避免重复插入报错)
+     * @returns {Promise<Object>} 数据库运行结果，包含实际插入的行数。
+     * @throws {Error} 如果 datas 为空或数据对象没有字段。
+     */
+    async _insertManyBase(datas = [], mode = 'INSERT') {
+        if (!Array.isArray(datas) || datas.length === 0) {
+            throw new Error("_insertManyBase: 插入数据不能为空");
+        }
+
+        const columns = Object.keys(datas[0]);
+        if (columns.length === 0) {
+            throw new Error("_insertManyBase: 插入数据对象中没有字段");
+        }
+
+        const columnNames = columns.join(', ');
+        const placeholders = columns.map(() => '?').join(', ');
+        
+        // 关键：根据模式选择 SQL 语句
+        const singleInsertSql = `${mode} INTO ${this.table} (${columnNames}) VALUES (${placeholders})`;
+
+        return new Promise((resolve, reject) => {
+            this.db.serialize(async () => {
+                let stmt = null;
+                let totalChanges = 0; // 记录实际更改数量
+                try {
+                    await this.beginTransaction();
+                    
+                    // 使用 Promise 化的 this.db.prepare
+                    stmt = await this.db.prepare(singleInsertSql);
+
+                    for (const data of datas) {
+                        const values = columns.map(col => data[col]);
+
+                        // 统一使用 Promise 封装 stmt.run 并追踪 changes
+                        await new Promise((res, rej) => {
+                            stmt.run(values, function (err) { // 必须使用 function(err) 才能访问 this
+                                if (err) rej(err);
+                                else {
+                                    totalChanges += this.changes || 0; // 累加实际影响的行数！
+                                    res();
+                                }
+                            });
+                        });
+                    }
+
+                    stmt.finalize();
+                    await this.commit();
+                    resolve({ changes: totalChanges }); // 返回实际更改数量
+
+                } catch (err) {
+                    if (stmt) {
+                        stmt.finalize();
+                    }
+                    await this.rollback();
+                    reject(err);
+                }
+            });
+        });
+    }
+
+    /**
+     * 【新增】批量插入多条数据 (默认模式，遇到重复会抛错)。
+     * @param {Array<Object>} datas 要插入的数据对象数组。
+     * @returns {Promise<Object>} 数据库运行结果，包含实际插入的行数。
+     */
+    insertMany(datas = []) {
+        return this._insertManyBase(datas, 'INSERT');
+    }
+
+    /**
+     * 【新增】批量插入多条数据，遇到重复的则忽略 (例如用于收藏夹)。
+     * @param {Array<Object>} datas 要插入的数据对象数组。
+     * @returns {Promise<Object>} 数据库运行结果，包含实际插入的行数。
+     */
+    insertManyIgnore(datas = []) {
+        return this._insertManyBase(datas, 'INSERT OR IGNORE');
+    }
+
+
+    /**
      * 查询单条数据
      * @param {object} where - 条件对象
      * @returns {Promise} - Promise 对象
      */
-
-
-
     async findOne(where = {}, op = 'AND') {
         const keys = Object.keys(where);
         op = op.trim().toUpperCase();
@@ -219,11 +316,6 @@ class Model {
      * @param {number} pageIndex - 页码，从 1 开始
      * @param {number} pageSize - 每页条数
      * @returns {Promise} - Promise 对象
-     *await User.find([
-        { field: 'age', value: 18, op: '>=' },
-        { field: 'username', value: '小吴', op: 'LIKE', logic: 'AND' },
-        { field: 'id', value: [1,2,3], op: 'IN', logic: 'OR' }
-        ], 1, 20);
      */
     async find(filters = [], pageIndex = 1, pageSize = 20) {
         const conditions = [];
@@ -261,23 +353,6 @@ class Model {
         * @param {number} pageIndex - 页码
         * @param {number} pageSize - 每页大小
         * @returns {Promise<Array<Object>>} 查询结果
-        * 
-        * 
-        * await fileModel.joinFind({
-            fields: ['t1.*', 't2.createdAt AS collectTime'], 
-            joins: [
-                {
-                    name: 'collections',
-                    type: 'LEFT JOIN',
-                    on: 't2.fileId = t1.id'
-                }
-            ],
-            filters: [
-                { field: 't1.status', op: '=', value: 0 }
-            ],
-            pageIndex: 1,
-            pageSize: 20
-        });
      */
     async joinFind({
         fields = ['t1.*'],   // 要查询的字段
@@ -340,18 +415,22 @@ class Model {
         // 3. SQL 拼接
         // ----------------------------------------------------
         const offset = (pageIndex - 1) * pageSize;
-
         const sql = `
         SELECT ${fields.join(', ')}
         ${joinSQL}
         ${whereClause}
         LIMIT ? OFFSET ?
-    `;
+    `;  
+
+    console.log(sql);
 
         return await this.db.all(sql, [...values, pageSize, offset]);
     }
 
-
+    async clear() {
+        const sql = `DELETE FROM ${this.table}`;
+        return await this.db.run(sql);
+    }
     /**
      * 更新数据
      * @param {object} where - 条件对象
@@ -377,41 +456,97 @@ class Model {
         return await this.db.run(sql, values);
     }
 
-    // -------------------- 删除多条 --------------------
-    async deleteMany(where) {
+    // -------------------- 删除多条（事务 + prepared statement） --------------------
+    /**
+     * 【修正版】批量删除多条数据 (统一使用 Promise 封装 stmt.run 并追踪 changes)。
+     * @param {*} where 
+     * @param {*} op 
+     * @returns 
+     */
+    async deleteMany(where, op = 'AND') {
         const keys = Object.keys(where);
         if (!keys.length) throw new Error("deleteMany: 条件不能为空");
 
-        const values = [];
-        const conditions = [];
+        // 先解析条件（除了 $in）
+        const baseConditions = [];
+        const baseValues = [];
+        let inField = null;
+        let inValues = [];
 
         for (const key of keys) {
             const cond = where[key];
-            // 简单值：rootPath: "xxx"
+
             if (typeof cond !== "object" || cond === null) {
-                values.push(cond);
-                conditions.push(`${key} = ?`);
+                baseConditions.push(`${key} = ?`);
+                baseValues.push(cond);
                 continue;
             }
-            // 对象形式条件
+
             if (cond.$not !== undefined) {
-                values.push(cond.$not);
-                conditions.push(`${key} != ?`);
+                baseConditions.push(`${key} != ?`);
+                baseValues.push(cond.$not);
+
             } else if (cond.$ne !== undefined) {
-                values.push(cond.$ne);
-                conditions.push(`${key} != ?`);
+                baseConditions.push(`${key} != ?`);
+                baseValues.push(cond.$ne);
+
             } else if (Array.isArray(cond.$in)) {
-                values.push(...cond.$in);
-                conditions.push(`${key} IN (${cond.$in.map(() => '?').join(',')})`);
+                inField = key;
+                inValues = cond.$in;
+
             } else {
                 throw new Error(`deleteMany: 不支持的条件: ${JSON.stringify(cond)}`);
             }
         }
 
-        const sql = `DELETE FROM ${this.table} WHERE ${conditions.join(' AND ')}`;
-        return await this.db.run(sql, values);
-    }
+        // 基础 WHERE（不含 $in）
+        const baseWhere = baseConditions.length
+            ? baseConditions.join(` ${op} `)
+            : "1 = 1";
 
+        // 如果没有 $in，则普通 delete
+        if (!inField) {
+            const sql = `DELETE FROM ${this.table} WHERE ${baseWhere}`;
+            return await this.db.run(sql, baseValues);
+        }
+
+        // 有 $in → 使用事务 + prepared statement
+        return new Promise((resolve, reject) => {
+            this.db.serialize(async () => {
+                let stmt = null;
+                let totalChanges = 0; // 追踪实际更改数量
+                try {
+                    await this.beginTransaction();
+
+                    const sql = `DELETE FROM ${this.table} WHERE ${baseWhere} ${baseWhere ? op : ""} ${inField} = ?`;
+                    stmt = await this.db.prepare(sql);
+
+                    for (const val of inValues) {
+                        // 修正：统一使用 Promise 封装 stmt.run 并追踪 changes
+                        await new Promise((res, rej) => {
+                            stmt.run([...baseValues, val], function (err) {
+                                if (err) rej(err);
+                                else {
+                                    totalChanges += this.changes || 0; // 追踪更改
+                                    res();
+                                }
+                            });
+                        });
+                    }
+
+                    stmt.finalize();
+                    await this.commit();
+                    resolve({ changes: totalChanges }); // 返回实际更改数量
+                } catch (err) {
+                    if (stmt) {
+                        stmt.finalize();
+                    }
+                    await this.rollback();
+                    reject(err);
+                }
+            });
+        });
+    }
 }
 
 /**
@@ -419,7 +554,7 @@ class Model {
  * ============================
  * @class MongoSqlite
  * @description
- *  对外暴露的效果：mongoose 的 API
+ * 对外暴露的效果：mongoose 的 API
  * @constructor
  * @param {string} dbFile - 数据库文件路径
  */
@@ -447,8 +582,8 @@ class MongoSqlite {
      * @param {object} definition - 结构定义对象
      * @returns {Schema} - Schema 对象
      */
-    Schema(def) {
-        return new Schema(def);
+    Schema(def, options) {
+        return new Schema(def, options);
     }
 }
 

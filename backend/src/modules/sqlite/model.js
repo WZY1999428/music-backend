@@ -45,10 +45,10 @@ const FileTable = db.model("files", db.Schema({
 const Token = db.model("tokens", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     token: "TEXT NOT NULL UNIQUE",
-    user_id: "INTEGER NOT NULL", // 关联到 users.id
-    expires_at: "INTEGER NOT NULL", // 令牌失效时间
+    userId: "INTEGER NOT NULL", // 关联到 users.id
+    expiresAt: "INTEGER NOT NULL", // 令牌失效时间
     enabled: "INTEGER NOT NULL DEFAULT 1",  // 0=禁用, 1=启用
-    created_at: "DATETIME DEFAULT CURRENT_TIMESTAMP"
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP"
 }));
 
 
@@ -81,17 +81,17 @@ const Upload = db.model("uploads", db.Schema({
 
 
 // ----------------------------------------------------------------------
-// 6. 🌟 收藏模型 (Collection Model)
-// 用于管理用户收藏的文件
+// 6. ⭐️ 我的收藏模型 (Favorite Model)
+// 存储用户和文件之间的收藏关系
 // ----------------------------------------------------------------------
-const Collection = db.model("collections", db.Schema({
+const Favorite = db.model("favorites", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
-    fileId: "INTEGER NOT NULL",       // 指向 files.id
-    rootPath: "TEXT NOT NULL",        // 对应 files.rootPath（可选，根据你业务来）
+    userId: "INTEGER NOT NULL", // 关联到 users.id
+    fileId: "INTEGER NOT NULL ", // 关联到 files.id
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
+}, {
+    constraints: ["UNIQUE (userId, fileId)"]
 }));
 
-
-
 // 导出所有模型供其他模块使用
-module.exports = { User, FileTable, Token, Setting, Upload, Collection };
+module.exports = { User, FileTable, Token, Setting, Upload, Favorite };
