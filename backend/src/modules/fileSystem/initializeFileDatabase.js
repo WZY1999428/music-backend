@@ -1,4 +1,5 @@
 const { FileTable } = require("../sqlite/model");
+const fs = require("fs-extra");
 // const watchFiles = require("./watchFiles");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 const { scanDir } = require("./utils");
@@ -17,25 +18,23 @@ function askQuestion(q) {
     );
 }
 
-module.exports = async function initFileDB() {
+async function initFileDB() {
     try {
         // watchFiles();
+        const stat = await fs.stat(fileDir);
+        if (!stat.isDirectory()) {
+            throw new Error(`${fileDir} 目录不存在`);
+        }
 
-        // 先一次性读出所有记录（你说得对，要提前）
         const allFiles = await FileTable.find([]);
-
-        // 情况 A：数据库完全空 -> 全量初始化
         if (allFiles.length === 0) {
             console.log("初始化文件数据库...");
             await scanDir(fileDir, 0, 0);
             console.log("文件数据库初始化完成");
             return true;
         }
-
         // 检查是否有与当前 fileDir 匹配的记录
         const matching = allFiles.filter(f => f.rootPath === fileDir);
-
-        // 情况 B：数据库有数据，但没有匹配当前 rootPath -> 提示用户处理
         if (matching.length === 0) {
             const dbRootPaths = [...new Set(allFiles.map(f => f.rootPath || ""))].filter(p => p);
             console.log("\n⚠ 检测到文件数据库中没有与当前配置 rootPath 匹配的记录。");
@@ -45,9 +44,7 @@ module.exports = async function initFileDB() {
             console.log("1. 清空数据库并重新同步");
             console.log("2. 直接同步（不清空数据库，可能出现重复记录）");
             console.log("3. 退出");
-
             const ans = await askQuestion("\n输入选项（1/2/3）：");
-
             if (ans === "1") {
                 console.log("清空数据库...");
                 await FileTable.deleteMany({
@@ -60,18 +57,15 @@ module.exports = async function initFileDB() {
                 console.log("完成：数据库已重建并同步。");
                 return true;
             }
-
             if (ans === "2") {
                 console.log("直接同步，不清空数据库...");
                 await scanDir(fileDir, 0, 0);
                 console.log("同步完成");
                 return true;
             }
-
             console.log("已退出，不进行同步。");
             return false;
         }
-
         // 情况 C：存在匹配的 rootPath -> 正常通过
         return true;
     } catch (err) {
@@ -79,3 +73,6 @@ module.exports = async function initFileDB() {
         return false;
     }
 };
+
+
+module.exports = initFileDB
