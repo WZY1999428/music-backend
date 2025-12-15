@@ -10,7 +10,7 @@ const { FileTable } = require("../sqlite/model");
 async function buildFileRecord(fullPath, stat, parent_id = 0) {
     const record = {
         name: path.basename(fullPath),
-        isFolder: stat.isDirectory() ? 1 : 0,
+        isFolder: stat.isDirectory() ? 1 : 0, 
         parentId: parent_id,
         rootPath: fileDir,
         ino: stat.ino,
@@ -23,6 +23,8 @@ async function buildFileRecord(fullPath, stat, parent_id = 0) {
     };
     if (stat.isFile()) {
         record.hash = await hashFile(fullPath);
+        console.log(fullPath);
+        
         const buffer = await readChunk(fullPath, { length: 4100 });
         const { ext, mime } = await fileTypeFromBuffer(buffer)
         record.mimeType = mime;

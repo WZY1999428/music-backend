@@ -1,5 +1,5 @@
 <template>
-   <el-container>
+  <el-container>
     <el-header>
       <el-button type="primary">按钮</el-button>
       <IconSprite name="ppt"></IconSprite>
@@ -11,8 +11,9 @@
   </el-container>
 </template>
 
-<script>
-export default {
-    name: "index"
-}
+<script setup>
+import useUserStore from '@/store/user'
+const userStore = useUserStore()
+
+userStore.getUserInfo();
 </script>

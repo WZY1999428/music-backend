@@ -2,7 +2,6 @@ const fs = require("fs-extra");
 const path = require("path");
 const { FileTable } = require("@/modules/sqlite/model");
 const { buildFileRecord } = require("@/modules/fileSystem/utils");
-
 /**
  * 复制文件
  * 

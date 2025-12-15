@@ -3,17 +3,16 @@
         <div class="login-card">
             <div class="logo-area">
                 <img class="logo" src="/logo2.png" alt="logo">
-                <!-- <span class="logo-icon">☁️🌿</span>-->
-                <span class="logo-text">小清新云盘</span>
+                <span class="logo-text">小清新云盘</span>   
             </div>
             <div class="form-wrapper">
                 <template v-if="isInitialized">
                     <h2 class="title">💖 欢迎回来！管理员登录</h2>
-                    <el-form @submit.prevent="handleLogin">
-                        <el-form-item>
+                    <el-form :model="loginForm" :rules="loginFormRules" ref="formRef">
+                        <el-form-item prop="username">
                             <el-input size="large" type="text" v-model="loginForm.username" placeholder="用户名" />
                         </el-form-item>
-                        <el-form-item>
+                        <el-form-item prop="password">
                             <el-input size="large" type="password" v-model="loginForm.password" placeholder="密码" />
                         </el-form-item>
                         <div class="remember-me">
@@ -21,28 +20,30 @@
                                 <span>记住我</span>
                             </el-checkbox>
                         </div>
-                        <el-button size="large" class="w-full" type="primary">🚀 登 录</el-button>
+                        <el-button size="large" @click="handleLogin" :loading="submitLoading" class="w-full"
+                            type="primary">🚀 登 录</el-button>
                     </el-form>
                 </template>
 
                 <template v-else>
                     <h2 class="title">✨ 欢迎使用！请设置管理员账号</h2>
-                    <el-form label-position="top">
-                        <el-form-item>
+                    <el-form :model="initForm" :rules="initFormRules" ref="formRef">
+                        <el-form-item prop="username">
                             <el-input size="large" type="text" v-model="initForm.username" placeholder="管理员用户名" />
                         </el-form-item>
-                        <el-form-item>
+                        <el-form-item prop="password">
                             <el-input size="large" type="password" v-model="initForm.password" placeholder="设置密码" />
                         </el-form-item>
-                        <el-form-tiem label-position="left">
+                        <el-form-item label-position="left" prop="confirmPassword">
                             <el-input size="large" type="password" v-model="initForm.confirmPassword"
                                 placeholder="确认密码" />
-                        </el-form-tiem>
-                        <el-button size="large" class="w-full mt-5" type="primary">✨ 立即初始化并登录</el-button>
+                        </el-form-item>
+                        <el-button size="large" @click="handleInitialize" :loading="submitLoading" class="w-full mt-5"
+                            type="primary">✨
+                            立即初始化并登录</el-button>
                     </el-form>
                     <p class="safety-tip">⚠️ 提示: 此账号是您网盘的唯一凭证，请务必妥善保管。</p>
                 </template>
-                <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
             </div>
         </div>
     </div>
@@ -50,18 +51,22 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios'; // 假设使用 axios 进行 HTTP 请求
-
-// --- 状态管理 ---
-const isInitialized = ref(true); // 默认假设已初始化，进入登录页
-const errorMessage = ref('');
-
+import { userStatus, initialize, userLogin } from '@/request/user';
+import { ElMessage } from "element-plus";
+import { useRouter } from 'vue-router';
+import useUserStore from '@/store/user';
+import { setItem } from "@/utils/storage"
+const router = useRouter();
+const userStore = useUserStore();
+const isInitialized = ref(true);
+const formRef = ref(null);
 // --- 表单数据 ---
 const loginForm = ref({
-    username: '',
-    password: '',
+    username: 'hkta',
+    password: '123456',
     rememberMe: false
 });
+const submitLoading = ref(false);
 
 const initForm = ref({
     username: '',
@@ -69,73 +74,73 @@ const initForm = ref({
     confirmPassword: ''
 });
 
-// --- 接口常量 (对应我们设计的接口) ---
-const API_URL = '/api';
 
-// --- 核心逻辑 ---
+const initFormRules = {
+    username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+    password: [{ required: true, message: '请输入密码', trigger: ['blur', 'submit'] }],
+    confirmPassword: [{
+        required: true, trigger: ['blur', 'submit'], validator: (rule, value, callback) => {
+            if (value === '') {
+                callback(new Error('请再次输入密码'));
+            } else if (value !== initForm.value.password) {
+                callback(new Error('两次输入的密码不一致哦！'));
+            } else {
+                callback();
+            }
+        }
+    }],
+}
+
+
+const loginFormRules = {
+    username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+    password: [{ required: true, message: '请输入密码', trigger: ['blur', 'submit'] }],
+};
 
 // 1. 检查网盘初始化状态
 const checkInitializationStatus = async () => {
-    // try {
-    //     errorMessage.value = '';
-    //     const response = await axios.get(`${API_URL}/user/status`);
-    //     // 假设后端返回 { status: 'initialized' } 表示已初始化
-    //     isInitialized.value = response.data.status === 'initialized';
-    // } catch (error) {
-    //     // 假设接口报错或返回特定状态码表示未初始化
-    //     // 稳妥起见，这里假设任何非正常响应都可能意味着需要初始化
-    //     isInitialized.value = false;
-    // }
+    return await userStatus().then((res) => res.data).catch((error) => false);
 };
 
 // 2. 初始化网盘
-const handleInitialize = async () => {
-    errorMessage.value = '';
-    if (initForm.value.password !== initForm.value.confirmPassword) {
-        errorMessage.value = '两次输入的密码不一致哦！';
-        return;
-    }
-    try {
-        // 提交初始化数据到 /api/user/initialize
-        await axios.post(`${API_URL}/user/initialize`, {
-            username: initForm.value.username,
-            password: initForm.value.password,
-        });
-
-        // 初始化成功后，应立即登录或切换到登录页
-        alert('初始化成功！请登录。');
-        isInitialized.value = true;
-        // 自动填写用户名，方便用户直接登录
-        loginForm.value.username = initForm.value.username;
-    } catch (error) {
-        errorMessage.value = error.response?.data?.message || '初始化失败，请稍后重试。';
-    }
+function handleInitialize() {
+    formRef.value.validate(async (valid) => {
+        if (valid) {
+            submitLoading.value = true;
+            initialize({
+                username: initForm.value.username,
+                password: initForm.value.password
+            }).then(toHome).finally(() => submitLoading.value = false)
+        }
+    })
 };
 
+function toHome(res) {
+    setItem("token", res.data);
+    ElMessage.success(res.msg);
+    setTimeout(() => {
+        userStore.getUserInfo();
+        router.replace("/");
+    }, 50);
+}
 // 3. 管理员登录
 const handleLogin = async () => {
-    errorMessage.value = '';
-    try {
-        // 提交登录数据到 /api/auth/login
-        const response = await axios.post(`${API_URL}/auth/login`, {
-            username: loginForm.value.username,
-            password: loginForm.value.password,
-            rememberMe: loginForm.value.rememberMe
-        });
-
-        // 登录成功，跳转到网盘主界面
-        console.log('登录成功！Token:', response.data.token);
-        // router.push('/main'); // 实际应用中会进行路由跳转
-        alert('登录成功，即将进入网盘主页！');
-
-    } catch (error) {
-        errorMessage.value = error.response?.data?.message || '登录失败，请检查用户名和密码。';
-    }
+    formRef.value.validate(async (valid) => {
+        if (valid) {
+            submitLoading.value = true;
+            await userLogin({
+                username: loginForm.value.username,
+                password: loginForm.value.password,
+                rememberMe: loginForm.value.rememberMe
+            }).then(toHome).finally(() => submitLoading.value = false)
+        }
+    })
 };
 
 // 在组件挂载时，立即检查状态
-onMounted(() => {
-    checkInitializationStatus();
+onMounted(async () => {
+    isInitialized.value = await checkInitializationStatus();
+    console.log(isInitialized.value);
 });
 </script>
 
@@ -171,9 +176,11 @@ $error-color: #FFADAD; // 警告色（低饱和度珊瑚粉）
             align-items: center;
             justify-content: center;
             margin-bottom: 30px;
-            .logo{
+
+            .logo {
                 width: 32px;
             }
+
             .logo-text {
                 font-size: 24px;
                 font-weight: bold;
