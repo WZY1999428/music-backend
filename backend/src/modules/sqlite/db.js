@@ -212,7 +212,7 @@ class Model {
 
         const columnNames = columns.join(', ');
         const placeholders = columns.map(() => '?').join(', ');
-        
+
         // 关键：根据模式选择 SQL 语句
         const singleInsertSql = `${mode} INTO ${this.table} (${columnNames}) VALUES (${placeholders})`;
 
@@ -222,7 +222,7 @@ class Model {
                 let totalChanges = 0; // 记录实际更改数量
                 try {
                     await this.beginTransaction();
-                    
+
                     // 使用 Promise 化的 this.db.prepare
                     stmt = await this.db.prepare(singleInsertSql);
 
@@ -420,10 +420,7 @@ class Model {
         ${joinSQL}
         ${whereClause}
         LIMIT ? OFFSET ?
-    `;  
-
-    console.log(sql);
-
+    `;
         return await this.db.all(sql, [...values, pageSize, offset]);
     }
 
@@ -445,6 +442,120 @@ class Model {
         const values = [...Object.values(data), ...Object.values(where)];
         const sql = `UPDATE ${this.table} SET ${setClause} WHERE ${condition}`;
         return await this.db.run(sql, values);
+    }
+
+    /**
+         * 【新增】批量更新多条数据 (支持 $in，使用事务和预处理语句)。
+         *
+         * @param {object} where - 筛选条件对象 (支持 { field: { $in: [val1, val2] }, otherField: 'value' })
+         * @param {object} data - 要更新的字段和值 { field: newValue }
+         * @param {string} op - 逻辑操作符，用于连接基础条件，例如 'AND' 或 'OR'。
+         * @returns {Promise<Object>} 数据库运行结果，包含实际更新的行数。
+         *
+         * 示例：
+         * await Model.updateMany(
+         * { id: { $in: [10, 11, 12] }, status: 1 },
+         * { isRead: 1, updateTime: Date.now() }
+         * );
+         */
+    async updateMany(where, data, op = 'AND') {
+        const whereKeys = Object.keys(where);
+        const setKeys = Object.keys(data);
+        if (!whereKeys.length) {
+            throw new Error("updateMany: 筛选条件 (where) 不能为空");
+        }
+        if (!setKeys.length) {
+            throw new Error("updateMany: 更新数据 (data) 不能为空");
+        }
+
+        // --- 1. 构建 SET 子句 ---
+        const setClause = setKeys.map(k => `${k} = ?`).join(", ");
+        const setDataValues = Object.values(data);
+        // 更新语句的值：[...setDataValues, ...baseValues, inValue]
+
+        // --- 2. 解析 WHERE 子句（与 deleteMany 逻辑相同） ---
+        const baseConditions = []; // 存放普通条件：field = ? 或 field != ?
+        const baseValues = [];     // 存放普通条件的值
+        let inField = null;        // 存放 $in 的字段名 (例如 'id')
+        let inValues = [];         // 存放 $in 的数组值 (例如 [1, 2, 3])
+
+        for (const key of whereKeys) {
+            const cond = where[key];
+            if (typeof cond !== "object" || cond === null) {
+                baseConditions.push(`${key} = ?`);
+                baseValues.push(cond);
+                continue;
+            }
+
+            if (cond.$not !== undefined) {
+                baseConditions.push(`${key} != ?`);
+                baseValues.push(cond.$not);
+            } else if (cond.$ne !== undefined) {
+                baseConditions.push(`${key} != ?`);
+                baseValues.push(cond.$ne);
+            } else if (Array.isArray(cond.$in)) {
+                inField = key; // 找到 $in 字段
+                inValues = cond.$in;
+            } else {
+                throw new Error(`updateMany: 不支持的条件: ${JSON.stringify(cond)}`);
+            }
+        }
+
+        const baseWhere = baseConditions.length
+            ? baseConditions.join(` ${op} `)
+            : "1 = 1"; // 没有基础条件，则使用 '1 = 1'
+
+        // --- 3. 执行：普通更新 (没有 $in) ---
+        if (!inField) {
+            const sql = `UPDATE ${this.table} SET ${setClause} WHERE ${baseWhere}`;
+            const values = [...setDataValues, ...baseValues];
+            return await this.db.run(sql, values);
+        }
+
+        // --- 4. 执行：有 $in 条件（使用事务和预处理语句） ---
+        return new Promise((resolve, reject) => {
+            this.db.serialize(async () => {
+                let stmt = null;
+                let totalChanges = 0; // 追踪实际更改数量
+
+                try {
+                    await this.beginTransaction();
+
+                    // 拼最终 SQL：WHERE 语句中，inField 的值用 ? 代替
+                    const sql = `UPDATE ${this.table} SET ${setClause} WHERE ${baseWhere} ${baseWhere ? op : ""} ${inField} = ?`;
+
+                    // 准备预处理语句
+                    stmt = await this.db.prepare(sql);
+
+                    for (const inValue of inValues) {
+                        // 每次循环传入的值：[...更新字段的值, ...基础条件的值, 当前 $in 的值]
+                        const values = [...setDataValues, ...baseValues, inValue];
+
+                        // 使用 Promise 封装 stmt.run 并追踪 changes
+                        await new Promise((res, rej) => {
+                            stmt.run(values, function (err) { // 必须用 function 才能访问 this
+                                if (err) rej(err);
+                                else {
+                                    totalChanges += this.changes || 0; // 累加实际影响的行数！
+                                    res();
+                                }
+                            });
+                        });
+                    }
+
+                    stmt.finalize();
+                    await this.commit();
+                    resolve({ changes: totalChanges }); // 返回实际更改数量
+
+                } catch (err) {
+                    if (stmt) {
+                        stmt.finalize();
+                    }
+                    await this.rollback();
+                    reject(err);
+                }
+            });
+        });
     }
 
     async deleteOne(where) {

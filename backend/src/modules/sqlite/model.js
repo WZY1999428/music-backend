@@ -27,6 +27,7 @@ const FileTable = db.model("files", db.Schema({
     isFolder: "INTEGER NOT NULL DEFAULT 0", // 0=文件, 1=文件夹 
     parentId: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
     size: "INTEGER NOT NULL DEFAULT 0",
+    category: "TEXT", // 文件类别：image, video, document, archive, other
     mimeType: "TEXT",       // ← 文件内容真实类型
     extension: "TEXT",      // ← 文件后缀（含 or 不含 . 均可）
     hash: "TEXT", // 文件内容的唯一哈希值（用于秒传/去重）

@@ -1,4 +1,7 @@
 #![deny(clippy::all)]
+mod torrent;
+
+
 use napi::{
   bindgen_prelude::*,
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
