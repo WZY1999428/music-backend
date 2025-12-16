@@ -1,89 +1,135 @@
 {
   "id": "4030191",
-  "name": "文件图标",
+  "name": "fileIcons",
   "font_family": "iconfont",
   "css_prefix_text": "icon-",
   "description": "",
   "glyphs": [
     {
+      "icon_id": "1274",
+      "name": "thumbnailSmall",
+      "zh_name": "小缩略图",
+      "font_class": "xiaosuolvetu"
+    },
+    {
+      "icon_id": "10594742",
+      "name": "table",
+      "zh_name": "表-表格_jurassic",
+      "font_class": "jurassic_table"
+    },
+    {
       "icon_id": "10580647",
-      "name": "记录",
-      "font_class": "record"
+      "name": "record",
+      "zh_name": "记录",
+      "font_class": "jilu"
     },
     {
       "icon_id": "24955146",
-      "name": "转换",
-      "font_class": "translate"
+      "name": "translate",
+      "zh_name": "多语言互译",
+      "font_class": "duoyuyanhuyi"
     },
     {
       "icon_id": "11955422",
-      "name": "安卓文件",
-      "font_class": "apk"
+      "name": "apk",
+      "zh_name": "icon_16.apk",
+      "font_class": "icon_apk"
     },
     {
       "icon_id": "21721551",
-      "name": "目录",
-      "font_class": "folder"
+      "name": "folder",
+      "zh_name": "文件类型-标准图-文件夹",
+      "font_class": "wenjianleixing-biaozhuntu-wenjianjia"
     },
     {
       "icon_id": "21721566",
-      "name": "ppt文件",
-      "font_class": "ppt"
+      "name": "presentation",
+      "zh_name": "文件类型-缩略图-幻灯片",
+      "font_class": "wenjianleixing-suolvetu-huandengpian"
     },
     {
       "icon_id": "21721567",
-      "name": "文本文件",
-      "font_class": "note"
+      "name": "textFile",
+      "zh_name": "文件类型-缩略图-记事本",
+      "font_class": "wenjianleixing-suolvetu-jishiben"
     },
     {
       "icon_id": "21721568",
-      "name": "excel文件",
-      "font_class": "sheet"
+      "name": "spreadsheet",
+      "zh_name": "文件类型-缩略图-工作表",
+      "font_class": "wenjianleixing-suolvetu-gongzuobiao"
     },
     {
       "icon_id": "21721569",
-      "name": "视频文件",
-      "font_class": "video"
+      "name": "video",
+      "zh_name": "文件类型-缩略图-视频文件",
+      "font_class": "wenjianleixing-suolvetu-shipinwenjian"
     },
     {
       "icon_id": "21721570",
-      "name": "图片文件",
-      "font_class": "image"
+      "name": "image",
+      "zh_name": "文件类型-缩略图-图片文件",
+      "font_class": "wenjianleixing-suolvetu-tupianwenjian"
     },
     {
       "icon_id": "21721571",
-      "name": "未知文件",
-      "font_class": "unknown"
+      "name": "unknown",
+      "zh_name": "文件类型-缩略图-未知文件",
+      "font_class": "wenjianleixing-suolvetu-weizhiwenjian"
     },
     {
       "icon_id": "21721572",
-      "name": "缩略图",
-      "font_class": "thumbnail"
+      "name": "folderThumbnail",
+      "zh_name": "文件类型-缩略图-文件夹",
+      "font_class": "wenjianleixing-suolvetu-wenjianjia"
     },
     {
       "icon_id": "21721573",
-      "name": "压缩包",
-      "font_class": "zip"
+      "name": "archive",
+      "zh_name": "文件类型-缩略图-压缩文件",
+      "font_class": "wenjianleixing-suolvetu-yasuowenjian"
     },
     {
       "icon_id": "21721574",
-      "name": "word文档",
-      "font_class": "word"
+      "name": "word",
+      "zh_name": "文件类型-缩略图-Word",
+      "font_class": "wenjianleixing-suolvetu-Word"
     },
     {
       "icon_id": "21721575",
-      "name": "PDF文件",
-      "font_class": "pdf"
+      "name": "pdf",
+      "zh_name": "文件类型-缩略图-PDF文档",
+      "font_class": "wenjianleixing-suolvetu-PDFwendang"
     },
     {
       "icon_id": "21721576",
-      "name": "音频文件",
-      "font_class": "audio"
+      "name": "audio",
+      "zh_name": "文件类型-缩略图-声音文件",
+      "font_class": "wenjianleixing-suolvetu-shengyinwenjian"
     },
     {
       "icon_id": "21721577",
-      "name": "链接文件",
-      "font_class": "link"
+      "name": "link",
+      "zh_name": "文件类型-缩略图-链接",
+      "font_class": "wenjianleixing-suolvetu-lianjie"
+    },
+    {
+      "icon_id": "21721578",
+      "name": "FolderFavorite",
+      "zh_name": "文件类型-收藏文件夹",
+      "font_class": "yunpanlogo-1"
+    },
+    {
+      "icon_id": "21721579",
+      "name": "FolderRecycle",
+      "zh_name": "文件类型-回收站",
+      "font_class": "wendang-huishouzhan-"
+    },
+    {
+      "icon_id": "21721580",
+      "name": "FolderShare",
+      "zh_name": "文件类型-最近使用",
+      "font_class": "zuijinshiyong"
     }
   ]
 }

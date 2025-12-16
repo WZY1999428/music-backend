@@ -29,6 +29,11 @@ export function removeItem(key) {
     storage.removeItem(key);
 }
 
+export function clearStorage() {
+    const storage = getStorage();
+    if (!storage) return;
+    storage.clear()
+}
 
 export function getUser() {
     const raw = getItem(STORAGE_KEYS.USER);
