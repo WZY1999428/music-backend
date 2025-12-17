@@ -30,7 +30,6 @@ function validator(value) {
 }
 
 function xlinkHref() {
-    console.log(iconfont.glyphs.find(item => item.name === props.name)?.font_class);
     return iconfont.glyphs.find(item => item.name === props.name)?.font_class
 }
 </script>
