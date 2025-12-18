@@ -317,33 +317,49 @@ class Model {
      * @param {number} pageSize - 每页条数
      * @returns {Promise} - Promise 对象
      */
-    async find(filters = [], pageIndex = 1, pageSize = 20) {
+    async find(filters = [], pageIndex = 1, pageSize = 20, fields = '*') {
         const conditions = [];
         const values = [];
+
+        // 处理字段选择
+        let selectFields = '*';
+        if (Array.isArray(fields)) {
+            selectFields = fields.map(f => `\`${f}\``).join(', ');
+        } else if (typeof fields === 'string' && fields.trim()) {
+            selectFields = fields;
+        }
+
+        // 处理筛选条件
         filters.forEach((f, i) => {
             const op = (f.op || '=').toUpperCase();
             let val = f.value;
+
             if (op === 'LIKE') val = `%${val}%`;
+
             if (op === 'IN' && Array.isArray(val)) {
                 const placeholders = val.map(() => '?').join(', ');
                 values.push(...val);
-                conditions.push(`${f.field} IN (${placeholders})`);
+                conditions.push(`${i === 0 ? '' : (f.logic || 'AND')} ${f.field} IN (${placeholders})`);
                 return;
             }
+
             values.push(val);
-            if (i === 0) {
-                // 第一个条件不需要逻辑符
-                conditions.push(`${f.field} ${op} ?`);
-            } else {
-                conditions.push(`${f.logic || 'AND'} ${f.field} ${op} ?`);
-            }
+            conditions.push(`${i === 0 ? '' : (f.logic || 'AND')} ${f.field} ${op} ?`);
         });
 
         const whereClause = conditions.length ? 'WHERE ' + conditions.join(' ') : '';
-        const offset = (pageIndex - 1) * pageSize;
-        const sql = `SELECT * FROM ${this.table} ${whereClause} LIMIT ? OFFSET ?`;
-        return await this.db.all(sql, [...values, pageSize, offset]);
+
+        // 构造 SQL
+        let sql = `SELECT ${selectFields} FROM ${this.table} ${whereClause}`;
+        if (pageSize !== -1) {
+            const offset = (pageIndex - 1) * pageSize;
+            sql += ` LIMIT ? OFFSET ?`;
+            values.push(pageSize, offset);
+        }
+
+        return await this.db.all(sql, values);
     }
+
 
 
     /**

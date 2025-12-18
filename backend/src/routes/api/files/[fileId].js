@@ -4,14 +4,14 @@ const { FileTable } = require("@/modules/sqlite/model");
 const archiver = require("archiver");
 
 /**
- * 下载文件
+ * 获取文件内容
  * @param {Object} ctx - Koa2 Context 对象
  * @param {number} ctx.query.fileId - 文件ID
  */
 
 module.exports = async (ctx) => {
     try {
-        const id = ctx.query.fileId
+        const id = ctx.params.fileId
         if (id == 0) {
             // 下载根目录下的所有文件
             await zipDirectory(process.env.PUBLIC_FILE_PATCH, ctx, n = Date.now() + ".zip");
@@ -48,7 +48,7 @@ async function zipDirectory(srcDir, ctx, zipName) {
     const folderName = path.basename(absPath);
     ctx.status = 200;
     ctx.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(zipName)}`);
-    ctx.set("Content-Type", "application/zip");
+    ctx.set("Content-Type", "application/octet-stream");
     ctx.respond = false; //  告诉 Koa 不要自动处理响应
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.on("error", err => { throw err; });

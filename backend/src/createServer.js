@@ -17,7 +17,7 @@ async function createServer() {
     }
     app
         .use(bodyParser())
-        .use(require('./middlewares/rangeFile')(path.join(__dirname, '../public')))
+        .use(require('./middlewares/rangeFile')(path.join(__dirname, process.env.PUBLIC_FILE_PATCH)))
         .use(require('./middlewares/httpResponse')())
         .use(require('./middlewares/auth')())
         .use(router.routes())

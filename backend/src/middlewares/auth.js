@@ -15,7 +15,11 @@ module.exports = function auth() {
         }
         // 2️⃣ /api 下的请求
         if (path.startsWith('/api/')) {
-            // 白名单放行
+            if (/^\/api\/files\/\d+$/.test(path)) {
+                if (!ctx.query['access_token']) {
+                    return ctx.unauthorized('No auth token provided in query');
+                }
+            }
             if (apiWhiteList.some(rx => rx.test(path))) return await next();
             // 需要 token 验证
             const token = ctx.headers['authorization']?.split(' ')[1];
