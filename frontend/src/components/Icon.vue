@@ -25,7 +25,7 @@ validator(props.name);
 watch(() => props.name, validator)
 function validator(value) {
     if (!fontClassList.includes(value)) {
-        throw new Error(`icons name is not exist ${fontClassList.join(",")}`)
+        console.warn(`icons name is not exist ${fontClassList.join(",")}`)
     }
 }
 

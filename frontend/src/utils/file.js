@@ -1,4 +1,4 @@
-function formatSize(bytes, options = {}) {
+export function formatFileSize(bytes, options = {}) {
     if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
 
     const {
@@ -21,4 +21,61 @@ function formatSize(bytes, options = {}) {
     return `${clean} ${units[index]}`;
 }
 
-export { formatSize }
+
+export function getFileUrl(fileId, access_token) {
+    return `/api/files/${fileId}?access_token=${access_token}`
+}
+
+export function formatFileIcon(row) {
+    if (row.isFolder == 1) return "folder";
+    else {
+        const ext = row.extension;
+        const extMap = {
+            // 文本类
+            'txt': 'textFile',
+            'md': 'textFile',
+            'json': 'textFile',
+            'xml': 'textFile',
+
+            // 表格类
+            'xls': 'spreadsheet',
+            'xlsx': 'spreadsheet',
+            'csv': 'spreadsheet',
+
+            // 视频类
+            'mp4': 'video',
+            'mov': 'video',
+            'avi': 'video',
+            'mkv': 'video',
+
+            // 图片类
+            'jpg': 'image',
+            'jpeg': 'image',
+            'png': 'image',
+            'gif': 'image',
+            'svg': 'image',
+
+            // 文档类
+            'doc': 'word',
+            'docx': 'word',
+            'pdf': 'pdf',
+
+            // 音频类
+            'mp3': 'audio',
+            'wav': 'audio',
+            'flac': 'audio',
+
+            // APK
+            'apk': 'apk',
+
+            // 压缩包
+            'zip': 'archive',
+            'rar': 'archive',
+            '7z': 'archive',
+            'tar': 'archive',
+            'gz': 'archive',
+        };
+
+        return extMap[ext] || 'unknown'; // 没匹配到就返回 unknown
+    }
+}

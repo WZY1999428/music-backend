@@ -7,13 +7,12 @@ const db = new MongoSqlite(path.resolve("", process.env.SQLITE_DB_PATH));
 // 1. 🥇 用户模型 (User Model)
 // 存储唯一的管理员账户信息和容量
 // ----------------------------------------------------------------------
-const User = db.model("users", db.Schema({
+const User =  db.model("users", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     username: "TEXT NOT NULL UNIQUE", // 唯一管理员账户名
     password: "TEXT NOT NULL",         // 密码哈希值 
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP"
 }));
-
 
 // ----------------------------------------------------------------------
 // 2. 🥈 文件/文件夹模型 (File Model)
@@ -26,6 +25,7 @@ const FileTable = db.model("files", db.Schema({
     ino: "INTEGER NOT NULL UNIQUE", // 文件 inode
     isFolder: "INTEGER NOT NULL DEFAULT 0", // 0=文件, 1=文件夹 
     parentId: "INTEGER NOT NULL DEFAULT 0", // 父目录ID (0为根目录)
+    fullPathId: "TEXT NOT NULL", // 全路径ID
     size: "INTEGER NOT NULL DEFAULT 0",
     category: "TEXT", // 文件类别：image, video, document, archive, other
     mimeType: "TEXT",       // ← 文件内容真实类型
@@ -43,7 +43,7 @@ const FileTable = db.model("files", db.Schema({
 // 3. 🔑 会话令牌模型 (Token Model)
 // 用于登录状态维持和 "记住我" 功能
 // ----------------------------------------------------------------------
-const Token = db.model("tokens", db.Schema({
+const Token =  db.model("tokens", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     token: "TEXT NOT NULL UNIQUE",
     userId: "INTEGER NOT NULL", // 关联到 users.id

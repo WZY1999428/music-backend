@@ -11,7 +11,9 @@ module.exports = async (ctx) => {
                     field: "id",
                     value: { $in: fileIds },
                     op: "in"
-                }]);
+                }],{
+                    pageSize: -1
+                });
                 if (files.length === 0) break;
                 let successCount = 0;
                 for (const file of files) {

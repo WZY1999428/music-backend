@@ -4,7 +4,17 @@ import HomeView from '../views/index.vue'
 import LoginView from '../views/login.vue'
 
 const routes = [
-  { path: '/', component: HomeView },
+  {
+    path: '/',
+    component: HomeView,
+    redirect: '/files/myFile',
+    children: [
+      {
+        path: "files/:fileId",
+        component: () => import("@/views/Files.vue")
+      }
+    ]
+  },
   { path: '/login', component: LoginView },
 ]
 

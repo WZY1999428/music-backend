@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getItem, clearStorage } from "@/utils/storage"
+// import { getItem, clearStorage } from "@/utils/storage"
 import { ElMessage } from "element-plus";
 import router from "@/router";
 const request = axios.create({
@@ -9,13 +9,15 @@ const request = axios.create({
 
 request.interceptors.response.use(res => {
     const data = res.data;
-    if (data.code !== 0) {
+    if (data.code !== 0 && res.headers['content-type'] != "application/octet-stream") {
         return Promise.reject(data)
     }
 
     return data;
 }, error => {
-    if (error.status == 401) {
+    console.log(error.request.responseURL);
+    const skipLoginPrompt = /^\/api\/files\/\d+$/.test(new URL(error.request.responseURL).pathname);
+    if (error.status == 401 && !skipLoginPrompt) {
         ElMessage.error(getItem('token') ? "登录已过期，请重新登录" : "未登录请先登录");
         clearStorage();
         router.replace('/login');

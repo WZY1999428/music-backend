@@ -10,14 +10,14 @@ const initializeFileDatabase = require('./modules/fileSystem/initializeFileDatab
 async function createServer() {
     const app = new Koa();
     attachErrorHandler(app);
-    await viteServerMiddleware(app);
+    if (process.env.NODE_ENV === 'development') await viteServerMiddleware(app);
     if (!await initializeFileDatabase()) {
         console.log('文件数据库初始化失败');
         process.exit(1);
     }
     app
         .use(bodyParser())
-        .use(require('./middlewares/rangeFile')(path.join(__dirname, process.env.PUBLIC_FILE_PATCH)))
+        .use(require('./middlewares/rangeFile')(path.join(__dirname, '../public')))
         .use(require('./middlewares/httpResponse')())
         .use(require('./middlewares/auth')())
         .use(router.routes())

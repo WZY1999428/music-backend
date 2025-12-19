@@ -130,6 +130,12 @@
       "name": "FolderShare",
       "zh_name": "文件类型-最近使用",
       "font_class": "zuijinshiyong"
+    },
+    {
+      "icon_id": "22737800",
+      "name": "imageError",
+      "zh_name": "图片-加载失败",
+      "font_class": "tupian-jiazaishibai"
     }
   ]
 }

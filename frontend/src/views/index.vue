@@ -10,7 +10,7 @@
         <div class="flex items-center h-full pr-20">
           <el-button type="primary">上传</el-button>
           <el-button type="warning">新建文件夹</el-button>
-          <el-input class="ml-9" style="width: 240px;--el-border-color: #aec7b3;" placeholder="搜索"
+          <el-input class="ml-9" style="width: 240px;--el-border-color: #aec7b3;" placeholder="搜索" v-model="fileStore.keyword" @keyup.enter="fileStore.refresh"
             :prefix-icon="Search" />
           <div class="ml-10">
             <el-dropdown>
@@ -34,16 +34,16 @@
     <el-container>
       <el-aside width="260px" style="background-color: var(--aside-bg-color);margin-right: 10px;"
         class="rounded-sm shadow-md select-none p-4">
-        <div v-for="(item, index) in menuList" :key="index">
+        <div v-for="(item, index) in menuItems" :key="index">
           <div class="mb-6">
             <h4 class="text-sm font-semibold text-gray-500 mb-2 tracking-wider">{{ item.name }}</h4>
-            <ul class="space-y-1">
-              <li @click="handleClick(child)" :class="['aside-item', activeIndex === child.id ? 'active' : '',]" v-for="child in item.children"
-                :key="child.id">
+            <menu class="space-y-1">
+              <li @click="handleClick(child)" :class="['aside-item', activeIndex === child.id ? 'active' : '',]"
+                v-for="child in item.children" :key="child.id">
                 <icon :name="child.icon"></icon>
                 <span class="ml-3">{{ child.name }}</span>
               </li>
-            </ul>
+            </menu>
           </div>
           <el-divider class="my-3"></el-divider>
         </div>
@@ -59,13 +59,13 @@
       <el-main style="padding: 0; ;">
         <div class="px-1 flex items-center h-[40px]">
           <el-breadcrumb>
-            <el-breadcrumb-item :to="{ path: '/' }">homepage</el-breadcrumb-item>
-            <el-breadcrumb-item>promotion management</el-breadcrumb-item>
+            <el-breadcrumb-item><span  class="cursor-pointer select-none" @click="fileStore.resetPath()">根目录</span></el-breadcrumb-item>
+            <el-breadcrumb-item v-for="(item,index) in fileStore.breadcrumbs" :key="item.id"> <span  class="cursor-pointer select-none" @click="fileStore.removePath(index)">{{ item.name }}</span> </el-breadcrumb-item>
           </el-breadcrumb>
         </div>
         <div class="rounded-sm shadow-md select-none p-3"
           style="background-color: var(--aside-bg-color);height: calc(100% - 40px);">
-          Main
+          <router-view></router-view>
         </div>
       </el-main>
     </el-container>
@@ -76,12 +76,13 @@
 import { Search } from '@element-plus/icons-vue'
 import avatarImg from "@/assets/avatar.png"
 import useUserStore from '@/store/user'
-import {ref} from "vue";
+const fileStore = useFileStore();
+import { ref } from "vue";
 const userStore = useUserStore()
 const activeIndex = ref('myFile')
 
 //  我的文件 最近使用 收藏夹 回收站
-const menuList = [
+const menuItems = [
   {
     name: "导航",
     children: [

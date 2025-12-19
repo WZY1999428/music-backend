@@ -128,9 +128,8 @@ class Model {
         this.schema = schema.definition;
         this.db = db;
         this.constraints = schema.constraints;
-        this._initTable();
+        this.ready = this._initTable();
     }
-
     /**
      * 表初始化 (自动建表)
      * @private
@@ -280,12 +279,20 @@ class Model {
      * @param {object} where - 条件对象
      * @returns {Promise} - Promise 对象
      */
-    async findOne(where = {}, op = 'AND') {
+    async findOne(where = {}, options) {
+        let { op = "AND", fields = '*' } = options ?? {};
         const keys = Object.keys(where);
         op = op.trim().toUpperCase();
-
         const conditionList = [];
         const values = [];
+
+        // 处理字段选择
+        let selectFields = '*';
+        if (Array.isArray(fields)) {
+            selectFields = fields.map(f => `\`${f}\``).join(', ');
+        } else if (typeof fields === 'string' && fields.trim()) {
+            selectFields = fields;
+        }
 
         for (const k of keys) {
             const v = where[k];
@@ -305,7 +312,7 @@ class Model {
             ["AND", "OR"].includes(op) ? ` ${op} ` : " AND "
         );
 
-        const sql = `SELECT * FROM ${this.table} ${condition ? "WHERE " + condition : ""}`;
+        const sql = `SELECT ${selectFields} FROM ${this.table} ${condition ? "WHERE " + condition : ""}`;
         return await this.db.get(sql, values);
     }
 
@@ -317,10 +324,10 @@ class Model {
      * @param {number} pageSize - 每页条数
      * @returns {Promise} - Promise 对象
      */
-    async find(filters = [], pageIndex = 1, pageSize = 20, fields = '*') {
+    async find(filters = [], options) {
+        const { pageIndex = 1, pageSize = 20, fields = '*' } = options ?? {};
         const conditions = [];
         const values = [];
-
         // 处理字段选择
         let selectFields = '*';
         if (Array.isArray(fields)) {
@@ -697,9 +704,9 @@ class MongoSqlite {
      * @param {Schema} schema - 表结构
      * @returns {Model} - Model 对象
      */
-    model(name, schema) {
+    model(name, schema, cb) {
         if (!this.models[name]) {
-            this.models[name] = new Model(name, schema, this.db);
+            this.models[name] = new Model(name, schema, this.db, cb);
         }
         return this.models[name];
     }

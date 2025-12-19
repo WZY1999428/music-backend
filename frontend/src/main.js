@@ -5,6 +5,7 @@ import "./assets/iconfont/iconfont.js"
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import './assets/element-plus.css'
+import "viewerjs/dist/viewer.css";
 import icon from "./components/Icon.vue";
 import router from './router'
 import App from './App.vue'
