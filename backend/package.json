@@ -34,7 +34,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon",
     "start": "cross-env NODE_ENV=production node index.js",
-    "pm2-start": "cross-env NODE_ENV=production2 pm2 start index.js --name anime"
+    "pm2-start": "cross-env NODE_ENV=production pm2 start index.js --name anime"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",

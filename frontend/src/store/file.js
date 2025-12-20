@@ -16,8 +16,12 @@ export const useFileStore = defineStore('file', () => {
     };
     const removePath = (index) => {
         if (loading.value) return;
+        if (index == breadcrumbs.value.length - 1) {
+            refresh(true);
+            return;
+        }
         keyword.value = '';
-        breadcrumbs.value.splice(index);
+        breadcrumbs.value.splice(index + 1);
         refresh(false);
     };
     const resetPath = () => {

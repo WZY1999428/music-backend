@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getUserInfo } from "@/request/user"
-const useUserStore = defineStore('user', {
+export const useUserStore = defineStore('user', {
     state: () => {
         const user = getUser();
         let userInfo = null;
@@ -24,5 +24,3 @@ const useUserStore = defineStore('user', {
         }
     }
 })
-
-export default useUserStore

@@ -25,10 +25,24 @@ module.exports = async (ctx) => {
             // 下载文件夹
             await zipDirectory(filePath, ctx, file.name + ".zip");
         } else {
-            // 下载文件
-            ctx.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`);
-            ctx.set("Content-Type", "application/octet-stream");
-            ctx.body = fs.createReadStream(filePath);
+            const range = ctx.headers.range
+            const stat = await fs.stat(filePath)
+            const fileSize = stat.size
+            ctx.set("Accept-Ranges", "bytes")
+            ctx.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`)
+            ctx.set("Content-Type", "application/octet-stream")
+            if (range) {
+                const [startStr, endStr] = range.replace(/bytes=/, '').split('-')
+                const start = parseInt(startStr, 10)
+                const end = endStr ? parseInt(endStr, 10) : fileSize - 1
+                ctx.status = 206
+                ctx.set("Content-Range", `bytes ${start}-${end}/${fileSize}`)
+                ctx.set("Content-Length", end - start + 1)
+                ctx.body = fs.createReadStream(filePath, { start, end })
+            } else {
+                ctx.set("Content-Length", fileSize)
+                ctx.body = fs.createReadStream(filePath)
+            }
         }
     } catch (error) {
         ctx.fail(error.message)
