@@ -11,7 +11,7 @@ native-code/target
 **/dist/
 # Auto detect text files and perform LF normalization
 * text=auto
-
+**.db **.db-*
 
 *.ts    text eol=lf merge=union
 *.tsx   text eol=lf merge=union

@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { getUser, setUser } from "@/utils/storage"
 import { getUserInfo } from "@/request/user"
 const useUserStore = defineStore('user', {
     state: () => {

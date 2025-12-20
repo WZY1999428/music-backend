@@ -1,12 +1,14 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 export default defineConfig(({ mode }) => {
   return {
     base: mode === 'development' ? '/dev/' : '/',
-    plugins: [vue(), tailwindcss()],
+    plugins: [vue(), tailwindcss(), AutoImport(AutoImportOptions()), Components()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -14,3 +16,32 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
+
+
+
+
+function AutoImportOptions() {
+  return {
+    imports: [
+      'vue',
+      'vue-router',
+      'pinia',
+      {
+        'axios': [
+          ['default', 'axios']
+        ],
+      },
+      {
+        from: 'vue-router',
+        imports: ['RouteLocationRaw'],
+        type: true,
+      }
+    ],
+    dirs: [
+      './src/utils',
+      './src/store',
+    ],
+    dts: true,
+    vueTemplate: true
+  }
+}

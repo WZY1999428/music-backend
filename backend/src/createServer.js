@@ -10,7 +10,7 @@ const initializeFileDatabase = require('./modules/fileSystem/initializeFileDatab
 async function createServer() {
     const app = new Koa();
     attachErrorHandler(app);
-    await viteServerMiddleware(app);
+    if (process.env.NODE_ENV === 'development') await viteServerMiddleware(app);
     if (!await initializeFileDatabase()) {
         console.log('文件数据库初始化失败');
         process.exit(1);

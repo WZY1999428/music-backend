@@ -33,7 +33,9 @@ module.exports = async (ctx) => {
         // 如果是目录，更新所有子项路径
         const srcStat = await fs.stat(destAbs);
         if (srcStat.isDirectory()) {
-            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }]);
+            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }],{
+                pageSize: -1
+            });
             for (const child of children) {
                 if (!child.path.startsWith(srcFile.path)) continue;
                 const relativeChildPath = child.path.slice(srcFile.path.length);

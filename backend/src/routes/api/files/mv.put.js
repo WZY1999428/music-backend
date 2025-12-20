@@ -25,7 +25,9 @@ module.exports = async (ctx) => {
             parentId: destFile.id
         });
         if (srcStat.isDirectory()) {
-            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }]);
+            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }],{
+                pageSize: -1
+            });
             for (const child of children) {
                 if (!child.path.startsWith(srcFile.path)) continue;
                 const relative = child.path.slice(srcFile.path.length);

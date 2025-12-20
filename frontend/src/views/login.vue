@@ -55,7 +55,6 @@ import { userStatus, initialize, userLogin } from '@/request/user';
 import { ElMessage } from "element-plus";
 import { useRouter } from 'vue-router';
 import useUserStore from '@/store/user';
-import { setItem } from "@/utils/storage"
 const router = useRouter();
 const userStore = useUserStore();
 const isInitialized = ref(true);
@@ -157,7 +156,7 @@ $error-color: #FFADAD; // 警告色（低饱和度珊瑚粉）
     display: flex;
     justify-content: center;
     align-items: center;
-    background-image: url(bg.png);
+    background-image: url('@/assets/bg.png');
     background-size: cover;
     background-position: center center;
 

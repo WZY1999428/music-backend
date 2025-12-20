@@ -30,7 +30,7 @@ module.exports = async (ctx) => {
             const newRecord = await buildFileRecord(destAbs, await fs.stat(destAbs), destFile.id);
             await FileTable.insert(newRecord);
         } else {
-            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }]);
+            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }], { pageSize: -1 });
             const idMap = {};
             for (const child of children) {
                 const relative = child.path.replace(srcFile.path, "");

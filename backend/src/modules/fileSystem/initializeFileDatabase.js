@@ -1,6 +1,5 @@
-const { FileTable } = require("../sqlite/model");
+const { FileTable } = require("@/modules/sqlite/model");
 const fs = require("fs-extra");
-// const watchFiles = require("./watchFiles");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 const { scanDir } = require("./utils");
 const readline = require("readline");
@@ -25,11 +24,11 @@ async function initFileDB() {
         if (!stat.isDirectory()) {
             throw new Error(`${fileDir} 目录不存在`);
         }
-
+        await FileTable.ready;
         const allFiles = await FileTable.find([]);
         if (allFiles.length === 0) {
             console.log("初始化文件数据库...");
-            await scanDir(fileDir, 0, 0);
+            await scanDir(fileDir, 0, 0, 0);
             console.log("文件数据库初始化完成");
             return true;
         }
