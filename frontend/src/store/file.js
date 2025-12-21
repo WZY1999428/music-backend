@@ -1,11 +1,17 @@
-import { getFiles } from "@/request/files"
+import { getFiles, getCategoryFiles } from "@/request/files"
+const queryTypeMap = {
+    list: getFiles,
+    category: getCategoryFiles
+}
 export const useFileStore = defineStore('file', () => {
     const breadcrumbs = ref([])
     const files = ref([])
     const loading = ref(false)
     const error = ref(null)
+    const queryType = ref("list")
     const fileCache = new Map();
     const keyword = ref('');
+    const category = ref('');
     const addPath = (id, name) => {
         if (loading.value) return;
         if (!breadcrumbs.value.some(b => b.id === id)) {
@@ -16,8 +22,12 @@ export const useFileStore = defineStore('file', () => {
     };
     const removePath = (index) => {
         if (loading.value) return;
+        if (index == breadcrumbs.value.length - 1) {
+            refresh(true);
+            return;
+        }
         keyword.value = '';
-        breadcrumbs.value.splice(index);
+        breadcrumbs.value.splice(index + 1);
         refresh(false);
     };
     const resetPath = () => {
@@ -30,6 +40,7 @@ export const useFileStore = defineStore('file', () => {
         const last = breadcrumbs.value[breadcrumbs.value.length - 1];
         fetchFiles(last ? last.id : 0, refresh);
     }
+
     function fetchFiles(parentId, refresh = false) {
         if (fileCache.has(parentId) && !refresh) {
             files.value = fileCache.get(parentId);
@@ -38,7 +49,8 @@ export const useFileStore = defineStore('file', () => {
         error.value = null;
         loading.value = true;
         files.value = [];
-        getFiles({ parentId, keyword: keyword.value }).then(res => {
+        const req = queryTypeMap[queryType.value] ? queryTypeMap[queryType.value] : getFiles;
+        req(setQueryParams(parentId)).then(res => {
             const sorted = res.data.sort((a, b) => b.isFolder - a.isFolder);
             fileCache.set(parentId, sorted);
             files.value = sorted;
@@ -47,7 +59,28 @@ export const useFileStore = defineStore('file', () => {
         }).finally(() => {
             loading.value = false;
         })
-
     }
-    return { breadcrumbs, files, loading, error, addPath, removePath, resetPath, fetchFiles, refresh, keyword }
+
+
+    function setCategory(cat) {
+        if (loading.value) return;
+        category.value = cat;
+        keyword.value = '';
+        breadcrumbs.value = [];
+        queryType.value = 'category';
+        console.log(1111);
+        refresh(true);
+    }
+
+
+    function setQueryParams(parentId) {
+        switch (queryType.value) {
+            case 'list':
+                return { parentId, keyword: keyword.value };
+            case 'category':
+                return { parentId, keyword: keyword.value, category: category.value };
+        }
+    }
+
+    return { breadcrumbs, files, loading, error, keyword, addPath, removePath, resetPath, fetchFiles, refresh, setCategory }
 })

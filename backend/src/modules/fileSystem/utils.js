@@ -32,7 +32,7 @@ async function buildFileRecord(fullPath, stat, parentId = 0) {
             record.mimeType = mime;
             record.extension = ext;
             record.category = getFileCategory(mime, ext);
-        }).catch(() => {});
+        }).catch(() => { });
     }
 
     return record;
@@ -71,11 +71,15 @@ async function scanDir(dirPath, level = 0, parentId = 0, parentFullPathId = '0')
 
 // -------------------- 文件 MD5 --------------------
 function hashFile(filePath) {
+    console.log(`开始加载文件：${filePath}`)
     return new Promise((resolve, reject) => {
         const hash = crypto.createHash("md5");
         const stream = createReadStream(filePath);
         stream.on("data", chunk => hash.update(chunk));
-        stream.on("end", () => resolve(hash.digest("hex")));
+        stream.on("end", () => {
+            console.log(`文件添加成功：${filePath}`)
+            resolve(hash.digest("hex"))
+        });
         stream.on("error", reject);
     });
 }

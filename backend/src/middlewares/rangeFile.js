@@ -6,7 +6,6 @@ const mime = require('mime-types');
 module.exports = function rangeFile(rootDir) {
   return async (ctx, next) => {
     try {
-      console.log(ctx.path);
       const requestPath = decodeURIComponent(ctx.path);
 
       const filePath = path.join(rootDir, requestPath);

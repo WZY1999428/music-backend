@@ -9,10 +9,11 @@ native-code/target
 
 # 忽略所有 dist 输出目录
 **/dist/
+
 # Auto detect text files and perform LF normalization
 * text=auto
 **.db **.db-*
-
+/backend/public
 *.ts    text eol=lf merge=union
 *.tsx   text eol=lf merge=union
 *.rs    text eol=lf merge=union
