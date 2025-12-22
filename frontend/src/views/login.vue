@@ -54,7 +54,6 @@ import { ref, onMounted } from 'vue';
 import { userStatus, initialize, userLogin } from '@/request/user';
 import { ElMessage } from "element-plus";
 import { useRouter } from 'vue-router';
-import useUserStore from '@/store/user';
 const router = useRouter();
 const userStore = useUserStore();
 const isInitialized = ref(true);

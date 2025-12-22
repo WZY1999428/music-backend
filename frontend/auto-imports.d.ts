@@ -91,6 +91,7 @@ declare global {
   const useRouter: typeof import('vue-router').useRouter
   const useSlots: typeof import('vue').useSlots
   const useTemplateRef: typeof import('vue').useTemplateRef
+  const useUserStore: typeof import('./src/store/user.js').useUserStore
   const user: typeof import('./src/store/user.js').default
   const watch: typeof import('vue').watch
   const watchEffect: typeof import('vue').watchEffect
@@ -197,7 +198,7 @@ declare module 'vue' {
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
     readonly useSlots: UnwrapRef<typeof import('vue')['useSlots']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
-    readonly user: UnwrapRef<typeof import('./src/store/user.js')['default']>
+    readonly useUserStore: UnwrapRef<typeof import('./src/store/user.js')['useUserStore']>
     readonly watch: UnwrapRef<typeof import('vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('vue')['watchEffect']>
     readonly watchPostEffect: UnwrapRef<typeof import('vue')['watchPostEffect']>

@@ -7,6 +7,13 @@ export function getFiles(params) {
         params,
     });
 }
+export function getCategoryFiles(params) {
+    return request({
+        url: "/files/category",
+        method: "get",
+        params,
+    });
+}
 
 
 export function download(fileId, access_token) {

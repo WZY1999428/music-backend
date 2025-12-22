@@ -65,14 +65,14 @@ async function getSystemInfo() {
             total: totalMem,
             free: freeMem,
             used: usedMem,
-            usage: ((usedMem / totalMem) * 100).toFixed(2) + '%'
+            usage: parseFloat(((usedMem / totalMem) * 100).toFixed(2))
         },
         disk: {
             total: diskInfo.size,
             free: diskInfo.free,
             used: usedDisk,
-            usage: ((usedDisk / diskInfo.size) * 100).toFixed(2) + '%',
-            path: diskInfo.diskPath
+            usage: parseFloat(((usedDisk / diskInfo.size) * 100).toFixed(2))
+            // path: diskInfo.diskPath
         }
     };
 }

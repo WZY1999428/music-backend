@@ -8,6 +8,18 @@ import path from 'node:path'
 export default defineConfig(({ mode }) => {
   return {
     base: mode === 'development' ? '/dev/' : '/',
+    build: {
+      outDir: path.relative(__dirname, "../backend/public"),
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              return 'vendor'
+            }
+          },
+        },
+      },
+    },
     plugins: [vue(), tailwindcss(), AutoImport(AutoImportOptions()), Components()],
     resolve: {
       alias: {
@@ -16,8 +28,6 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
-
-
 
 
 function AutoImportOptions() {

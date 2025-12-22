@@ -7,6 +7,12 @@ const viteServerMiddleware = require('./modules/viteServer');
 const attachErrorHandler = require('./utils/errorHandler');
 const router = registerRoutes(path.join(__dirname, './routes'));
 const initializeFileDatabase = require('./modules/fileSystem/initializeFileDatabase');
+const { readFile } = require('fs-extra');
+router.get("/", async (ctx) => {
+    const filePath = path.join(__dirname, "../public/index.html");
+    ctx.type = "html"; // 告诉浏览器这是 HTML
+    ctx.body = await readFile(filePath, "utf-8");
+})
 async function createServer() {
     const app = new Koa();
     attachErrorHandler(app);
@@ -16,7 +22,9 @@ async function createServer() {
         process.exit(1);
     }
     app
-        .use(bodyParser())
+        .use(bodyParser({
+            parsedMethods: ['POST', 'PUT', 'PATCH', 'DELETE']
+        }))
         .use(require('./middlewares/rangeFile')(path.join(__dirname, '../public')))
         .use(require('./middlewares/httpResponse')())
         .use(require('./middlewares/auth')())

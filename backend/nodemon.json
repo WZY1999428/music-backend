@@ -1,15 +1,17 @@
 {
     "watch": [
-        "src/**/*.js"
+        "src",
+        ".env.*",
+        "index.js"
     ],
     "ignore": [
         "frontend",
         "node_modules"
     ],
-    "ext": "js,json",
+    "ext": "js,json,env",
     "exec": "node index.js",
-    "delay": "100", 
+    "delay": 100,
     "env": {
         "NODE_ENV": "development"
     }
-} 
+}

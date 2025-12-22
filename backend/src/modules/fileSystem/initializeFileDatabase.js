@@ -46,11 +46,7 @@ async function initFileDB() {
             const ans = await askQuestion("\n输入选项（1/2/3）：");
             if (ans === "1") {
                 console.log("清空数据库...");
-                await FileTable.deleteMany({
-                    rootPath: {
-                        $not: "",
-                    },
-                });
+                await FileTable.deleteMany([{ field: "rootPath", value: "", op: "!=" }]);
                 console.log("重新扫描目录...");
                 await scanDir(fileDir, 0, 0);
                 console.log("完成：数据库已重建并同步。");
