@@ -7,6 +7,5 @@ const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
 dotenv.config({ path: resolve(__dirname, envFile) });
 console.log("当前环境:", process.env.NODE_ENV);
 console.log("PORT:", process.env.SERVER_PORT);
-
 const createServer = require('./src/createServer');
 createServer(); 

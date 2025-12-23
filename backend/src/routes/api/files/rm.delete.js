@@ -8,28 +8,42 @@ module.exports = async (ctx) => {
     }
     if (status == 0) {
         // --- 硬删除逻辑 ---
-        // 1. 先查出所有要删除的文件信息，备物理删除使用
-        const files = await FileTable.find([{ field: "id", value: fileIds, op: "in" }], { pageSize: -1 });
+        // 1. 先查询出所有需要删除的文件
+        const filters = []
+        fileIds.forEach(id => filters.push(...[{ field: "fullPathId", value: `%-${id}-%`, op: "Like", logic: "OR" }, { field: "fullPathId", value: `%-${id}`, op: "Like", logic: "OR" }]));
+        const files = await FileTable.find(filters, { pageSize: -1 });
         await FileTable.beginTransaction();
+        const finalRmFiles = [];
+        const shellFolderIds = new Set();
         try {
-            // 2. 数据库层面删除记录
-            for (const file of files) {
-                if (file.isFolder === 1) {
-                    await FileTable.deleteMany([{ field: "fullPathId", value: `%-${file.id}-%`, op: "LIKE" }]);
+            const trash = files.filter(item => item.status == 1);
+            const otherFiles = files.filter(item => item.status == 0);
+            const ids = [];
+            for (const file of otherFiles) {
+                const token = `-${file.id}-`;
+                const trashFile = trash.find(item => item.fullPathId.includes(token));
+                if (trashFile && file.isFolder === 1) {
+                    const trashFullPathId = trashFile.fullPathId.split("-").filter(Boolean).slice(0, -1).map(Number);
+                    const index = trashFullPathId.indexOf(file.id);
+                    trashFullPathId.splice(0, index);
+                    trashFullPathId.forEach(id => shellFolderIds.add(id));
                 } else {
-                    await FileTable.deleteOne({ id: file.id });
+                    finalRmFiles.push(file);
+                    ids.push(file.id)
                 }
             }
-            await Favorite.deleteMany([{ field: "fileId", value: fileIds, op: "in" }]);
+            if (shellFolderIds.size > 0) await FileTable.updateMany([{ field: "id", value: Array.from(shellFolderIds), op: "in" }, { field: "isFolder", value: 1 }], { status: 3 });
+            await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]);
+            await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]);
             // 提交事务：此时数据库记录已清理完毕
             await FileTable.commit();
         } catch (dbErr) {
             await FileTable.rollback();
             throw dbErr; // 数据库失败，直接跳出，不删物理文件
         }
-
+        finalRmFiles.sort((a, b) => b.path.length - a.path.length);
         const failed = [];
-        for (const file of files) {
+        for (const file of finalRmFiles) {
             try {
                 await fs.remove(path.join(file.rootPath, file.path));
             } catch (err) {
@@ -57,7 +71,6 @@ module.exports = async (ctx) => {
         return ctx.success(`删除完成${failed.length ? `，物理清理失败 ${failed.length}个, 失败记录写入orphaned.json中` : ""}`);
     } else {
         try {
-            console.log(fileIds);
             FileTable.beginTransaction();
             await FileTable.updateMany([{ field: "id", value: fileIds, op: "in" }], { status: 1 });
             await Favorite.deleteMany([{ field: "fileId", value: fileIds, op: "in" }])
@@ -70,6 +83,9 @@ module.exports = async (ctx) => {
     }
 
 }
+
+
+
 
 const orphanedFilePath = path.join(process.cwd(), "orphaned.json")
 async function writeErrors(errors) {

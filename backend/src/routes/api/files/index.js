@@ -17,7 +17,7 @@ module.exports = async (ctx) => {
             fields: ["id", "name", "path", "isFolder", "parentId", 'category', "size", "mimeType", "extension", "createdAt", "updatedAt"]
         });
         if (parentId != 0 && files.length === 0 && !keyword) {
-            const file = await FileTable.findOne({ id: parentId });
+            const file = await FileTable.findOne([{ field: "id", value: parentId }]);
             if (!file) return ctx.fail("父目录不存在");
             const filePath = path.join(file.rootPath, file.path);
             const stat = await fs.stat(filePath);
@@ -25,9 +25,11 @@ module.exports = async (ctx) => {
                 // 避免重复扫描
                 if (!scanning[parentId]) {
                     scanning[parentId] = true;
-                    const file = await FileTable.findOne({ parentId: parentId });
-                    await scanDir(filePath, 0, parentId, file.fullPathId);
-                    files = await FileTable.find([{ field: "parentId", value: parentId }], { pageSize: -1, });
+                    const file = await FileTable.findOne([{ field: "parentId", value: parentId }]);
+                    if (file) {
+                        await scanDir(filePath, 0, parentId, file.fullPathId);
+                        files = await FileTable.find([{ field: "parentId", value: parentId }], { pageSize: -1, });
+                    }
                     delete scanning[parentId];
                 }
             }
