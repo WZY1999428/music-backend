@@ -457,6 +457,65 @@ class Model {
     }
 
     /**
+     * 批量更新（安全版本）
+     * @param {Array<object>} batch 
+     *  - filters: [{ field: 'id', value: 1 }, { field: 'isFolder', value: 1 }]
+     *  - data: { status: 3, name: '文件A' }
+     * @returns {Promise<any>}
+     * 
+     * @example
+     * await updateManyBatchSafe([
+        { 
+          filters: [{ field: 'id', value: 1 }], 
+          data: { status: 3, name: '文件A' } 
+        },
+        { 
+          filters: [{ field: 'id', value: 2 }, { field: 'isFolder', value: 1 }], 
+          data: { status: 4 } 
+        }
+      ]);
+     */
+
+    async updateManyBatchIn(batch = []) {
+        if (!batch.length) throw new Error('batch 不能为空');
+        // 收集所有更新字段
+        const allFields = Array.from(new Set(batch.flatMap(item => Object.keys(item.data))));
+        // 生成临时数据表
+        // 这里用 VALUES 拼接占位符，批量插入
+        let valuesSql = [];
+        const values = [];
+        batch.forEach(item => {
+            const row = [];
+            allFields.forEach(f => {
+                if (item.data[f] !== undefined) {
+                    row.push('?');
+                    values.push(item.data[f]);
+                } else {
+                    row.push('NULL'); // 没有更新的字段填 NULL
+                }
+            });
+            // 拼 filters 为一个额外的列，用 JSON 或组合 key
+            const filterKey = item.filters.map(f => f.value).join(',');
+            row.push('?');
+            values.push(filterKey);
+            valuesSql.push(`(${row.join(',')})`);
+        });
+        // 拼临时表列名
+        const tempCols = [...allFields, 'filterKey'];
+        const sql = `
+    UPDATE ${this.table} t
+    JOIN (
+      VALUES ${valuesSql.join(',')}
+    ) AS tmp(${tempCols.join(',')})
+    ON CONCAT(${batch[0].filters.map(f => `t.${f.field}`).join(",') , ',' ,(")}) = tmp.filterKey
+    SET ${allFields.map(f => `t.${f} = COALESCE(tmp.${f}, t.${f})`).join(', ')}
+  `;
+
+        return this.db.run(sql, values);
+    }
+
+
+    /**
      * 删除单条
      * @param {object} where
      * @returns {Promise<any>}
