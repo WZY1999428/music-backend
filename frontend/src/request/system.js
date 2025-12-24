@@ -1,9 +1,7 @@
-import request from ".";
+import createRequestWrapper from ".";
 
-export function getStorageStatus() {
-    return request({
-        url: "/storage/status",
-        method: "get",
-    });
-}
+export const getStorageStatus = createRequestWrapper(() => ({
+    url: "/storage/status",
+    method: "get",
+}), { autoCancel: false });
 

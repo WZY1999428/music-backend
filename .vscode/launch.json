@@ -1,0 +1,21 @@
+{
+  // 这是合法的 JSONC 注释
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Dev",
+      "program": "${workspaceFolder}/backend/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "GEMINI_APP_KEY": "AIzaSyBJCflBYADtx3daxRHdGEpq2-bZhGeBW0E",
+        "PUBLIC_FILE_PATCH": "D:/迅雷下载",
+        "SQLITE_DB_PATH": "${workspaceFolder}/backend/prod.db",
+        "SERVER_PORT": "8848",
+        "WATCH_IS_WINDOWS_POLL": "1",
+        "JWT_SECRET": "4f8e2b1d3a9c6e7f0b1d2a3c4f5e6d7b8c9a0e1f2b3c4d5e6f7a8b9c0d1e2f3a"
+      }
+    }
+  ]
+}

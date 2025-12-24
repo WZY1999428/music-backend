@@ -117,7 +117,7 @@ function toHome(res) {
     setItem("token", res.data);
     ElMessage.success(res.msg);
     setTimeout(() => {
-        userStore.getUserInfo();
+        userStore.fetchUserInfo();
         router.replace("/");
     }, 50);
 }

@@ -1,15 +1,33 @@
-import { getFiles, getCategoryFiles } from "@/request/files"
+import { getFiles, getCategoryFiles, getFavorite } from "@/request/files"
+import { getRecycleBin } from "@/request/trash"
 const queryTypeMap = {
-    list: getFiles,
-    category: getCategoryFiles
+    myFile: getFiles,
+    category: getCategoryFiles,
+    recycleBin: getRecycleBin,
+    collection: getFavorite,
 }
+
+const nameMap = {
+    "myFile": '我的文件',
+    "recentlyUsed": '最近使用',
+    "collection": '收藏夹',
+    "recycleBin": '回收站',
+    "image": "图片文件",
+    "video": "视频文件",
+    "document": "文档",
+    "audio": "音频文件",
+    "archive": "压缩包文件",
+    "other": "其他文件",
+}
+const fileCache = new Map();
+
 export const useFileStore = defineStore('file', () => {
     const breadcrumbs = ref([])
     const files = ref([])
+    const rootName = ref('我的文件')
     const loading = ref(false)
     const error = ref(null)
-    const queryType = ref("list")
-    const fileCache = new Map();
+    const queryType = ref('myFile');
     const keyword = ref('');
     const category = ref('');
     const addPath = (id, name) => {
@@ -18,24 +36,24 @@ export const useFileStore = defineStore('file', () => {
             breadcrumbs.value.push({ id, name });
         }
         keyword.value = '';
-        refresh(false);
+        forceRefresh(false);
     };
     const removePath = (index) => {
         if (loading.value) return;
         if (index == breadcrumbs.value.length - 1) {
-            refresh(true);
+            forceRefresh(true);
             return;
         }
         keyword.value = '';
         breadcrumbs.value.splice(index + 1);
-        refresh(false);
+        forceRefresh(false);
     };
     const resetPath = () => {
         if (loading.value) return;
         breadcrumbs.value = [];
-        refresh(false);
+        forceRefresh(false);
     };
-    function refresh(refresh = true) {
+    function forceRefresh(refresh = true) {
         if (loading.value) return;
         const last = breadcrumbs.value[breadcrumbs.value.length - 1];
         fetchFiles(last ? last.id : 0, refresh);
@@ -49,7 +67,7 @@ export const useFileStore = defineStore('file', () => {
         error.value = null;
         loading.value = true;
         files.value = [];
-        const req = queryTypeMap[queryType.value] ? queryTypeMap[queryType.value] : getFiles;
+        const req = queryTypeMap[queryType.value] || getFiles;
         req(setQueryParams(parentId)).then(res => {
             const sorted = res.data.sort((a, b) => b.isFolder - a.isFolder);
             fileCache.set(parentId, sorted);
@@ -62,25 +80,27 @@ export const useFileStore = defineStore('file', () => {
     }
 
 
-    function setCategory(cat) {
+    function setFileType(type, cat) {
         if (loading.value) return;
-        category.value = cat;
+        if (type == "category") category.value = cat;
+        else category.value = '';
         keyword.value = '';
         breadcrumbs.value = [];
-        queryType.value = 'category';
-        console.log(1111);
-        refresh(true);
+        rootName.value = nameMap[cat];
+        fileCache.clear();
+        queryType.value = type;
+        forceRefresh(true);
     }
 
 
     function setQueryParams(parentId) {
         switch (queryType.value) {
-            case 'list':
+            case 'myFile':
                 return { parentId, keyword: keyword.value };
             case 'category':
                 return { parentId, keyword: keyword.value, category: category.value };
         }
     }
 
-    return { breadcrumbs, files, loading, error, keyword, addPath, removePath, resetPath, fetchFiles, refresh, setCategory }
+    return { breadcrumbs, files, loading, error, rootName, queryType, keyword, addPath, removePath, resetPath, fetchFiles, forceRefresh, setFileType }
 })

@@ -7,6 +7,10 @@
 export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
+  const ElMessage: typeof import('element-plus').ElMessage
+  const ElMessageBox: typeof import('element-plus').ElMessageBox
+  const ElRadio: typeof import('element-plus').ElRadio
+  const ElRadioGroup: typeof import('element-plus').ElRadioGroup
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const axios: typeof import('axios').default
   const clearStorage: typeof import('./src/utils/storage.js').clearStorage
@@ -92,7 +96,6 @@ declare global {
   const useSlots: typeof import('vue').useSlots
   const useTemplateRef: typeof import('vue').useTemplateRef
   const useUserStore: typeof import('./src/store/user.js').useUserStore
-  const user: typeof import('./src/store/user.js').default
   const watch: typeof import('vue').watch
   const watchEffect: typeof import('vue').watchEffect
   const watchPostEffect: typeof import('vue').watchPostEffect
@@ -114,6 +117,10 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
+    readonly ElMessage: UnwrapRef<typeof import('element-plus')['ElMessage']>
+    readonly ElMessageBox: UnwrapRef<typeof import('element-plus')['ElMessageBox']>
+    readonly ElRadio: UnwrapRef<typeof import('element-plus')['ElRadio']>
+    readonly ElRadioGroup: UnwrapRef<typeof import('element-plus')['ElRadioGroup']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly axios: UnwrapRef<typeof import('axios')['default']>
     readonly clearStorage: UnwrapRef<typeof import('./src/utils/storage.js')['clearStorage']>

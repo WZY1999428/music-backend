@@ -89,7 +89,6 @@ module.exports = async (ctx) => {
             ctx.fail(error.message);
         }
     }
-
 }
 
 
@@ -97,7 +96,23 @@ async function rename(files) {
     for (const file of files) {
         const name = `.${Date.now()}-${file.name}`;
         const newPath = path.join(file.path, `../${name}`);
+        const index = file.fullPathId.split('-').filter(Boolean).length - 2;
+        if (index > -1) {
+            const pathArr = newPath.split(path.sep).filter(Boolean);
+            pathArr.splice(index, 0, name);
+            const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }, { field: "id", value: file.id, op: "!=" }]);
+            FileTable.beginTransaction();
+            for (const cFile of children) {
+                const pathArr = cFile.path.split(path.sep).filter(Boolean);
+                const index = file.fullPathId.split('-').filter(Boolean).length - 1;
+                pathArr.splice(index, 1, name); 
+                const newPath = path.join(...pathArr);
+                await FileTable.update({ id: cFile.id }, { path: newPath });
+            }
+            FileTable.commit();
+        }
         await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
+        console.log(newPath);
         await FileTable.updateMany([{ field: "id", value: file.id }], { path: newPath });
     }
 }
