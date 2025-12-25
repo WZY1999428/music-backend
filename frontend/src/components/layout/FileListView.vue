@@ -1,7 +1,8 @@
 <template>
     <div class="h-full" ref="tableDivRef">
         <el-table :data="files" show-overflow-tooltip @cell-dblclick="handleDblClick" style="width: 100%; "
-            :height="tableHeight">
+            @selection-change="(e) => emit('tableSelectionChange', e)" :height="tableHeight">
+            <el-table-column label="序号" type="selection" width="30" align="center"></el-table-column>
             <el-table-column label="序号" type="index" width="55" align="center"></el-table-column>
             <el-table-column label="文件图标" width="80" align="center">
                 <template #default="{ row }">
@@ -54,7 +55,7 @@ const prps = defineProps({
         required: true
     }
 });
-const emit = defineEmits(['dbclick', "download", "delete", "recently"]);
+const emit = defineEmits(['dbclick', "download", "delete", "recently", "tableSelectionChange"]);
 const tableDivRef = ref(null);
 const fileStore = useFileStore();
 const tableHeight = ref(500);

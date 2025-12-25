@@ -56,6 +56,7 @@ export const useFileStore = defineStore('file', () => {
     function forceRefresh(refresh = true) {
         if (loading.value) return;
         const last = breadcrumbs.value[breadcrumbs.value.length - 1];
+        console.log(last);
         fetchFiles(last ? last.id : 0, refresh);
     }
 

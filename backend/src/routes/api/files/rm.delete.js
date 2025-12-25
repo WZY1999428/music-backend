@@ -1,4 +1,5 @@
 const { FileTable, Favorite } = require("@/modules/sqlite/model");
+const { FILE } = require("dns");
 const fs = require("fs-extra");
 const path = require("path");
 module.exports = async (ctx) => {
@@ -11,13 +12,14 @@ module.exports = async (ctx) => {
         fileIds.forEach(id => filters.push(...[{ field: "fullPathId", value: `%-${id}-%`, op: "Like", logic: "OR" }, { field: "fullPathId", value: `%-${id}`, op: "Like", logic: "OR" }]));
         const files = await FileTable.find(filters, { pageSize: -1 });
         await FileTable.beginTransaction();
+        let isCommit = false;
         const shellFolderIds = new Set();
-        let finalRmFiles = [];
         let shellFolderFile = [];
+        let finalRmFiles = [];
+        const trash = files.filter(item => item.status == 1);
+        const otherFiles = files.filter(item => item.status == 0);
+        let ids = new Set();
         try {
-            const trash = files.filter(item => item.status == 1);
-            const otherFiles = files.filter(item => item.status == 0);
-            const ids = new Set();
             for (const file of otherFiles) {
                 const token = `-${file.id}-`;
                 const trashFile = trash.find(item => item.fullPathId.includes(token));
@@ -27,27 +29,26 @@ module.exports = async (ctx) => {
                     trashFullPathId.splice(0, index);
                     trashFullPathId.forEach(id => shellFolderIds.add(id));
                     shellFolderFile.push(file);
-                } else {
-                    finalRmFiles.push(file);
-                    ids.add(file.id)
-                }
+                } else ids.add(file.id)
             }
+            if (ids.size > 0) {
+                ids = Array.from(ids)
+                finalRmFiles = await FileTable.find([{ field: "id", value: ids, op: "in" }], { pageSize: -1 });
+                await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]);
+                await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]);
+            }
+            await FileTable.commit();
+            isCommit = true;
             if (shellFolderIds.size > 0) {
                 await FileTable.updateMany([{ field: "id", value: Array.from(shellFolderIds), op: "in" }, { field: "isFolder", value: 1 }], { status: 3 });
                 shellFolderFile.sort((a, b) => b.path.length - a.path.length);
-                rename(shellFolderFile)
+                await rename(shellFolderFile)
             }
-            if (ids.size > 0) {
-                await FileTable.deleteMany([{ field: "id", value: Array.from(ids), op: "in" }]);
-                await Favorite.deleteMany([{ field: "fileId", value: Array.from(ids), op: "in" }]);
-            }
-            // 提交事务：此时数据库记录已清理完毕
-            await FileTable.commit();
         } catch (dbErr) {
-            await FileTable.rollback();
-            throw dbErr; // 数据库失败，直接跳出，不删物理文件
+            if (!isCommit) await FileTable.rollback().catch({})
+            throw dbErr; // 数据库失败，直接跳出，不删物理文件 
         }
-        // 先删除文件在删除目录
+        // 先删除文件在删除目录 
         finalRmFiles.sort((a, b) => b.path.length - a.path.length);
         const failed = [];
         for (const file of finalRmFiles) {
@@ -55,7 +56,7 @@ module.exports = async (ctx) => {
                 await fs.remove(path.join(file.rootPath, file.path));
             } catch (err) {
                 const code = err.code;
-                // 文件不存在，不用管
+                // 文件不存在，不用管 
                 if (code === 'ENOENT') continue;
                 // 中文描述
                 let reason = '';
@@ -70,7 +71,6 @@ module.exports = async (ctx) => {
                     default:
                         reason = '未知错误';
                 }
-
                 failed.push({ id: file.id, fullPath: path.join(file.rootPath, file.path), code, reason });
             }
         }
@@ -78,14 +78,10 @@ module.exports = async (ctx) => {
         return ctx.success(`删除完成${failed.length ? `，物理清理失败 ${failed.length}个, 失败记录写入orphaned.json中` : ""}`);
     } else {
         try {
-            FileTable.beginTransaction();
-            await FileTable.updateMany([{ field: "id", value: fileIds, op: "in" }], { status: 1 });
-            await Favorite.deleteMany([{ field: "fileId", value: fileIds, op: "in" }])
-            FileTable.commit();
-            rename(await FileTable.find([{ field: "id", value: fileIds, op: "in" }], { pageSize: -1 })).catch(() => { });
+            await rename(await FileTable.find([{ field: "id", value: fileIds, op: "in" }], { pageSize: -1 }));
             ctx.success("文件已入回收站");
         } catch (error) {
-            FileTable.rollback();
+            console.log(error);
             ctx.fail(error.message);
         }
     }
@@ -94,26 +90,29 @@ module.exports = async (ctx) => {
 
 async function rename(files) {
     for (const file of files) {
-        const name = `.${Date.now()}-${file.name}`;
-        const newPath = path.join(file.path, `../${name}`);
-        const index = file.fullPathId.split('-').filter(Boolean).length - 2;
-        if (index > -1) {
-            const pathArr = newPath.split(path.sep).filter(Boolean);
-            pathArr.splice(index, 0, name);
-            const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }, { field: "id", value: file.id, op: "!=" }]);
-            FileTable.beginTransaction();
-            for (const cFile of children) {
-                const pathArr = cFile.path.split(path.sep).filter(Boolean);
-                const index = file.fullPathId.split('-').filter(Boolean).length - 1;
-                pathArr.splice(index, 1, name); 
-                const newPath = path.join(...pathArr);
-                await FileTable.update({ id: cFile.id }, { path: newPath });
+        try {
+            await FileTable.beginTransaction();
+            const name = `.${Date.now()}-${file.name}`;
+            const newPath = path.join(file.path, `../${name}`);
+            const index = file.fullPathId.split('-').map(Number).filter(Boolean).indexOf(file.id);
+            if (file.isFolder == 1 && index > -1) {
+                const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like", logic: "OR" }, { field: "fullPathId", value: `${file.id}-%`, op: "like" }, { field: "id", value: file.id, op: "!=" }]);
+                for (const cFile of children) {
+                    const pathArr = cFile.path.split(path.sep).filter(Boolean);
+                    pathArr.splice(index, 1, name);
+                    console.log(pathArr);
+                    const newPath = path.join(...pathArr);
+                    await FileTable.update({ id: cFile.id }, { path: newPath });
+                }
             }
-            FileTable.commit();
+            await FileTable.updateMany([{ field: "id", value: file.id }, { field: "status", value: 3, op: "!=" }], { status: 1, path: newPath });
+            await Favorite.deleteMany([{ field: "fileId", value: file.id }])
+            await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
+            await FileTable.commit();
+        } catch (error) {
+            await FileTable.rollback().catch({})
+            throw error;
         }
-        await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
-        console.log(newPath);
-        await FileTable.updateMany([{ field: "id", value: file.id }], { path: newPath });
     }
 }
 
@@ -154,7 +153,6 @@ setInterval(async () => {
         if (errors.length === 0) return;
         console.log(`[定时任务] 开始清理孤儿文件，共 ${errors.length} 个待处理...`);
         const remainingErrors = [];
-
         // 3. 循环尝试删除
         for (const error of errors) {
             try {

@@ -19,6 +19,7 @@ request.interceptors.response.use(res => {
     const data = res.data;
     // 这里的判断逻辑保持你的原样
     if (data.code !== 0 && res.headers['content-type'] !== "application/octet-stream") {
+        ElMessage.error(data.msg);
         return Promise.reject(data);
     }
     return data;
