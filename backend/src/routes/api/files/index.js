@@ -9,12 +9,12 @@ module.exports = async (ctx) => {
         const parentId = ctx.query.parentId || 0;
         const keyword = ctx.query.keyword || '';
         const filters = []
-        if (keyword) filters.push(...[{ field: "name", value: `%${keyword}%`, op: "LIKE" }, { field: "fullPathId", value: `${parentId == 0 ? '' : '%-'} ${parentId}-%`, op: "LIKE" }, { field: "status", value: 0 }]);
-        else filters.push(...[{ field: "parentId", value: parentId }, { field: "status", value: 0 }]);
+        if (keyword) filters.push(...[{ field: "name", value: `%${keyword}%`, op: "LIKE" }, { field: "fullPathId", value: `${parentId == 0 ? '' : '%-'} ${parentId}-%`, op: "LIKE" }]);
+        else filters.push(...[{ field: "parentId", value: parentId }]);
         let files = await FileTable.find(filters, {
             pageIndex: 1,
             pageSize: -1,
-            fields: ["id", "name", "path", "isFolder", "parentId", 'category', "size", "mimeType", "extension", "createdAt", "updatedAt"]
+            fields: ["id", "name", "path", "isFolder", "parentId", 'category', "size", "mimeType", "extension", "createdAt", "updatedAt", "status"]
         });
         if (parentId != 0 && files.length === 0 && !keyword) {
             const file = await FileTable.findOne([{ field: "id", value: parentId }]);
@@ -25,11 +25,8 @@ module.exports = async (ctx) => {
                 // 避免重复扫描
                 if (!scanning[parentId]) {
                     scanning[parentId] = true;
-                    const file = await FileTable.findOne([{ field: "parentId", value: parentId }]);
-                    if (file) {
-                        await scanDir(filePath, 0, parentId, file.fullPathId);
-                        files = await FileTable.find([{ field: "parentId", value: parentId }], { pageSize: -1, });
-                    }
+                    await scanDir(filePath, 0, parentId, file.fullPathId);
+                    files = await FileTable.find([{ field: "parentId", value: parentId }], { pageSize: -1, });
                     delete scanning[parentId];
                 }
             }
@@ -38,7 +35,7 @@ module.exports = async (ctx) => {
             const token = generateFileToken(file.id);
             file.access_token = token;
         }
-        ctx.success(files);
+        ctx.success(files.filter(item => item.status == 0));
     } catch (err) {
         ctx.fail("获取列表失败: " + err.message);
     }

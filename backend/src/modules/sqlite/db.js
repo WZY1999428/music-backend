@@ -309,9 +309,6 @@ class Model {
             const op = (f.op || '=').toUpperCase();
             const logic = (f.logic || 'AND').toUpperCase();
             let val = f.value;
-
-            if (op === 'LIKE') val = `%${val}%`;
-
             if (op === 'IN' && Array.isArray(val)) {
                 const p = val.map(() => '?').join(', ');
                 values.push(...val);

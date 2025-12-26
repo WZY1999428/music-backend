@@ -8,28 +8,36 @@ module.exports = async (ctx) => {
         return ctx.fail("无效的文件ID列表");
     }
     if (status == 0) {
-        const filters = []
-        fileIds.forEach(id => filters.push(...[{ field: "fullPathId", value: `%-${id}-%`, op: "Like", logic: "OR" }, { field: "fullPathId", value: `%-${id}`, op: "Like", logic: "OR" }]));
-        const files = await FileTable.find(filters, { pageSize: -1 });
-        await FileTable.beginTransaction();
-        let isCommit = false;
+        const files = await FileTable.find([{ field: "id", value: fileIds, op: "in" }], { pageSize: -1 });
         const shellFolderIds = new Set();
         let shellFolderFile = [];
         let finalRmFiles = [];
-        const trash = files.filter(item => item.status == 1);
-        const otherFiles = files.filter(item => item.status == 0);
         let ids = new Set();
+        let isCommit = false;
         try {
-            for (const file of otherFiles) {
-                const token = `-${file.id}-`;
-                const trashFile = trash.find(item => item.fullPathId.includes(token));
+            for (const file of files) {
+                const trashFile = await FileTable.findOne([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }, { field: "status", value: 1 }, { field: "id", value: file.id, op: "!=" }]);
+                //查询子目录 sql
+                const childrenSql = [{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }];
+                // 如果回收站有这个目录的文件
                 if (trashFile && file.isFolder === 1) {
-                    const trashFullPathId = trashFile.fullPathId.split("-").filter(Boolean).slice(0, -1).map(Number);
-                    const index = trashFullPathId.indexOf(file.id);
-                    trashFullPathId.splice(0, index);
-                    trashFullPathId.forEach(id => shellFolderIds.add(id));
-                    shellFolderFile.push(file);
+                    shellFolderIds.add(file.id)
+                    shellFolderFile.push(file)
+                    childrenSql.push({ field: "status", value: 0 })
                 } else ids.add(file.id)
+                if (file.isFolder == 1) {
+                    const children = await FileTable.find(childrenSql, { pageSize: -1 })
+                    children.sort((a, b) => b.path.length - a.path.length).forEach(c => ids.add(c.id))
+                }
+            }
+            console.log(shellFolderIds.size);
+            await FileTable.beginTransaction();
+            isCommit = false;
+            // 把回收站里有文件的目录状态改为3 并且重新命名
+            if (shellFolderIds.size > 0) {
+                shellFolderFile.sort((a, b) => b.path.length - a.path.length);
+                await rename(shellFolderFile)
+                await FileTable.updateMany([{ field: "id", value: Array.from(shellFolderIds), op: "in" }, { field: "isFolder", value: 1 }], { status: 3 });
             }
             if (ids.size > 0) {
                 ids = Array.from(ids)
@@ -39,14 +47,9 @@ module.exports = async (ctx) => {
             }
             await FileTable.commit();
             isCommit = true;
-            if (shellFolderIds.size > 0) {
-                await FileTable.updateMany([{ field: "id", value: Array.from(shellFolderIds), op: "in" }, { field: "isFolder", value: 1 }], { status: 3 });
-                shellFolderFile.sort((a, b) => b.path.length - a.path.length);
-                await rename(shellFolderFile)
-            }
         } catch (dbErr) {
             if (!isCommit) await FileTable.rollback().catch({})
-            throw dbErr; // 数据库失败，直接跳出，不删物理文件 
+            throw dbErr; // 数据库失败，直接跳出，不删物理文件  
         }
         // 先删除文件在删除目录 
         finalRmFiles.sort((a, b) => b.path.length - a.path.length);
@@ -57,6 +60,7 @@ module.exports = async (ctx) => {
             } catch (err) {
                 const code = err.code;
                 // 文件不存在，不用管 
+                console.log(err);
                 if (code === 'ENOENT') continue;
                 // 中文描述
                 let reason = '';
@@ -78,10 +82,12 @@ module.exports = async (ctx) => {
         return ctx.success(`删除完成${failed.length ? `，物理清理失败 ${failed.length}个, 失败记录写入orphaned.json中` : ""}`);
     } else {
         try {
+            await FileTable.beginTransaction();
             await rename(await FileTable.find([{ field: "id", value: fileIds, op: "in" }], { pageSize: -1 }));
+            await FileTable.commit();
             ctx.success("文件已入回收站");
         } catch (error) {
-            console.log(error);
+            await FileTable.rollback().catch({})
             ctx.fail(error.message);
         }
     }
@@ -90,29 +96,22 @@ module.exports = async (ctx) => {
 
 async function rename(files) {
     for (const file of files) {
-        try {
-            await FileTable.beginTransaction();
-            const name = `.${Date.now()}-${file.name}`;
-            const newPath = path.join(file.path, `../${name}`);
-            const index = file.fullPathId.split('-').map(Number).filter(Boolean).indexOf(file.id);
-            if (file.isFolder == 1 && index > -1) {
-                const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like", logic: "OR" }, { field: "fullPathId", value: `${file.id}-%`, op: "like" }, { field: "id", value: file.id, op: "!=" }]);
-                for (const cFile of children) {
-                    const pathArr = cFile.path.split(path.sep).filter(Boolean);
-                    pathArr.splice(index, 1, name);
-                    console.log(pathArr);
-                    const newPath = path.join(...pathArr);
-                    await FileTable.update({ id: cFile.id }, { path: newPath });
-                }
+        const name = `.${Date.now()}-${file.name}`;
+        const newPath = path.join(file.path, `../${name}`);
+        const index = file.fullPathId.split('-').map(Number).filter(Boolean).indexOf(file.id);
+        if (file.isFolder == 1 && index > -1) {
+            const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "LIKE" }, { field: "id", value: file.id, op: "!=" }], { pageSize: -1 });
+            for (const cFile of children) {
+                const pathArr = cFile.path.split(path.sep).filter(Boolean);
+                pathArr.splice(index, 1, name);
+                const newPath = path.join(...pathArr);
+                console.log("newPath", newPath);
+                await FileTable.update({ id: cFile.id }, { path: newPath });
             }
-            await FileTable.updateMany([{ field: "id", value: file.id }, { field: "status", value: 3, op: "!=" }], { status: 1, path: newPath });
-            await Favorite.deleteMany([{ field: "fileId", value: file.id }])
-            await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
-            await FileTable.commit();
-        } catch (error) {
-            await FileTable.rollback().catch({})
-            throw error;
         }
+        console.log(newPath);
+        await FileTable.updateMany([{ field: "id", value: file.id }, { field: "status", value: 3, op: "!=" }], { status: 1, path: newPath });
+        await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
     }
 }
 
