@@ -240,8 +240,7 @@ class Model {
                 let totalChanges = 0;
                 try {
                     await this.beginTransaction();
-                    stmt = await this.db.prepare(sql);
-
+                    stmt = this.db.prepare(sql);
                     for (const row of datas) {
                         const values = columns.map(k => row[k]);
                         await new Promise((res, rej) => {
@@ -305,23 +304,36 @@ class Model {
     _buildWhereByFilters(filters = []) {
         const conditions = [];
         const values = [];
-        filters.forEach((f, i) => {
-            const op = (f.op || '=').toUpperCase();
+
+        for (let i = 0; i < filters.length; i++) {
+            const f = filters[i];
             const logic = (f.logic || 'AND').toUpperCase();
-            let val = f.value;
-            if (op === 'IN' && Array.isArray(val)) {
-                const p = val.map(() => '?').join(', ');
-                values.push(...val);
-                conditions.push(`${i ? logic : ''} ${f.field} IN (${p})`);
-                return;
+            const op = (f.op || '=').toUpperCase();
+
+            let sql = '';
+
+            if (op === 'IN' && Array.isArray(f.value)) {
+                const p = f.value.map(() => '?').join(', ');
+                sql = `${f.field} IN (${p})`;
+                values.push(...f.value);
+            }
+            else if (op === 'BETWEEN' && Array.isArray(f.value)) {
+                sql = `${f.field} BETWEEN ? AND ?`;
+                values.push(f.value[0], f.value[1]);
+            }
+            else if (op === 'IS NULL' || op === 'IS NOT NULL') {
+                sql = `${f.field} ${op}`;
+            }
+            else {
+                sql = `${f.field} ${op} ?`;
+                values.push(f.value);
             }
 
-            values.push(val);
-            conditions.push(`${i ? logic : ''} ${f.field} ${op} ?`);
-        });
+            conditions.push(`${i === 0 ? '' : logic + ' '}${sql}`);
+        }
 
         return {
-            whereSql: conditions.length ? 'WHERE ' + conditions.join(' ') : '',
+            whereSql: conditions.length ? `WHERE ${conditions.join(' ')}` : '',
             values
         };
     }

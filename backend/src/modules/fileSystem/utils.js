@@ -1,24 +1,109 @@
 // -------------------- 构建数据库记录 --------------------
-const crypto = require("crypto");
-const { createReadStream } = require("fs");
 const { fileTypeFromBuffer } = require('file-type');
 const { readChunk } = require('read-chunk');
 const fs = require("fs-extra");
 const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 const { FileTable } = require("@/modules/sqlite/model");
-async function buildFileRecord(fullPath, stat, parentId = 0) {
+const HashFile = require("./hashFile");
+const MAX_WORKERS = Math.min(require("os").cpus().length, 8);
+const hashFile = new HashFile(MAX_WORKERS);
+const files = [];
+const BATCH_SIZE = 100; // 每批处理 100 个文件
+// -------------------- 队列 --------------------
+async function queueScanning(dirPaths = []) {
+    console.time("QueueScanning");
+    console.log("正在加载文件数据库...");
+    while (dirPaths.length > 0) {
+        const parent = dirPaths.shift();
+        const parentPath = path.join(parent.rootPath, parent.path || "")
+        const entries = await fs.readdir(parentPath, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(parentPath, entry.name);
+            const record = await buildFileRecord(fullPath, parent.id || 0);
+            if (!record) continue;
+            if (entry.isDirectory()) {
+                dirPaths.push(record);
+            }
+            record.filePath = fullPath;
+            if (parent.id != 0) record.parentRef = parent;
+            files.push(record);
+
+        }
+        process.stdout.write(`\r已读取，${files.length}个文件`);
+    }
+    console.log("\n")
+    if (files.length > 0) {
+        const records = [];
+        console.log("正在按批次处理文件信息...");
+        let batchIndex = 0;
+        let count = files.length;
+        const batchLength = Math.ceil(files.length / BATCH_SIZE);
+        while (files.length > 0) {
+            const b = files.splice(0, BATCH_SIZE).map(f => hashFile.addTask(f));
+            const data = await Promise.all(b);
+            records.push(...data);
+            process.stdout.write(`\r已处理，${++batchIndex}/${batchLength} 批次  已处理${records.length}个文件 , 共${count}个文件`);
+        }
+        console.log("文件信息处理完成。开始插入数据库。");
+        records.sort((a, b) => a.path.length - b.path.length);
+        const chunks = records.reduce((r, v, i) => {
+            if (i % BATCH_SIZE === 0) r.push([]); r[r.length - 1].push(v); return r;
+        }, []);
+        records.splice(0, records.length);
+        let i = 0;
+        while (chunks.length > 0) {
+            const batch = chunks.shift();
+            try {
+                await FileTable.beginTransaction();
+                for (const record of batch) {
+                    delete record.filePath;
+                    const parent = record.parentRef;
+                    delete record.parentRef;
+                    let data = null;
+                    try {
+                        data = await FileTable.insert(record);
+                        record.id = data.id;
+                    } catch (err) {
+                        if (err.errno !== 19) console.error("插入失败:", err);
+                        continue;
+                    }
+                    if (parent) {
+                        record.fullPathId = `${parent.fullPathId}-${data.id}`;
+                        record.parentId = parent.id;
+                    } else {
+                        record.fullPathId = `0-${data.id}`;
+                        record.parentId = 0;
+                    }
+                    await FileTable.update({ id: data.id }, { fullPathId: record.fullPathId, parentId: record.parentId });
+                    process.stdout.write(`已插入${++i}/${count} 个文件\r`);
+                }
+                await FileTable.commit();
+            } catch (error) {
+                await FileTable.rollback();
+                throw error;
+            }
+        }
+    }
+    console.log("\n");
+    console.timeEnd("QueueScanning");
+}
+
+
+async function buildFileRecord(fullPath, parentId = 0) {
+    const stat = await fs.stat(fullPath);
     const name = path.basename(fullPath);
     // 当前节点 fullPathId = 父级 fullPathId + 当前 parentId（或者占位，插入后更新）
     let record = {
         name,
         isFolder: stat.isDirectory() ? 1 : 0,
         parentId,
-        fullPathId: '', // 先占位，插入后更新
+        fullPathId: '0', // 先占位，插入后更新
         rootPath: fileDir,
         ino: stat.ino,
         mimeType: null,
         extension: null,
+        parentRef: null,
         category: null,
         size: stat.isFile() ? stat.size : 0,
         hash: null,
@@ -26,7 +111,6 @@ async function buildFileRecord(fullPath, stat, parentId = 0) {
     };
 
     if (stat.isFile()) {
-        record.hash = await hashFile(fullPath);
         const buffer = await readChunk(fullPath, { length: 4100 });
         await fileTypeFromBuffer(buffer).then(({ ext, mime }) => {
             record.mimeType = mime;
@@ -36,52 +120,6 @@ async function buildFileRecord(fullPath, stat, parentId = 0) {
     }
 
     return record;
-}
-
-// -------------------- 核心递归 --------------------
-async function scanDir(dirPath, level = 0, parentId = 0, parentFullPathId = '0', maxLevel = 4) {
-    const entries = await fs.readdir(dirPath);
-
-    for (const entryName of entries) {
-        const fullPath = path.join(dirPath, entryName);
-        const stat = await fs.stat(fullPath);
-
-        let record = await buildFileRecord(fullPath, stat, parentId, parentFullPathId);
-
-        // 先插入数据库
-        let data;
-        try {
-            data = await FileTable.insert(record);
-        } catch (err) {
-            // 忽略已存在的文件
-            if (err.errno !== 19) console.error("插入失败:", fullPath, err);
-            continue;
-        }
-
-        // 更新 fullPathId 为 父 fullPathId + 当前节点 id
-        const newFullPathId = `${parentFullPathId}-${data.id}`;
-        await FileTable.update({ id: data.id }, { fullPathId: newFullPathId });
-
-        // 如果是目录且层级未超过 4，递归子目录
-        if (stat.isDirectory() && level < maxLevel) {
-            await scanDir(fullPath, level + 1, data.id, newFullPathId);
-        }
-    }
-}
-
-// -------------------- 文件 MD5 --------------------
-function hashFile(filePath) {
-    console.log(`开始加载文件：${filePath}`)
-    return new Promise((resolve, reject) => {
-        const hash = crypto.createHash("md5");
-        const stream = createReadStream(filePath);
-        stream.on("data", chunk => hash.update(chunk));
-        stream.on("end", () => {
-            console.log(`文件添加成功：${filePath}`)
-            resolve(hash.digest("hex"))
-        });
-        stream.on("error", reject);
-    });
 }
 
 
@@ -142,5 +180,5 @@ function getFileCategory(mimeType, extension) {
 
 
 
-module.exports = { buildFileRecord, hashFile, scanDir };
+module.exports = { buildFileRecord, hashFile, queueScanning };
 
