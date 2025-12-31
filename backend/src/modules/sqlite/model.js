@@ -35,7 +35,7 @@ const FileTable = db.model("files", db.Schema({
     rootPath: "TEXT NOT NULL", // 根目录路径
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
     updatedAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
-    status: "INTEGER NOT NULL DEFAULT 0" // 0: 正常；1: 在回收站中 2：移动文件，重命名文件标记 
+    status: "INTEGER NOT NULL DEFAULT 0" // 0: 正常；1: 在回收站中 2：移动文件，重命名文件标记  3.你想表示“父级删除但子目录在回收站，需要隐藏”的状态
 }));
 
 

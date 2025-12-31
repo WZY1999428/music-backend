@@ -39,7 +39,7 @@ async function buildFileRecord(fullPath, stat, parentId = 0) {
 }
 
 // -------------------- 核心递归 --------------------
-async function scanDir(dirPath, level = 0, parentId = 0, parentFullPathId = '0') {
+async function scanDir(dirPath, level = 0, parentId = 0, parentFullPathId = '0', maxLevel = 4) {
     const entries = await fs.readdir(dirPath);
 
     for (const entryName of entries) {
@@ -63,7 +63,7 @@ async function scanDir(dirPath, level = 0, parentId = 0, parentFullPathId = '0')
         await FileTable.update({ id: data.id }, { fullPathId: newFullPathId });
 
         // 如果是目录且层级未超过 4，递归子目录
-        if (stat.isDirectory() && level < 4) {
+        if (stat.isDirectory() && level < maxLevel) {
             await scanDir(fullPath, level + 1, data.id, newFullPathId);
         }
     }

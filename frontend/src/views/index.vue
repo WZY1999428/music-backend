@@ -11,7 +11,7 @@
           <el-button type="primary">上传</el-button>
           <el-button type="warning">新建文件夹</el-button>
           <el-input class="ml-9" style="width: 240px; --el-border-color: #aec7b3" placeholder="搜索"
-            v-model="fileStore.keyword" @keyup.enter="fileStore.refresh" :prefix-icon="Search" />
+            v-model="fileStore.keyword" @keyup.enter="fileStore.forceRefresh" :prefix-icon="Search" />
           <div class="ml-10">
             <el-dropdown>
               <span class="el-dropdown-link cursor-pointer flex flex-col items-center">
@@ -70,19 +70,7 @@
         </div>
       </el-aside>
       <el-main style="padding: 0">
-        <div class="px-1 flex items-center h-[40px]">
-          <el-breadcrumb>
-            <el-breadcrumb-item><span class="cursor-pointer select-none"
-                @click="fileStore.resetPath()">根目录</span></el-breadcrumb-item>
-            <el-breadcrumb-item v-for="(item, index) in fileStore.breadcrumbs" :key="item.id">
-              <span class="cursor-pointer select-none" @click="fileStore.removePath(index)">{{ item.name }}</span>
-            </el-breadcrumb-item>
-          </el-breadcrumb>
-        </div>
-        <div class="rounded-sm shadow-md select-none p-3"
-          style="background-color: var(--aside-bg-color); height: calc(100% - 40px)">
-          <router-view></router-view>
-        </div>
+        <router-view></router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -150,7 +138,7 @@ const menuItems = [
       {
         name: "压缩包",
         icon: "archive",
-        id: "compressedPackage",
+        id: "archive",
       },
       {
         name: "其他",
@@ -163,9 +151,7 @@ const menuItems = [
 
 function handleClick(type, item) {
   activeIndex.value = item.id;
-  if (type == "category") {
-    fileStore.setCategory(item.id);
-  }
+  fileStore.setFileType(type == "category" ? type : item.id, item.id);
 }
 const systemInfo = ref({});
 let timer = null;
@@ -176,8 +162,7 @@ function getSystemInfo() {
     .finally(() => timer = setTimeout(getSystemInfo, 1000 * 5));
 }
 onBeforeUnmount(() => clearTimeout(timer));
-
-userStore.getUserInfo();
+if (getItem("token")) userStore.fetchUserInfo();
 </script>
 
 <style>

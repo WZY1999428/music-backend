@@ -17,7 +17,9 @@ module.exports = async (ctx) => {
             await zipDirectory(process.env.PUBLIC_FILE_PATCH, ctx, n = Date.now() + ".zip");
             return;
         }
-        const file = await FileTable.findOne({ id })
+        const file = await FileTable.findOne([
+            { field: "id", value: id }
+        ])
         if (!file) return ctx.fail("文件不存在");
         const filePath = path.join(file.rootPath, file.path);
         const stat = await fs.stat(filePath)

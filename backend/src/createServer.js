@@ -22,7 +22,9 @@ async function createServer() {
         process.exit(1);
     }
     app
-        .use(bodyParser())
+        .use(bodyParser({
+            parsedMethods: ['POST', 'PUT', 'PATCH', 'DELETE']
+        }))
         .use(require('./middlewares/rangeFile')(path.join(__dirname, '../public')))
         .use(require('./middlewares/httpResponse')())
         .use(require('./middlewares/auth')())

@@ -1,7 +1,8 @@
 <template>
     <div class="h-full" ref="tableDivRef">
-        <el-table :data="files" show-overflow-tooltip @cell-dblclick="handleDblClick"
-            style="width: 100%; " :height="tableHeight">
+        <el-table :data="files" show-overflow-tooltip @cell-dblclick="handleDblClick" style="width: 100%; "
+            @selection-change="(e) => emit('tableSelectionChange', e)" :height="tableHeight">
+            <el-table-column label="序号" type="selection" width="30" align="center"></el-table-column>
             <el-table-column label="序号" type="index" width="55" align="center"></el-table-column>
             <el-table-column label="文件图标" width="80" align="center">
                 <template #default="{ row }">
@@ -21,17 +22,24 @@
             </el-table-column>
             <el-table-column label="创建日期" prop="createdAt" width="180"></el-table-column>
             <el-table-column label="最后更新日期" prop="updatedAt" width="180"></el-table-column>
-            <el-table-column label="操作" prop="updatedAt" width="120" fixed="right" align="center">
+            <el-table-column label="操作" prop="updatedAt" width="160" fixed="right" align="center">
                 <template #default="scope">
-                    <el-button @click="emit('download', scope.row)" link type="primary" size="small">下载</el-button>
-                    <el-button link size="small" type="danger">删除</el-button>
+                    <template v-if="fileStore.queryType != 'recycleBin'">
+                        <el-button @click="emit('download', scope.row)" link type="primary" size="small">下载</el-button>
+                        <el-button link size="small" @click="emit('delete', [scope.row])" type="danger">删除</el-button>
+                    </template>
+                    <template v-else>
+                        <el-button link @click="emit('recently', [scope.row])" type="primary"
+                            size="small">恢复</el-button>
+                        <el-button link type="danger" size="small">永久删除</el-button>
+                    </template>
                 </template>
             </el-table-column>
             <template #empty>
                 <template v-if="!fileStore.loading">
                     <el-empty v-if="!fileStore.error" description="文件夹空空的"></el-empty>
                     <el-empty v-else description="网络请求失败了">
-                          <el-button type="primary" @click="fileStore.refresh">刷新</el-button>
+                        <el-button type="primary" @click="fileStore.refresh">刷新</el-button>
                     </el-empty>
                 </template>
             </template>
@@ -47,7 +55,7 @@ const prps = defineProps({
         required: true
     }
 });
-const emit = defineEmits(['dbclick', "download"]);
+const emit = defineEmits(['dbclick', "download", "delete", "recently", "tableSelectionChange"]);
 const tableDivRef = ref(null);
 const fileStore = useFileStore();
 const tableHeight = ref(500);
@@ -73,6 +81,8 @@ onUnmounted(() => {
 });
 
 const handleDblClick = (row) => {
-    emit('dbclick', row);
+    if (fileStore.queryType != 'recycleBin') {
+        emit('dbclick', row);
+    }
 }
 </script>
