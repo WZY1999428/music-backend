@@ -1,7 +1,7 @@
 const { FileTable } = require("@/modules/sqlite/model");
 const fs = require("fs-extra");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
-const { scanDir } = require("./utils");
+const { queueScanning } = require("./utils");
 const readline = require("readline");
 
 function askQuestion(q) {
@@ -19,19 +19,27 @@ function askQuestion(q) {
 
 async function initFileDB() {
     try {
-        // watchFiles();
+        const filePaths = [
+            {
+                rootPath: fileDir,
+                path: "",
+                id: 0,
+            }
+        ]
+
         const stat = await fs.stat(fileDir);
         if (!stat.isDirectory()) {
             throw new Error(`${fileDir} 目录不存在`);
         }
         await FileTable.ready;
-        const allFiles = await FileTable.find([]);
+        const allFiles = await FileTable.find([]); 
         if (allFiles.length === 0) {
             console.log("初始化文件数据库...");
-            await scanDir(fileDir, 0, 0, 0);
+            await queueScanning(filePaths);
             console.log("文件数据库初始化完成");
             return true;
         }
+
         // 检查是否有与当前 fileDir 匹配的记录
         const matching = allFiles.filter(f => f.rootPath === fileDir);
         if (matching.length === 0) {
@@ -48,13 +56,13 @@ async function initFileDB() {
                 console.log("清空数据库...");
                 await FileTable.deleteMany([{ field: "rootPath", value: "", op: "!=" }]);
                 console.log("重新扫描目录...");
-                await scanDir(fileDir, 0, 0);
+                await queueScanning(filePaths);
                 console.log("完成：数据库已重建并同步。");
                 return true;
             }
             if (ans === "2") {
                 console.log("直接同步，不清空数据库...");
-                await scanDir(fileDir, 0, 0);
+                await queueScanning(filePaths);
                 console.log("同步完成");
                 return true;
             }
@@ -70,4 +78,4 @@ async function initFileDB() {
 };
 
 
-module.exports = initFileDB
+module.exports = initFileDB 

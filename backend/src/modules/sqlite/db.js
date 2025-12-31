@@ -240,8 +240,7 @@ class Model {
                 let totalChanges = 0;
                 try {
                     await this.beginTransaction();
-                    stmt = await this.db.prepare(sql);
-
+                    stmt = this.db.prepare(sql);
                     for (const row of datas) {
                         const values = columns.map(k => row[k]);
                         await new Promise((res, rej) => {
@@ -299,33 +298,68 @@ class Model {
      *
      * @example
      * _buildWhereByFilters([
-     *   { field: 'name', op: 'LIKE', value: 'Tom' }
+     *  [
+        { field: 'fullPathId', op: 'like', value: '%-123-%', logic: 'OR', groupStart: true },
+        { field: 'fullPathId', op: 'like', value: '-123%', groupEnd: true },
+        { field: 'id', op: '!=', value: 123 }
+    ]
      * ])
+     *  
      */
     _buildWhereByFilters(filters = []) {
         const conditions = [];
         const values = [];
-        filters.forEach((f, i) => {
-            const op = (f.op || '=').toUpperCase();
+        let groupLevel = 0;
+
+        for (let i = 0; i < filters.length; i++) {
+            const f = filters[i];
             const logic = (f.logic || 'AND').toUpperCase();
-            let val = f.value;
-            if (op === 'IN' && Array.isArray(val)) {
-                const p = val.map(() => '?').join(', ');
-                values.push(...val);
-                conditions.push(`${i ? logic : ''} ${f.field} IN (${p})`);
-                return;
+            const op = (f.op || '=').toUpperCase();
+
+            let sql = '';
+
+            if (["IN", "NOT IN"].includes(op) && Array.isArray(f.value)) {
+                const p = f.value.map(() => '?').join(', ');
+                sql = `${f.field} ${op} (${p})`;
+                values.push(...f.value);
+            }
+            else if (op === 'BETWEEN' && Array.isArray(f.value)) {
+                sql = `${f.field} BETWEEN ? AND ?`;
+                values.push(f.value[0], f.value[1]);
+            }
+            else if (op === 'IS NULL' || op === 'IS NOT NULL') {
+                sql = `${f.field} ${op}`;
+            }
+            else {
+                sql = `${f.field} ${op} ?`;
+                values.push(f.value);
             }
 
-            values.push(val);
-            conditions.push(`${i ? logic : ''} ${f.field} ${op} ?`);
-        });
+            // 校验括号逻辑
+            if (f.groupStart) {
+                groupLevel++;
+                sql = '(' + sql;
+            }
+
+            if (f.groupEnd) {
+                groupLevel--;
+                if (groupLevel < 0) throw new Error(`第 ${i} 条 filter 的 groupEnd 多余`);
+                sql = sql + ')';
+            }
+
+            // 拼逻辑符
+            if (i > 0) sql = logic + ' ' + sql;
+
+            conditions.push(sql);
+        }
+
+        if (groupLevel !== 0) throw new Error('groupStart 与 groupEnd 不匹配，可能缺失 groupEnd');
 
         return {
-            whereSql: conditions.length ? 'WHERE ' + conditions.join(' ') : '',
+            whereSql: conditions.length ? `WHERE ${conditions.join(' ')}` : '',
             values
         };
     }
-
     /**
      * 构建查询字段
      * @private

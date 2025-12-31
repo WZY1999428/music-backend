@@ -159,7 +159,7 @@ onMounted(() => getSystemInfo());
 function getSystemInfo() {
   getStorageStatus()
     .then((res) => (systemInfo.value = res.data))
-    .finally(() => timer = setTimeout(getSystemInfo, 1000 * 5));
+    .finally(() => getItem("token") && setTimeout(getSystemInfo, 1000 * 5));
 }
 onBeforeUnmount(() => clearTimeout(timer));
 if (getItem("token")) userStore.fetchUserInfo();
