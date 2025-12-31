@@ -13,44 +13,70 @@ module.exports = async (ctx) => {
         const renames = [];
         const notExistsFiles = [];
         for (const file of files) {
-            if (! await fs.exists(path.join(path.rootPath, file.path))) {
+            if (!await fs.exists(path.join(file.rootPath, file.path))) {
                 notExistsFiles.push(file.name);
                 continue;
             };
-
-            if (file.parentId == 0) {
+            const parents = await FileTable.find([{ field: "id", value: parseParendIds(file.fullPathId), op: "in" }, { field: "isFolder", value: 1 }]);
+            if (parents.length == 0 || !parents.some(p => p.status == 3 || p.status == 1)) {
                 isCommit = false;
                 await FileTable.beginTransaction();
                 await rename(file, renames)
                 await FileTable.commit();
                 isCommit = true;
             } else {
-                const parents = await FileTable.find([{ field: "id", value: parseParendIds(file.fullPathId), op: "in" }, { field: "isFolder", value: 1 }]);
-                parents.sort((a, b) => a.fullPathId.length - b.fullPathId.length);
-                const status3 = parents.findIndex(p => p.status == 3 || p.status == 1);
-                for (let i = 0; i < parents.length; i++) {
-                    const parent = parents[i];
-                    if (parent.status == 3 || parent.status == 1) {
-                        const exist = await FileTable.findOne([{ field: "path", value: path.join(file.path, `../${file.name}`) }, { field: "id", value: parent.id, op: "!=" }, { field: "isFolder", value: 1 }]);
-                        if (exist) {
-                            parent.name = `${parent.name}-还原-${Date.now()}`;
-                            const children = parents.slice(i + 1);
-                            children.forEach(c => c.path = replacePathSegment(c.path, i, parent.name));
+                const nodes = [...parents].sort((a, b) => b.fullPathId.length - a.fullPathId.length);
+                let index = nodes.length - 1;
+                isCommit = false;
+                const mkdirs = [];
+                const moveFiles = [];
+                try {
+                    await FileTable.beginTransaction();
+                    for (const node of nodes) {
+                        if (node.status == 3 || node.status == 1) {
+                            const exist = await FileTable.findOne([{ field: "path", value: path.join(node.path, `../${node.name}`) }, { field: "id", value: node.id, op: "!=" }, { field: "isFolder", value: 1 }]);
+                            const existFile = await fs.exists(path.join(node.rootPath, path.join(node.path, `../${node.name}`)));
+                            if (exist || existFile) node.name = `${node.name}-还原-${Date.now()}`;
+                            else if (node.status == 1) {
+                                const record = buildFileRecord(path.join(node.rootPath, path.join(node.path, `../${node.name}`)), node.parentId);
+                                const data = await FileTable.insert(record);
+                                node.id = data.id;
+                                node.fullPathId = node.fullPathId = [...parseParendIds(parent.fullPathId).slice(0, -1), `-${node.id}`].join("-");
+                                await FileTable.update({ id: node.id }, { fullPathId: node.fullPathId });
+                                mkdirs.push(path.join(node.rootPath, path.join(node.path, `../${node.name}`)));
+                            }
+                            const children = parents.filter(c => c.fullPathId.includes(`-${node.id}-`));
+                            children.forEach(c => c.path = replacePathSegment(c.path, index, node.name));
+                            node.oldPath = node.path;
+                            node.path = path.join(node.path, `../${node.name}`);;
+                            const src = path.join(node.rootPath, node.oldPath);
+                            const dest = path.join(node.rootPath, node.path);
+                            (src != dest) && moveFiles.push({ src, dest });
                         }
+                        index--;
                     }
+                    for (const dir of mkdirs) await fs.mkdir(dir, { recursive: true });
+                    for (const f of moveFiles) (f.src != f.dest) && await fs.move(f.src, f.dest);
+                    await FileTable.commit();
+                } catch (error) {
+                    await FileTable.rollback();
+                    throw error;
                 }
+                isCommit = true;
+                console.log(nodes);
             }
         }
-        // + (renames.length ? `已存在同名文件以下文件已重新命名 \n${renames.join("\n")}` : "" + notExistsFiles.length ? `\n${notExistsFiles}。文件不存在，不可恢复` : "")
-        ctx.success("恢复完成", {
+        ctx.success({
             renames,
             notExistsFiles
-        });
+        }, "恢复完成");
     } catch (error) {
+        console.log(error);
         if (!isCommit) await FileTable.rollback().catch({});
         ctx.fail(error.message)
     }
 }
+
 
 
 async function updateChild(file) {
@@ -64,7 +90,7 @@ async function updateChild(file) {
         for (const cFile of children) {
             const pathArr = cFile.path.split(path.sep).filter(Boolean);
             pathArr.splice(index, 1, file.name);
-            // await FileTable.update({ id: cFile.id }, { path: path.join(...pathArr) });
+            await FileTable.update({ id: cFile.id }, { path: path.join(...pathArr) });
         }
     } catch (error) {
         throw error;
