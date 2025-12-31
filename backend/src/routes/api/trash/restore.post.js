@@ -2,7 +2,7 @@
 const { FileTable } = require("@/modules/sqlite/model");
 const path = require("path");
 const fs = require("fs-extra");
-const { buildFileRecord } = require("@/modules/fileSystem/utils");
+const { buildFileRecord, parseParendIds, replacePathSegment } = require("@/modules/fileSystem/utils");
 module.exports = async (ctx) => {
     let isCommit = true;
     try {
@@ -11,59 +11,63 @@ module.exports = async (ctx) => {
         const files = await FileTable.find([{ field: "id", value: fileIds, op: "in" }])
         if (!files.length) throw new Error("恢复失败，文件不存在");
         const renames = [];
+        const notExistsFiles = [];
         for (const file of files) {
-            const fullPathId = file.fullPathId.split("-").map(Number).filter(Boolean)
-            fullPathId.pop();
-            const parentPath = await FileTable.find([{ field: "id", value: fullPathId, op: "in" }, { field: "status", value: [3, 1], op: "in" }, { field: "isFolder", value: 1 }]);
-            if (parentPath.length) {
-                const parents = parentPath.filter(item => item.id != file.id).sort((a, b) => b.path.length - a.path.length);
-                const newPath = [];
-                await FileTable.beginTransaction();
+            if (! await fs.exists(path.join(path.rootPath, file.path))) {
+                notExistsFiles.push(file.name);
+                continue;
+            };
+
+            if (file.parentId == 0) {
                 isCommit = false;
-                for (const parent of parents) {
-                    const filePath = path.join(parent.path, `../${parent.name}`);
-                    if (await fs.exists(path.join(parent.rootPath, filePath))) {
-                        const parentDB = await FileTable.findOne([{ field: "path", value: filePath }]);
-                        if (parentDB) newPath.push(parentDB);
-                        else await createData(parent, filePath);
-                    } else {
-                        // 如果目录是隐藏状态
-                        if (parent.status == 3) {
-                            await rename(parent, renames);
-                            newPath.push(parent);
-                        } else await createData(parent, filePath);
-                    }
-                    async function createData(parent, filePath) {
-                        const parentAndParent = await FileTable.findOne([{ field: "id", value: parent.parentId }]);
-                        console.log(parentAndParent);
-                        const fullPath = path.join(parent.rootPath, filePath);
-                        const record = await buildFileRecord(fullPath, await fs.stat(fullPath), parentAndParent ? parentAndParent.id : 0);
-                        const data = await FileTable.insert(record);
-                        await FileTable.update({ id: data.id }, { fullPathId: `${record.fullPathId}-${data.id}` });
-                        newPath.push(data);
+                await FileTable.beginTransaction();
+                await rename(file, renames)
+                await FileTable.commit();
+                isCommit = true;
+            } else {
+                const parents = await FileTable.find([{ field: "id", value: parseParendIds(file.fullPathId), op: "in" }, { field: "isFolder", value: 1 }]);
+                parents.sort((a, b) => a.fullPathId.length - b.fullPathId.length);
+                const status3 = parents.findIndex(p => p.status == 3 || p.status == 1);
+                for (let i = 0; i < parents.length; i++) {
+                    const parent = parents[i];
+                    if (parent.status == 3 || parent.status == 1) {
+                        const exist = await FileTable.findOne([{ field: "path", value: path.join(file.path, `../${file.name}`) }, { field: "id", value: parent.id, op: "!=" }, { field: "isFolder", value: 1 }]);
+                        if (exist) {
+                            parent.name = `${parent.name}-还原-${Date.now()}`;
+                            const children = parents.slice(i + 1);
+                            children.forEach(c => c.path = replacePathSegment(c.path, i, parent.name));
+                        }
                     }
                 }
-                await FileTable.commit();
-                isCommit = true;
-                console.log(newPath);
-                const pid = newPath[newPath.length - 1].id;
-                file.pid = pid;
-                file.fullPathId = newPath.map(item => item.id).join("-") + "-" + file.id;
-                await rename(file, renames)
-                await FileTable.update({ "parentId": pid }, { status: 0 });
-            } else {
-                isCommit = false;
-                await FileTable.beginTransaction();
-                await rename(file, renames)
-                await FileTable.commit();
-                isCommit = true;
             }
         }
-        ctx.success("恢复成功" + (renames.length ? `已存在同名文件以下文件已重新命名 \n${renames.join("\n")}` : ""));
+        // + (renames.length ? `已存在同名文件以下文件已重新命名 \n${renames.join("\n")}` : "" + notExistsFiles.length ? `\n${notExistsFiles}。文件不存在，不可恢复` : "")
+        ctx.success("恢复完成", {
+            renames,
+            notExistsFiles
+        });
     } catch (error) {
-        console.log(error);
         if (!isCommit) await FileTable.rollback().catch({});
         ctx.fail(error.message)
+    }
+}
+
+
+async function updateChild(file) {
+    const children = await FileTable.find([
+        { field: "fullPathId", value: `%-${file.id}-%`, op: "like", logic: "OR", groupStart: true },
+        { field: "fullPathId", value: `-${file.id}%`, op: "like", groupEnd: true },
+        { field: "id", value: file.id, op: "!=" }
+    ])
+    try {
+        const index = parseParendIds(file.fullPathId).indexOf(file.id)
+        for (const cFile of children) {
+            const pathArr = cFile.path.split(path.sep).filter(Boolean);
+            pathArr.splice(index, 1, file.name);
+            // await FileTable.update({ id: cFile.id }, { path: path.join(...pathArr) });
+        }
+    } catch (error) {
+        throw error;
     }
 }
 
@@ -75,23 +79,7 @@ async function rename(file, renames) {
         renames.push(`${file.name} -> ${newName}`);
         file.name = newName;
     }
-    if (file.isFolder == 1) {
-        const children = await FileTable.find([
-            { field: "fullPathId", value: `%-${file.id}-%`, op: "like", logic: "OR" },
-            { field: "fullPathId", value: `${file.id}-%`, op: "like" },
-            { field: "id", value: file.id, op: "!=" }
-        ])
-        try {
-            const index = file.fullPathId.split('-').map(Number).filter(Boolean).indexOf(file.id)
-            for (const cFile of children) {
-                const pathArr = cFile.path.split(path.sep).filter(Boolean);
-                pathArr.splice(index, 1, file.name);
-                await FileTable.update({ id: cFile.id }, { path: path.join(...pathArr) });
-            }
-        } catch (error) {
-            throw error;
-        }
-    }
+    if (file.isFolder == 1) await updateChild(file);
     let newPath = path.join(file.path, `../${file.name}`);
     if (file.parentId != 0) {
         const parent = await FileTable.findOne([{ field: "id", value: file.parentId }]);
@@ -109,11 +97,7 @@ async function rename(file, renames) {
         await fs.move(src, dest)
         await FileTable.updateMany(q, up);
     } catch (error) {
-        if (error.code == "ENOENT") {
-            file.isFolder == 1 ? await FileTable.deleteMany([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }]) : await FileTable.deleteMany([{ field: "id", value: file.id }]);
-            throw new Error("文件不存在,已从数据库删除");
-        } else {
-            throw error;
-        }
+        throw error;
     }
-}  
+}
+

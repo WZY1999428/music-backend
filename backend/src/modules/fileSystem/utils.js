@@ -123,6 +123,29 @@ async function buildFileRecord(fullPath, parentId = 0) {
 }
 
 
+function parseParendIds(fullPathId) {
+    const ids = [];
+    const arr = fullPathId.split("-");
+    for (let i = 0; i < arr.length - 1; i++) {
+        const num = parseInt(arr[i]);
+        if (isFinite(num)) ids.push(num);
+    }
+    return ids
+}
+
+
+function replacePathSegment(fullPath, index, newName) {
+    const parts = fullPath.split(path.sep).filter(Boolean);
+
+    if (index < 0 || index >= parts.length) {
+        throw new Error('index 越界了，路径段不存在');
+    }
+
+    parts[index] = newName;
+    return path.join(...parts);
+}
+
+
 function getFileCategory(mimeType, extension) {
     if (!mimeType && !extension) return 'other';
 
@@ -180,5 +203,5 @@ function getFileCategory(mimeType, extension) {
 
 
 
-module.exports = { buildFileRecord, hashFile, queueScanning };
+module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment };
 

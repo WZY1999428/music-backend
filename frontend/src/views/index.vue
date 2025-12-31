@@ -159,7 +159,7 @@ getSystemInfo();
 function getSystemInfo() {
   getStorageStatus()
     .then((res) => (systemInfo.value = res.data))
-    .finally(() => setTimeout(getSystemInfo, 1000 * 5));
+    .finally(() => getItem("token") && setTimeout(getSystemInfo, 1000 * 5));
 }
 if (getItem("token")) userStore.fetchUserInfo();
 </script>
