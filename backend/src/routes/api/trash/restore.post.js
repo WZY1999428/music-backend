@@ -55,6 +55,7 @@ module.exports = async (ctx) => {
                         }
                         index--;
                     }
+                    moveFiles.sort((a, b) => b.length - a.length);
                     for (const dir of mkdirs) await fs.mkdir(dir, { recursive: true });
                     for (const f of moveFiles) (f.src != f.dest) && await fs.move(f.src, f.dest);
                     await FileTable.commit();
