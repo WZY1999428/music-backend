@@ -15,20 +15,19 @@ parentPort.on('message', (message) => {
 
 function hashFile(filePath) {
     return new Promise(async (resolve, reject) => {
-        const stat = await fs.stat(filePath);
-        if (stat.isDirectory()) {
-            resolve("");
-        } else {
-            let stream;
-            try {
-                stream = createReadStream(filePath);
-            } catch (err) {
-                return reject(err);
+        try {
+            const stat = await fs.stat(filePath);
+            if (stat.isDirectory()) {
+                resolve("");
+            } else {
+                const stream = createReadStream(filePath);
+                const hash = crypto.createHash("md5");
+                stream.on("data", chunk => hash.update(chunk));
+                stream.on("end", () => resolve(hash.digest("hex")));
+                stream.on("error", err => reject(err));
             }
-            const hash = crypto.createHash("md5");
-            stream.on("data", chunk => hash.update(chunk));
-            stream.on("end", () => resolve(hash.digest("hex")));
-            stream.on("error", err => reject(err));
+        } catch (error) {
+            return reject(error);
         }
     });
 }

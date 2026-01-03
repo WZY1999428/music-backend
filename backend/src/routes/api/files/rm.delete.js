@@ -23,7 +23,7 @@ module.exports = async (ctx) => {
                 if (trashFile && file.isFolder === 1) {
                     shellFolderFile.push(file)
                     shellFolderIds.add(file.id)
-                    const parendIds = parseParendIds(file.fullPathId);
+                    const parendIds = parseParendIds(trashFile.fullPathId);
                     parendIds.splice(0, parendIds.indexOf(file.id));
                     childrenSql.push({ field: "status", value: 0 }, { field: "id", value: parendIds, op: "not in" });
                 } else ids.add(file.id)
@@ -33,7 +33,7 @@ module.exports = async (ctx) => {
             }
             await FileTable.beginTransaction();
             isCommit = false;
-            // 把回收站里有文件的目录状态改为3 并且重新命名
+            // 把回收站里有文件的目录状态改为3 并且重新命名 
             if (shellFolderIds.size > 0) {
                 shellFolderFile.sort((a, b) => b.path.length - a.path.length);
                 await rename(shellFolderFile)
@@ -41,6 +41,7 @@ module.exports = async (ctx) => {
             }
             if (ids.size > 0) {
                 ids = Array.from(ids)
+                console.log(ids);
                 finalRmFiles = await FileTable.find([{ field: "id", value: ids, op: "in" }], { pageSize: -1 });
                 await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]);
                 await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]);
@@ -68,20 +69,21 @@ module.exports = async (ctx) => {
     }
 }
 
+async function updateChild(file, name) {
+    const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }, { field: "id", value: file.id, op: "!=" }]);
+    for (const cFile of children) {
+        const index = parseParendIds(cFile.fullPathId).indexOf(file.id); 
+        const pathArr = cFile.path.split(path.sep).filter(Boolean);
+        pathArr.splice(index, 1, name);
+        FileTable.update({ id: cFile.id }, { path: path.join(...pathArr) });
+    }
+} 
 
 async function rename(files) {
     for (const file of files) {
         const name = `.${Date.now()}-${file.name}`;
         const newPath = path.join(file.path, `../${name}`);
-        const index = parseParendIds(file.fullPathId).indexOf(file.id);
-        if (file.isFolder == 1 && index > -1) {
-            const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "LIKE" }, { field: "id", value: file.id, op: "!=" }], { pageSize: -1 });
-            for (const cFile of children) {
-                const pathArr = cFile.path.split(path.sep).filter(Boolean);
-                pathArr.splice(index, 1, name);
-                await FileTable.update({ id: cFile.id }, { path: path.join(...pathArr) });
-            }
-        }
+        if (file.isFolder == 1) await updateChild(file, name);
         await FileTable.updateMany([{ field: "id", value: file.id }, { field: "status", value: 3, op: "!=" }], { status: 1, path: newPath });
         await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
     }

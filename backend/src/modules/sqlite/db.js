@@ -507,43 +507,47 @@ class Model {
       ]);
      */
 
-    async updateManyBatchIn(batch = []) {
-        if (!batch.length) throw new Error('batch 不能为空');
-        // 收集所有更新字段
-        const allFields = Array.from(new Set(batch.flatMap(item => Object.keys(item.data))));
-        // 生成临时数据表
-        // 这里用 VALUES 拼接占位符，批量插入
-        let valuesSql = [];
-        const values = [];
-        batch.forEach(item => {
-            const row = [];
-            allFields.forEach(f => {
-                if (item.data[f] !== undefined) {
-                    row.push('?');
-                    values.push(item.data[f]);
-                } else {
-                    row.push('NULL'); // 没有更新的字段填 NULL
-                }
-            });
-            // 拼 filters 为一个额外的列，用 JSON 或组合 key
-            const filterKey = item.filters.map(f => f.value).join(',');
-            row.push('?');
-            values.push(filterKey);
-            valuesSql.push(`(${row.join(',')})`);
-        });
-        // 拼临时表列名
-        const tempCols = [...allFields, 'filterKey'];
-        const sql = `
-    UPDATE ${this.table} t
-    JOIN (
-      VALUES ${valuesSql.join(',')}
-    ) AS tmp(${tempCols.join(',')})
-    ON CONCAT(${batch[0].filters.map(f => `t.${f.field}`).join(",') , ',' ,(")}) = tmp.filterKey
-    SET ${allFields.map(f => `t.${f} = COALESCE(tmp.${f}, t.${f})`).join(', ')}
-  `;
+ async updateManyBatchIn(batch = []) {
+    if (!batch.length) throw new Error('batch 不能为空');
 
-        return this.db.run(sql, values);
+    // 只支持按 id 更新，别搞花的
+    const ids = batch.map(b => b.filters.find(f => f.field === 'id')?.value);
+    if (ids.some(v => v === undefined)) {
+        throw new Error('batch 必须包含 id 作为过滤条件');
     }
+
+    // 收集所有字段
+    const allFields = Array.from(
+        new Set(batch.flatMap(item => Object.keys(item.data)))
+    );
+
+    const sqlParts = [];
+    const values = [];
+
+    for (const field of allFields) {
+        let caseSql = `CASE id `;
+        for (let i = 0; i < batch.length; i++) {
+            const val = batch[i].data[field];
+            if (val !== undefined) {
+                caseSql += `WHEN ? THEN ? `;
+                values.push(ids[i], val);
+            }
+        }
+        caseSql += `ELSE ${field} END`;
+        sqlParts.push(`${field} = ${caseSql}`);
+    }
+
+    const sql = `
+        UPDATE ${this.table}
+        SET ${sqlParts.join(', ')}
+        WHERE id IN (${ids.map(() => '?').join(', ')})
+    `;
+
+    values.push(...ids);
+
+    return this.db.run(sql, values);
+}
+
 
 
     /**
