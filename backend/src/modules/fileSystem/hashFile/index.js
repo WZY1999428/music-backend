@@ -1,7 +1,5 @@
 const { Worker } = require('node:worker_threads');
 const path = require('path');
-let worker = null;
-let counter = 0;
 class HashFile {
     constructor(maxWorkers = 4) {
         this.workerPath = path.join(__dirname, 'hashFileWorker.js');
@@ -30,7 +28,12 @@ class HashFile {
         const task = this.pendingTasks.shift();
         worker.setTask(task.record).then(() => task.resolve(task.record)).catch(task.reject);
     }
+    clear() {
+        for (const worker of this.workers.values()) worker.destroy();
+        this.workers.clear();
+        this.pendingTasks = [];
 
+    }
     addTask(record) {
         // 找空闲 Worker
         let worker = this.getIdleWorker();
@@ -93,6 +96,15 @@ class WorkerTask {
             }
         }, 1000 * 60 * 20); // 空闲 20 分钟自动关闭
     }
+    destroy() {
+        clearTimeout(this.closeTimer);
+        if (this.task) this.task.reject('destroy');
+        this.task = null;
+        this.closeTimer = null
+        this.worker.terminate();
+        this.worker = null;
+    }
+
 
     get idle() {
         return this.task === null;

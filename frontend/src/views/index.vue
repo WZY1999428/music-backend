@@ -81,7 +81,6 @@ import { Search } from "@element-plus/icons-vue";
 import avatarImg from "@/assets/avatar.png";
 const fileStore = useFileStore();
 import { getStorageStatus } from "@/request/system";
-import { ref } from "vue";
 const userStore = useUserStore();
 const activeIndex = ref("myFile");
 //  我的文件 最近使用 收藏夹 回收站
@@ -155,12 +154,14 @@ function handleClick(type, item) {
   fileStore.setFileType(type == "category" ? type : item.id, item.id);
 }
 const systemInfo = ref({});
-getSystemInfo();
+let timer = null;
+onMounted(() => getSystemInfo());
 function getSystemInfo() {
   getStorageStatus()
     .then((res) => (systemInfo.value = res.data))
     .finally(() => getItem("token") && setTimeout(getSystemInfo, 1000 * 5));
 }
+onBeforeUnmount(() => clearTimeout(timer));
 if (getItem("token")) userStore.fetchUserInfo();
 </script>
 
