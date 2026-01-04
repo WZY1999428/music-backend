@@ -64,7 +64,6 @@ module.exports = async (ctx) => {
                     throw error;
                 }
                 isCommit = true;
-                console.log(nodes);
             }
         }
         ctx.success({
