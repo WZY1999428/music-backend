@@ -38,6 +38,15 @@ export const useFileStore = defineStore('file', () => {
         keyword.value = '';
         forceRefresh(false);
     };
+
+    const backPath = () => {
+        if (loading.value) return;
+        if (breadcrumbs.value.length >= 0) {
+            breadcrumbs.value.pop();
+            forceRefresh(false);
+        }
+    };
+
     const removePath = (index) => {
         if (loading.value) return;
         if (index == breadcrumbs.value.length - 1) {
@@ -56,7 +65,6 @@ export const useFileStore = defineStore('file', () => {
     function forceRefresh(refresh = true) {
         if (loading.value) return;
         const last = breadcrumbs.value[breadcrumbs.value.length - 1];
-        console.log(last);
         fetchFiles(last ? last.id : 0, refresh);
     }
 
@@ -103,5 +111,5 @@ export const useFileStore = defineStore('file', () => {
         }
     }
 
-    return { breadcrumbs, files, loading, error, rootName, queryType, keyword, addPath, removePath, resetPath, fetchFiles, forceRefresh, setFileType }
+    return { breadcrumbs, files, loading, error, rootName, queryType, keyword, addPath, removePath, resetPath, fetchFiles, forceRefresh, setFileType, backPath }
 })
