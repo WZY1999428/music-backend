@@ -1,7 +1,8 @@
 <template>
     <div class="h-full" ref="tableDivRef">
         <el-table :data="files" show-overflow-tooltip @cell-dblclick="handleDblClick" style="width: 100%; "
-            @selection-change="(e) => emit('tableSelectionChange', e)" :height="tableHeight">
+            @selection-change="(e) => emit('tableSelectionChange', e)" @row-contextmenu="handleRowContextMenu"
+            :height="tableHeight">
             <el-table-column label="序号" type="selection" width="30" align="center"></el-table-column>
             <el-table-column label="序号" type="index" width="55" align="center"></el-table-column>
             <el-table-column label="文件图标" width="80" align="center">
@@ -55,7 +56,7 @@ const prps = defineProps({
         required: true
     }
 });
-const emit = defineEmits(['dbclick', "download", "delete", "recently", "tableSelectionChange"]);
+const emit = defineEmits(['dbclick', "download", "delete", "recently", "tableSelectionChange", "row-contextmenu"]);
 const tableDivRef = ref(null);
 const fileStore = useFileStore();
 const tableHeight = ref(500);
@@ -76,10 +77,16 @@ function setTableHeight() {
 }
 window.addEventListener('resize', setTableHeight);
 onUnmounted(() => {
-    observer?.unobserve(tableDivRef.value);
+    if (tableDivRef.value) {
+        observer?.unobserve(tableDivRef.value);
+    }
     window.removeEventListener('resize', setTableHeight);
 });
 
+function handleRowContextMenu(row, _column, event) {
+    emit('row-contextmenu', { event, file: row });
+    event.stopPropagation();
+}
 const handleDblClick = (row) => {
     if (fileStore.queryType != 'recycleBin') {
         emit('dbclick', row);

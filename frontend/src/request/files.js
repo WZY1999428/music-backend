@@ -57,3 +57,27 @@ export const download = createRequestWrapper(({ fileId, access_token }) => ({
 }),
   { autoCancel: false }
 );
+
+
+
+
+export const createFolder = createRequestWrapper((data) => ({
+  url: "/files/create",
+  method: "post",
+  data,
+}));
+
+
+export const copyFile = createRequestWrapper((data) => ({
+  url: "/files/copy",
+  method: "put",
+  data,
+}))
+
+
+
+export const syncFile = createRequestWrapper((data) => ({
+  url: "/files/sync",
+  method: "get",
+  params: data,
+}));

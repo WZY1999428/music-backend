@@ -77,6 +77,7 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const showMenu: typeof import('./src/utils/showMenu.js').showMenu
   const storeToRefs: typeof import('pinia').storeToRefs
   const toRaw: typeof import('vue').toRaw
   const toRef: typeof import('vue').toRef
@@ -187,6 +188,7 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
+    readonly showMenu: UnwrapRef<typeof import('./src/utils/showMenu.js')['showMenu']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly toRaw: UnwrapRef<typeof import('vue')['toRaw']>
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>
