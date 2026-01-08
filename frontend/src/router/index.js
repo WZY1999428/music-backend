@@ -7,10 +7,10 @@ const routes = [
   {
     path: '/',
     component: HomeView,
-    redirect: '/files/myFile',
+    redirect: '/files',
     children: [
       {
-        path: "files/:fileId",
+        path: "files",
         component: () => import("@/views/Files.vue")
       }
     ]

@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import './style.css'
 import "./assets/iconfont/iconfont.js"
+import "./utils/expandArray"
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import "viewerjs/dist/viewer.css";

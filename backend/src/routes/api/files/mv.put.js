@@ -1,44 +1,88 @@
 const fs = require("fs-extra");
 const path = require("path");
 const { FileTable } = require("@/modules/sqlite/model");
+const { parseParendIds } = require("@/modules/fileSystem/utils");
 
 module.exports = async (ctx) => {
+    const moved = []
+    let isCommit = true;
     try {
-        const { fileId, destId } = ctx.request.body
-        if (fileId === destId) return ctx.fail("不能移动到自己的目录");
-        const srcFile = await FileTable.findOne({ id: fileId });
-        if (!srcFile) return ctx.fail("源文件不存在");
-        // 根路径（虚拟根）
-        let destFile = { id: 0, rootPath: process.env.PUBLIC_FILE_PATCH, path: "" };
-        if (destId != 0) {
-            destFile = await FileTable.findOne({ id: destId });
-            if (!destFile) return ctx.fail("目标路径不存在");
-        }
-        const srcAbs = path.join(srcFile.rootPath, srcFile.path);
-        const destAbs = path.join(destFile.rootPath, destFile.path, srcFile.name);
-        // 确保目标目录存在
-        await fs.mkdir(path.dirname(destAbs), { recursive: true });
-        const srcStat = await fs.stat(srcAbs);
-        await fs.move(srcAbs, destAbs, { overwrite: true },);
-        await FileTable.update({ id: fileId }, {
-            path: path.relative(destFile.rootPath, destAbs),
-            parentId: destFile.id
-        });
-        if (srcStat.isDirectory()) {
-            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }],{
-                pageSize: -1
-            });
-            for (const child of children) {
-                if (!child.path.startsWith(srcFile.path)) continue;
-                const relative = child.path.slice(srcFile.path.length);
-                const newRelChild = path.relative(destFile.rootPath, path.join(destFile.rootPath, destFile.path, srcFile.name, relative));
-                await FileTable.update({ id: child.id }, {
-                    path: newRelChild
-                });
+        const { destId = 0, ids } = ctx.request.body;
+        if (!ids.length) throw new Error('请选择需要移动的文件');
+        let destFile = await FileTable.findOne([{ field: "id", value: destId }]);
+        if (!destFile && destId !== 0) throw new Error('目标文件夹不存在');
+        if (destId == 0) {
+            destFile = {
+                rootPath: process.env.PUBLIC_FILE_PATCH,
+                path: "",
+                id: 0,
+                fullPathId: "0"
             }
         }
+
+        const destIds = parseParendIds(destFile.fullPathId)
+        for (id of ids) {
+            const split = destIds.splice(0, destIds.indexOf(id) + 1);
+            if (split.includes(id)) throw new Error('不能移动到自己的子文件夹');
+        }
+
+        if (destFile.isFolder === 0) throw new Error('目标路径不是文件夹');
+        const files = await FileTable.find([{ field: "id", value: ids, op: "in" }], { pageSize: -1 });
+        if (!files.length) throw new Error('文件不存在');
+        const targetPath = path.join(destFile.rootPath, destFile.path);
+        for (const file of files) {
+            const srcAbs = path.join(file.rootPath, file.path);
+            const destAbs = path.join(targetPath, file.name);
+            console.log(`${srcAbs} -> ${destAbs}`);
+            file.newPath = path.join(destFile.path, file.name);
+            file.newParentId = destId;
+            file.newFullPathId = destFile.fullPathId + '-' + file.id;
+            await fs.move(srcAbs, destAbs);
+            moved.push(file)
+        }
+
+        const batchSql = [];
+        for (const file of moved) {
+            if (file.isFolder == 1) {
+                const children = await FileTable.find([{ field: "fullPathId", value: `%-${file.id}-%`, op: "like" }]);
+                updateChild(file, children, batchSql)
+            }
+            batchSql.push({
+                filters: [{ field: "id", value: file.id }],
+                data: { path: file.newPath, name: file.name, parentId: file.newParentId, fullPathId: file.newFullPathId }
+            })
+        }
+        await FileTable.beginTransaction();
+        isCommit = false;
+        await FileTable.updateManyBatchIn(batchSql);
+        await FileTable.commit();
+        isCommit = true;
         ctx.success("移动成功");
     } catch (err) {
+        console.log(err);
+        if (moved.length) {
+            for (const file of moved) {
+                const srcAbs = path.join(file.rootPath, file.newPath);
+                const destAbs = path.join(file.rootPath, file.path);
+                await fs.move(srcAbs, destAbs,).catch(() => { })
+            }
+        }
+        if (!isCommit) await FileTable.rollback();
         ctx.fail("移动失败: " + err.message);
     }
 };
+
+
+function updateChild(parent, children, batchSql) {
+    const index = parseParendIds(parent.fullPathId).indexOf(parent.id) + 1;
+    for (const cFile of children) {
+        const pathArray = cFile.path.split(path.sep);
+        pathArray.splice(0, index);
+        const arrFullPathId = parseParendIds(cFile.fullPathId);
+        arrFullPathId.splice(0, index, parent.newFullPathId);
+        batchSql.push({
+            filters: [{ field: "id", value: cFile.id }],
+            data: { path: path.join(parent.newPath, ...pathArray), fullPathId: arrFullPathId.join('-') }
+        })
+    }
+}

@@ -18,13 +18,13 @@
     </div>
   </div>
   <div class="file-list-view rounded-sm shadow-md select-none p-3" @mouseup="onMouseup"
-    :element-loading-svg="loadingSvg" v-loading="fileStore.loading" :element-loading-text="loadingText"
+    :element-loading-svg="loadingSvg" v-loading="loading" :element-loading-text="loadingText"
     element-loading-svg-view-box="0 0 400 120" element-loading-custom-class="no-rotate-loading"
     @contextmenu="(event) => handleRowContextMenu({ event, file: null })"
     style="background-color: var(--aside-bg-color); height: calc(100% - 40px)">
-    <FileListView :files="fileStore.files" @dbclick="fileClick" @download="(e) => downloadFile(e.id, e.access_token)"
-      @delete="deleteFileFun" @recently="recentlyFilesFun" @tableSelectionChange="handleTableSelectionChange"
-      @row-contextmenu="handleRowContextMenu">
+    <FileListView :files="fileStore.files" @dbclick="fileClick" v-loading="fileStore.loading"
+      @download="(e) => downloadFile(e.id, e.access_token)" @delete="deleteFileFun" @recently="recentlyFilesFun"
+      @tableSelectionChange="handleTableSelectionChange" @row-contextmenu="handleRowContextMenu">
     </FileListView>
   </div>
 </template>
@@ -33,13 +33,92 @@
 import FileListView from "@/components/layout/FileListView.vue";
 import fileIconView from "@/components/layout/FileIconView.vue";
 import { recentlyFiles } from "@/request/trash"
-import { deleteFile, syncFile, createFolder, copyFile } from "@/request/files"
+import { deleteFile, syncFile, createFolder, copyFile, mvFile } from "@/request/files"
 import cpSvg from "@/assets/svg/cp.svg?raw"
 const fileStore = useFileStore();
 const loadingSvg = ref(cpSvg)
-const loadingText = ref('加载中...')
+const loading = ref(false)
 fileStore.fetchFiles(0);
+const loadingText = ref('')
 const selectFiles = reactive([])
+watch(() => fileStore.files.length, () => handleTableSelectionChange([]))
+const OP = {
+  COPY: 'copy',
+  MOVE: 'move'
+}
+const operationContext = {
+  tempFiles: [],
+  type: null,
+
+  set(type, files) {
+    this.type = type
+    this.tempFiles.length = 0
+    this.tempFiles.push(...files)
+  },
+
+  setCopy(files) {
+    this.set(OP.COPY, files)
+  },
+
+  setMove(files) {
+    this.set(OP.MOVE, files)
+  },
+
+  clear() {
+    this.type = null
+    this.tempFiles.length = 0
+  }
+}
+
+function handleRowContextMenu({ event, file }) {
+  const items = [
+    { label: '刷新', icon: "refresh", action: () => fileStore.forceRefresh() },
+    {
+      label: '排序方式', children: [
+        { label: '按名称排序', action: () => { } },
+        { label: '按创建时间排序', action: () => { } }]
+    },
+    {
+      label: '查看方式', children: [{
+        label: '列表', action: () => { }
+      },
+      { label: '图标', action: () => { } }]
+    }];
+  if (file) {
+    items.insertAt(3, ...[
+      { label: '复制', icon: "copy", action: (file) => operationContext.setCopy(selectFiles.length ? selectFiles : [file]) },
+      { label: '移动', icon: "", action: (file) => operationContext.setMove(selectFiles.length ? selectFiles : [file]) },
+      { label: '删除', icon: "delete", action: (file) => deleteFileFun([file]) },
+      { label: '下载', icon: "cloudDownload", action: (file) => downloadFile(file.id, file.access_token) },
+      { label: '属性', icon: "attribute", action: (file) => downloadFile(file.id, file.access_token) },
+    ])
+    if (file.isFolder) {
+      items.insertAt(items.length - 1, { label: '同步目录内容', icon: "dataProcess", action: (file) => handleSyncFile(file) });
+      if (operationContext.tempFiles.length && !operationContext.tempFiles.some(e => e.id == file.id)) {
+        items.insertAt(3, { label: '粘贴', icon: "", action: (target) => handlePaste(target) });
+      }
+    }
+  } else {
+    items.insertAt(3, ...[
+      { label: '新建文件', icon: "", action: () => handleCreateFolder() },
+      { label: '新建文件夹', icon: "", action: () => handleCreateFolder() },
+      { label: '同步目录内容', icon: "dataProcess", action: () => handleSyncFile() },
+    ]);
+    if (selectFiles.length) {
+      items.insertAt(3, 0, ...[{ label: '复制', icon: "", action: () => operationContext.setCopy(selectFiles) }, { label: '移动', action: () => operationContext.setMove(selectFiles) }]);
+    }
+    if (operationContext.tempFiles.length) {
+      const last = fileStore.breadcrumbs[fileStore.breadcrumbs.length - 1];
+      if ((!last && !operationContext.tempFiles.some(e => e.parentId == 0)) || (last && !operationContext.tempFiles.some(e => e.id == last.id || e.parentId == last.id))) {
+        items.insertAt(3, { label: '粘贴', icon: "", action: (target) => handlePaste(target) });
+      }
+    }
+  }
+  showMenu(items, event, file)
+}
+
+
+
 function fileClick(e) {
   if (e.isFolder) {
     fileStore.addPath(e.id, e.name);
@@ -47,9 +126,9 @@ function fileClick(e) {
     downloadFile(e.id, e.access_token, e.name);
   }
 }
-watch(() => fileStore.files.length, () => {
-  loadingText.value = '加载中...'
-})
+
+
+
 
 function recentlyFilesFun(files) {
   ElMessageBox.confirm(
@@ -83,62 +162,29 @@ function recentlyFilesFun(files) {
     },
   ).catch(() => { })
 }
-
 function onMouseup(e) {
   if (e.button == 3) {
     fileStore.backPath();
     e.preventDefault()
   }
 }
-const temFile = [];
-function handleRowContextMenu({ event, file }) {
-  let items = [];
-  if (file) {
-    items = [
-      { label: '刷新', action: () => fileStore.forceRefresh() },
-      { label: '复制', action: (file) => temFile.splice(0, temFile.length, file) },
-      { label: '移动', action: (file) => downloadFile(file.id, file.access_token) },
-      { label: '删除', action: (file) => deleteFileFun([file]) },
-      { label: '下载', action: (file) => downloadFile(file.id, file.access_token) },
-      { label: '属性', action: (file) => downloadFile(file.id, file.access_token) },
-    ];
-    if (file.isFolder) {
-      items.splice(items.length - 1, 0, { label: '同步目录内容', action: (file) => handleSyncFile(file) });
-      if (temFile.length && !temFile.some(e => e.id == file.id)) {
-        items.splice(2, 0, { label: '粘贴', action: (target) => handlePaste(target) });
-      }
-    }
-  } else {
-    items = [
-      { label: '刷新', action: () => fileStore.forceRefresh() },
-      { label: '新建文件夹', action: () => handleCreateFolder() },
-      { label: '新建文件', action: () => handleCreateFolder() },
-      { label: '同步目录内容', action: () => handleSyncFile() },
-    ];
-    if (selectFiles.length) {
-      items.splice(1, 0, { label: '复制', action: () => temFile.splice(0, temFile.length, ...selectFiles) });
-    }
-    if (temFile.length) {
-      const last = fileStore.breadcrumbs[fileStore.breadcrumbs.length - 1];
-      if (!last || !temFile.some(e => e.id == last.id)) items.splice(2, 0, { label: '粘贴', action: (target) => handlePaste(target) });
-    }
-  }
-  showMenu(items, event, file)
-}
-
 function handlePaste(target) {
   if (!target) target = fileStore.breadcrumbs[fileStore.breadcrumbs.length - 1];
-  fileStore.loading = true
-  loadingText.value = '正在复制文件中...'
-  copyFile({
-    destId: target.id,
-    ids: temFile.map(e => e.id)
+  loading.value = true
+  if (![OP.COPY, OP.MOVE].includes(operationContext.type)) return;
+  loadingText.value = operationContext.type == OP.COPY ? ' 正在复制文件中...' : ' 正在移动文件中...'
+  const req = operationContext.type == OP.COPY ? copyFile : mvFile
+  req({
+    destId: target ? target.id : 0,
+    ids: operationContext.tempFiles.map(e => e.id)
   }).then(_res => {
+    if (operationContext.type == OP.MOVE) operationContext.clear();
     ElMessage.success("粘贴成功")
     fileStore.forceRefresh();
-  }).finally(() => {
-    fileStore.loading = false
   })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
 function handleSyncFile(file) {
@@ -206,14 +252,13 @@ function handleCreateFolder() {
   }).catch(() => { })
 }
 
-watch(() => fileStore.files.length, () => handleTableSelectionChange([]))
 
 function handleTableSelectionChange(e) {
   selectFiles.splice(0, selectFiles.length, ...e);
 }
 
-const radio = ref("1")
 function deleteFileFun(files) {
+  const radio = ref("1")
   ElMessageBox({
     title: '警告',
     message: () => h('div', {}, [

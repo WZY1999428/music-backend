@@ -9,8 +9,11 @@ const HashFile = require("./hashFile");
 const MAX_WORKERS = Math.min(require("os").cpus().length, 8);
 const hashFile = new HashFile(MAX_WORKERS);
 const BATCH_SIZE = 100; // 每批处理 100 个文件
+let isScanning = false;
 // -------------------- 队列 --------------------
 async function queueScanning(dirPaths = []) {
+    if (isScanning) throw new Error("正在扫描中，请稍后重试");
+    isScanning = true;
     try {
         const files = [];
         console.time("QueueScanning");
@@ -29,25 +32,29 @@ async function queueScanning(dirPaths = []) {
                 }
                 record.filePath = fullPath;
                 if (parent.id != 0) record.parentRef = parent;
+                console.log(record.parentRef);
                 files.push(record);
 
             }
             process.stdout.write(`\r已读取，${files.length}个文件`);
         }
-        console.log(files.map(item => item.name));
         const fileMap = new Map(files.map(f => [f.ino, f]));
-        console.log("fileMap", fileMap.size);
-        console.log("dbFiles", dbFiles.length);
         let filterCount = 0;
         for (let i = 0; i < dbFiles.length; i++) {
             const dbf = dbFiles[i];
-            if (fileMap.has(dbf.ino)) {
+            const file = fileMap.get(dbf.ino);
+            if (file && await fs.exists(path.join(dbf.rootPath, dbf.path))) {
+                file.parentId = dbf.parentId;
+                file.fullPathId = dbf.fullPathId;
                 fileMap.delete(dbf.ino);
                 dbFiles.splice(i, 1);
                 i--;
                 filterCount++;
             }
         }
+
+
+
         if (filterCount > 0) console.log(`\n 已过滤${filterCount}个数据库存在的文件`);
         const newFiles = Array.from(fileMap.values());
         if (newFiles.length > 0) {
@@ -85,6 +92,7 @@ async function queueScanning(dirPaths = []) {
                             if (err.errno !== 19) console.error("插入失败:", err);
                             continue;
                         }
+                        console.log(parent);
                         if (parent) {
                             record.fullPathId = `${parent.fullPathId}-${data.id}`;
                             record.parentId = parent.id;
@@ -109,9 +117,11 @@ async function queueScanning(dirPaths = []) {
             await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]).catch(() => { });
         }
         hashFile.clear();
+        isScanning = false;
         console.log("\n");
         console.timeEnd("QueueScanning");
     } catch (error) {
+        isScanning = false;
         console.log(error);
         hashFile.clear();
         throw error;
@@ -155,7 +165,7 @@ async function buildFileRecord(fullPath, parentId = 0) {
 function parseParendIds(fullPathId) {
     const ids = [];
     const arr = fullPathId.split("-");
-    for (let i = 0; i < arr.length - 1; i++) {
+    for (let i = 0; i < arr.length; i++) {
         const num = parseInt(arr[i]);
         if (isFinite(num) && num != 0) ids.push(num);
     }

@@ -76,6 +76,15 @@ export const copyFile = createRequestWrapper((data) => ({
 
 
 
+export const mvFile = createRequestWrapper((data) => ({
+  url: "/files/mv",
+  method: "put",
+  data,
+}))
+
+
+
+
 export const syncFile = createRequestWrapper((data) => ({
   url: "/files/sync",
   method: "get",
