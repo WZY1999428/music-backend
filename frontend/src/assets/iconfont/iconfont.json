@@ -131,67 +131,75 @@
       "zh_name": "文件类型-最近使用",
       "font_class": "zuijinshiyong"
     },
- {
-    "icon_id": "22737800",
-    "name": "imageError",
-    "zh_name": "图片-加载失败",
-    "font_class": "tupian-jiazaishibai"
-  },
-  {
-    "icon_id": "1256557",
-    "name": "attribute",
-    "zh_name": "属性",
-    "font_class": "shuxing",
-    "unicode": "e60e",
-    "unicode_decimal": 58894
-  },
-  {
-    "icon_id": "5993150",
-    "name": "copy",
-    "zh_name": "复制",
-    "font_class": "fuzhi",
-    "unicode": "ec7a",
-    "unicode_decimal": 60538
-  },
-  {
-    "icon_id": "9675544",
-    "name": "moveFile",
-    "zh_name": "移动文件",
-    "font_class": "yidongwenjian",
-    "unicode": "e6ff",
-    "unicode_decimal": 59135
-  },
-  {
-    "icon_id": "13644690",
-    "name": "cloudDownload",
-    "zh_name": "云下载",
-    "font_class": "yunxiazai",
-    "unicode": "e60f",
-    "unicode_decimal": 58895
-  },
-  {
-    "icon_id": "14719566",
-    "name": "refresh",
-    "zh_name": "刷新",
-    "font_class": "header-20",
-    "unicode": "e64b",
-    "unicode_decimal": 58955
-  },
-  {
-    "icon_id": "18367976",
-    "name": "delete",
-    "zh_name": "删除",
-    "font_class": "shanchu1",
-    "unicode": "e67d",
-    "unicode_decimal": 59005
-  },
-  {
-    "icon_id": "33407601",
-    "name": "dataProcess",
-    "zh_name": "数据处理",
-    "font_class": "shujuchuli",
-    "unicode": "e606",
-    "unicode_decimal": 58886
-  }
+    {
+      "icon_id": "22737800",
+      "name": "imageError",
+      "zh_name": "图片-加载失败",
+      "font_class": "tupian-jiazaishibai"
+    },
+    {
+      "icon_id": "1256557",
+      "name": "attribute",
+      "zh_name": "属性",
+      "font_class": "shuxing",
+      "unicode": "e60e",
+      "unicode_decimal": 58894
+    },
+    {
+      "icon_id": "5993150",
+      "name": "copy",
+      "zh_name": "复制",
+      "font_class": "fuzhi",
+      "unicode": "ec7a",
+      "unicode_decimal": 60538
+    },
+    {
+      "icon_id": "9675544",
+      "name": "moveFile",
+      "zh_name": "移动文件",
+      "font_class": "yidongwenjian",
+      "unicode": "e6ff",
+      "unicode_decimal": 59135
+    },
+    {
+      "icon_id": "13644690",
+      "name": "cloudDownload",
+      "zh_name": "云下载",
+      "font_class": "yunxiazai",
+      "unicode": "e60f",
+      "unicode_decimal": 58895
+    },
+    {
+      "icon_id": "14719566",
+      "name": "refresh",
+      "zh_name": "刷新",
+      "font_class": "header-20",
+      "unicode": "e64b",
+      "unicode_decimal": 58955
+    },
+    {
+      "icon_id": "18367976",
+      "name": "delete",
+      "zh_name": "删除",
+      "font_class": "shanchu1",
+      "unicode": "e67d",
+      "unicode_decimal": 59005
+    },
+    {
+      "icon_id": "33407601",
+      "name": "dataProcess",
+      "zh_name": "数据处理",
+      "font_class": "shujuchuli",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
+      "icon_id": "5288604",
+      "name": "selected",
+      "zh_name": "选中",
+      "font_class": "xuanzhong",
+      "unicode": "e674",
+      "unicode_decimal": 58996
+    }
   ]
 }

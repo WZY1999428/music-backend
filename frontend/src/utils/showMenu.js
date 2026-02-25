@@ -1,6 +1,6 @@
+import RightClickMenu from '../components/RightClickMenu.vue'
 let app = null
 let container = null
-import RightClickMenu from '../components/RightClickMenu/index.vue'
 export function showMenu(items, event, data) {
     event.preventDefault()
 
@@ -18,7 +18,7 @@ export function showMenu(items, event, data) {
     document.body.appendChild(container)
 
     app = createApp({
-        render() {
+        render() { 
             return h(RightClickMenu, {
                 items,
                 x,

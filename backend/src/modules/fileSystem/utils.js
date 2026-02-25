@@ -1,6 +1,5 @@
 // -------------------- 构建数据库记录 --------------------
-const { fileTypeFromBuffer } = require('file-type');
-const { readChunk } = require('read-chunk');
+
 const fs = require("fs-extra");
 const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
@@ -130,6 +129,8 @@ async function queueScanning(dirPaths = []) {
 
 
 async function buildFileRecord(fullPath, parentId = 0) {
+    const { fileTypeFromBuffer } = await import('file-type');
+    const { readChunk } = await import('read-chunk');
     const stat = await fs.stat(fullPath).catch(() => null);
     const name = path.basename(fullPath);
     // 当前节点 fullPathId = 父级 fullPathId + 当前 parentId（或者占位，插入后更新）

@@ -32,8 +32,10 @@ declare global {
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
   const getFileUrl: typeof import('./src/utils/file.js').getFileUrl
   const getItem: typeof import('./src/utils/storage.js').getItem
+  const getThumbUrl: typeof import('./src/utils/file.js').getThumbUrl
   const getUser: typeof import('./src/utils/storage.js').getUser
   const h: typeof import('vue').h
+  const imageViewer: typeof import('./src/utils/ImageViewer.js').imageViewer
   const inject: typeof import('vue').inject
   const isProxy: typeof import('vue').isProxy
   const isReactive: typeof import('vue').isReactive
@@ -77,6 +79,7 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const showImageViewer: typeof import('./src/utils/ImageViewer.js').showImageViewer
   const showMenu: typeof import('./src/utils/showMenu.js').showMenu
   const storeToRefs: typeof import('pinia').storeToRefs
   const toRaw: typeof import('vue').toRaw
@@ -143,6 +146,7 @@ declare module 'vue' {
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
     readonly getFileUrl: UnwrapRef<typeof import('./src/utils/file.js')['getFileUrl']>
     readonly getItem: UnwrapRef<typeof import('./src/utils/storage.js')['getItem']>
+    readonly getThumbUrl: UnwrapRef<typeof import('./src/utils/file.js')['getThumbUrl']>
     readonly getUser: UnwrapRef<typeof import('./src/utils/storage.js')['getUser']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
@@ -188,6 +192,7 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
+    readonly showImageViewer: UnwrapRef<typeof import('./src/utils/ImageViewer.js')['showImageViewer']>
     readonly showMenu: UnwrapRef<typeof import('./src/utils/showMenu.js')['showMenu']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly toRaw: UnwrapRef<typeof import('vue')['toRaw']>

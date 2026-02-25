@@ -6,8 +6,8 @@
         :class="['pl-4 pr-2 py-2 hover:bg-gray-100 cursor-pointer text-gray-800 text-sm flex justify-between items-center relative', activeChildrenIndex === index ? 'bg-gray-100' : '']"
         @mouseenter="onItemEnter($event, item, index)">
         <div class="flex">
-          <span class="w-[25px]">
-            <icon :size="20" :name="item.icon"></icon>
+          <span class="w-[25px] flex items-center">
+            <icon :size="item.iconSize || 20" v-if="item.icon" :name="item.icon"></icon>
           </span>
           <span>{{ item.label }}</span>
         </div>
@@ -27,7 +27,7 @@
 import { ref, onMounted, nextTick, watch, defineOptions } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 // 显式引用自身用于递归，或者依赖文件名 (index.vue)
-import RightClickMenu from './index.vue'
+import RightClickMenu from './RightClickMenu.vue'
 
 defineOptions({
   name: 'RightClickMenu'

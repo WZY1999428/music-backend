@@ -1,7 +1,7 @@
 <template>
   <el-container class="h-screen p-2" style="background-color: var(--container-bg-color)">
     <el-header class="px-4 shadow-md select-none rounded-sm mb-2"
-      style="height: 80px; background-color: var(--header-bg-color)">
+      style="height: 70px; background-color: var(--header-bg-color)">
       <div class="flex justify-between h-full">
         <div class="flex items-center h-full">
           <el-image src="/logo2.png" class="w-[40px]"></el-image>
@@ -102,7 +102,7 @@ const menuItems = [
       {
         name: "收藏夹",
         icon: "FolderFavorite",
-        id: "collection",
+        id: "favorite",
       },
       {
         name: "回收站",
@@ -170,7 +170,7 @@ if (getItem("token")) userStore.fetchUserInfo();
 .aside-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
+  padding: 6px 12px;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;

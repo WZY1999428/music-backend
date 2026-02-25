@@ -1,5 +1,5 @@
 <template>
-    <div class="w-[80px] h-[80px] overflow-hidden relative" ref="el" v-loading="loading">
+    <div class="w-[80px] h-[80px] overflow-hidden relative" ref="el" v-loading="loading" >
         <img v-if="!isError && imgUrl" ref="imgRef" :src="imgUrl" class="w-full h-full object-cover"
             @load="loading = false" @error="onError" />
         <icon v-else-if="isError && !loading" @dblclick.stop :size="80" name="imageError" />
@@ -8,6 +8,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
+
 const props = defineProps({
     id: { type: Number, required: true },
     access_token: { type: String, required: true }
@@ -23,7 +24,7 @@ function loadImage() {
     if (!props.id || !props.access_token) return;
     loading.value = true;
     isError.value = false;
-    imgUrl.value = getFileUrl(props.id, props.access_token);
+    imgUrl.value = getThumbUrl(props.id, props.access_token);
 }
 
 function onError() {
@@ -43,7 +44,7 @@ onMounted(() => {
     el.value && observer.observe(el.value);
 });
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
     observer?.unobserve(el.value);
 });
 

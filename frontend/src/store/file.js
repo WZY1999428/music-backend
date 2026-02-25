@@ -1,16 +1,17 @@
-import { getFiles, getCategoryFiles, getFavorite } from "@/request/files"
+import { getFiles, getCategoryFiles } from "@/request/files"
+import { getFavorites } from "@/request/favorite"
 import { getRecycleBin } from "@/request/trash"
 const queryTypeMap = {
     myFile: getFiles,
     category: getCategoryFiles,
     recycleBin: getRecycleBin,
-    collection: getFavorite,
+    favorite: getFavorites,
 }
 
 const nameMap = {
     "myFile": '我的文件',
     "recentlyUsed": '最近使用',
-    "collection": '收藏夹',
+    "favorite": '收藏夹',
     "recycleBin": '回收站',
     "image": "图片文件",
     "video": "视频文件",
@@ -64,7 +65,6 @@ export const useFileStore = defineStore('file', () => {
     };
     function forceRefresh(refresh = true) {
         if (loading.value) return;
-        console.log(refresh);
         if (refresh) fileCache.clear();
         const last = breadcrumbs.value[breadcrumbs.value.length - 1];
         fetchFiles(last ? last.id : 0, refresh);

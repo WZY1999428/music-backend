@@ -11,7 +11,7 @@ module.exports = function auth() {
         const path = ctx.path;
         // 2️⃣ /api 下的请求
         if (path.startsWith('/api/')) {
-            if (/^\/api\/files\/\d+$/.test(path)) {
+            if (/^\/api\/files\/\d+$/.test(path) || /^\/api\/files\/thumb\/\d+$/.test(path)) {
                 const access_token = ctx.query['access_token'];
                 if (!access_token) return ctx.unauthorized('No auth token provided in query');
                 try {

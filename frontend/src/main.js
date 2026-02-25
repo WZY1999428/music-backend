@@ -1,12 +1,14 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import './style.css'
+import ElementPlus from 'element-plus'
+
+import 'element-plus/dist/index.css'
 import "./assets/iconfont/iconfont.js"
 import "./utils/expandArray"
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import "viewerjs/dist/viewer.css";
-import './assets/element-plus.css'
+import './assets/css/element-plus.css'
+import './assets/css/style.css'
+
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+
 import icon from "./components/Icon.vue";
 import router from './router'
 import App from './App.vue'

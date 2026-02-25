@@ -240,7 +240,7 @@ class Model {
                 let totalChanges = 0;
                 try {
                     await this.beginTransaction();
-                    stmt = this.db.prepare(sql);
+                    stmt =await this.db.prepare(sql);
                     for (const row of datas) {
                         const values = columns.map(k => row[k]);
                         await new Promise((res, rej) => {
@@ -644,7 +644,6 @@ class Model {
      */
     async deleteMany(filters = []) {
         if (!filters.length) throw new Error('filters 不能为空');
-
         const { whereSql, values } = this._buildWhereByFilters(filters);
         return this.db.run(`DELETE FROM ${this.table} ${whereSql}`, values);
     }

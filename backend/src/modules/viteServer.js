@@ -1,4 +1,3 @@
-const { createServer: createViteServer } = require('vite');
 const convert = require('koa-connect')
 const path = require('path');
 const rootPath = path.resolve(__dirname, '../../../frontend');
@@ -6,6 +5,8 @@ const HtmlPath = path.join(rootPath, 'index.html');
 const fs = require('fs/promises');
 module.exports = async function viteServerMiddleware(app) {
     // 以中间件模式创建 Vite 服务器
+    const { createServer: createViteServer } = await import('vite');
+
     const viteServer = await createViteServer({
         server: { middlewareMode: true },
         appType: 'custom',

@@ -53,7 +53,6 @@ function registerRoutes(routerDir, prefix = '') {
         }
         const routerPath = prefix + (routePath.startsWith('/') ? routePath : '/' + routePath);
         router[method](routerPath, ...handlers);
-        // console.log(routerPath);
       }
     });
   }

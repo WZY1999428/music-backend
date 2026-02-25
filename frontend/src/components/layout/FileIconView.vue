@@ -1,10 +1,15 @@
 <template>
     <div ref="fileGrid" class="file-grid flex flex-wrap">
-        <div @dblclick="emit('dbclick', file)" class="file-item h-[130px] flex flex-col items-center cursor-pointer"
-            v-for="file in files" :key="file.name">
-            <id-image v-if="['png', 'jpg', 'jpeg'].includes(file.extension)" :id="file.id"
-                :access_token="file.access_token"></id-image>
-            <icon v-else :size="80" :name="formatFileIcon(file)" />
+        <div @dblclick="emit('dbclick', file)" @contextmenu.stop="emit('row-contextmenu', { event: $event, file })"
+            class="file-item h-[130px] flex flex-col items-center cursor-pointer" v-for="file in files"
+            :key="file.access_token">
+            <div class="relative">
+                <id-image v-if="['png', 'jpg', 'jpeg','webp'].includes(file.extension)" :id="file.id"
+                    :access_token="file.access_token"></id-image>
+                <icon v-else :size="80" :name="formatFileIcon(file)" />
+                <img v-if="file.isFolder !== 1 && file.favoriteId" class="star absolute top-1 right-1  w-[20px]"
+                    :src="star" alt="收藏">
+            </div>
             <p class="py-1 text-sm text-center line-clamp-2 break-words w-[80px]">
                 {{ file.name }}
             </p>
@@ -14,6 +19,7 @@
 
 <script setup>
 import idImage from "../image.vue";
+import star from "@/assets/svg/star.svg"
 const props = defineProps({
     files: {
         type: Array,
@@ -21,7 +27,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['dbclick']);
+const emit = defineEmits(['dbclick', "tableSelectionChange", "row-contextmenu"]);
 const fileGrid = ref(null);
 function updateGridGap() {
     const container = fileGrid.value;

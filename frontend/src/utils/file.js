@@ -17,7 +17,6 @@ export function formatFileSize(bytes, options = {}) {
 
     const fixed = value.toFixed(decimals);
     const clean = fixed.replace(/\.0+$|(\.\d*[1-9])0+$/, '$1');
-
     return `${clean} ${units[index]}`;
 }
 
@@ -26,8 +25,15 @@ export function getFileUrl(fileId, access_token) {
     return `/api/files/${fileId}?access_token=${access_token}`
 }
 
+export function getThumbUrl(fileId, access_token) {
+    return `/api/files/thumb/${fileId}?access_token=${access_token}`
+}
+
+
 export function formatFileIcon(row) {
-    if (row.isFolder == 1) return "folder";
+    if (row.isFolder == 1) {
+        return row.favoriteId ? 'FolderFavorite' : 'folder';
+    }
     else {
         const ext = row.extension;
         const extMap = {

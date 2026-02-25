@@ -5,16 +5,24 @@ module.exports = async (ctx) => {
         const pageSize = parseInt(ctx.query.pageSize) || 20;
         const favoriteQuery = await Favorite.joinFind({
             fields: [
-                't1.id',
-                't3.username',
-                't2.name AS fileName',
-                't2.size',
-                't1.createdAt'
+             "t1.id",
+                "t2.name",
+                "t2.path",
+                "t2.isFolder",
+                "t2.parentId",
+                't2.category',
+                "t2.size",
+                "t2.mimeType",
+                "t2.extension",
+                "t2.createdAt",
+                "t2.updatedAt",
+                "t2.status",
+                "t1.id as favoriteId"
             ],
             joins: [
                 {
                     name: 'files',
-                    type: 'INNER JOIN', // 可选：INNER JOIN, LEFT JOIN
+                    type: 'INNER JOIN', // LLL JOIN, LEFT JOIN
                     on: 't1.fileId = t2.id'
                 },
                 {

@@ -9,7 +9,7 @@ native-code/target
 
 # 忽略所有 dist 输出目录
 **/dist/
-
+/backend/thumb
 # Auto detect text files and perform LF normalization
 * text=auto
 **.db **.db-*
