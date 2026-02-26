@@ -7,7 +7,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
     id: { type: Number, required: true },

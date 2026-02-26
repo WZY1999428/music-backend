@@ -1,8 +1,5 @@
-const fs = require("fs-extra");
-const path = require("path");
 const { FileTable } = require("@/modules/sqlite/model");
-const { scanDir } = require("@/modules/fileSystem/utils");
-const { generateFileToken, fileTokens } = require("@/modules/tokens")
+const { generateFileToken } = require("@/modules/tokens")
 const scanning = {}; // 简单锁
 module.exports = async (ctx) => {
     try {
@@ -38,11 +35,7 @@ module.exports = async (ctx) => {
             pageIndex: 1,
             pageSize: -1,
         });
-        for (const file of files) {
-            const token = generateFileToken(file.id);
-            file.access_token = token;
-        }
-        ctx.success(files);
+        ctx.success(files.map(f => ({ ...f, access_token: generateFileToken(f.id, ctx.state.user.userId) })));
     } catch (err) {
         ctx.fail("获取列表失败: " + err.message);
     }

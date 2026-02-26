@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 // 内存 Map 保存临时 token（可选）
 const fileTokens = new Map();
 
-function generateFileToken(fileId, expiresIn = "1h") {
+function generateFileToken(fileId, userId, expiresIn = "1h") {
   let token = null;
   const now = Date.now();
 
@@ -34,7 +34,7 @@ function generateFileToken(fileId, expiresIn = "1h") {
 
     token = ca.token;
   } catch (err) {
-    token = jwt.sign({ fileId }, process.env.JWT_SECRET, { expiresIn });
+    token = jwt.sign({ fileId, userId }, process.env.JWT_SECRET, { expiresIn });
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     fileTokens.set(fileId, {
       token,
@@ -53,7 +53,7 @@ function generateFileToken(fileId, expiresIn = "1h") {
 async function verifyFileToken(token) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const { fileId } = payload;
+    const { fileId, userId } = payload;
 
     if (!fileTokens.has(fileId)) {
       throw new Error("Token expired");
@@ -71,7 +71,7 @@ async function verifyFileToken(token) {
       throw new Error("Token expired");
     }
 
-    return { fileId };
+    return { fileId, userId };
   } catch (err) {
     throw new Error("Token expired");
   }

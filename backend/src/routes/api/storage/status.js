@@ -12,7 +12,7 @@ function getCpuUsage(interval = 1000) {
 
         function cpuAverage() {
             let totalIdle = 0, totalTick = 0;
-            cpus.forEach(cpu => {
+            cpus.forEach(cpu => {   
                 for (let type in cpu.times) {
                     totalTick += cpu.times[type];
                 }

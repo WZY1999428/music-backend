@@ -1,16 +1,18 @@
 import { getFiles, getCategoryFiles } from "@/request/files"
 import { getFavorites } from "@/request/favorite"
+import { getRecentFiles } from "@/request/recentFiles"
 import { getRecycleBin } from "@/request/trash"
 const queryTypeMap = {
     myFile: getFiles,
     category: getCategoryFiles,
     recycleBin: getRecycleBin,
     favorite: getFavorites,
+    recentFiles: getRecentFiles
 }
 
 const nameMap = {
     "myFile": '我的文件',
-    "recentlyUsed": '最近使用',
+    "recentFiles": '最近使用',
     "favorite": '收藏夹',
     "recycleBin": '回收站',
     "image": "图片文件",

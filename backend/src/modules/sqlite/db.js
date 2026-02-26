@@ -216,6 +216,32 @@ class Model {
         return { ...data, id: lastID };
     }
 
+    async upsert(data, conflictKeys = ["id"]) {
+        const keys = Object.keys(data);
+        const placeholders = keys.map(() => "?").join(", ");
+        const values = Object.values(data);
+
+        const updateKeys = keys.filter(k => !conflictKeys.includes(k));
+
+        let sql = `
+        INSERT INTO ${this.table} (${keys.join(",")})
+        VALUES (${placeholders})
+        ON CONFLICT (${conflictKeys.join(",")})
+    `;
+
+        if (updateKeys.length > 0) {
+            const updateClause = updateKeys
+                .map(k => `${k} = excluded.${k}`)
+                .join(", ");
+            sql += ` DO UPDATE SET ${updateClause}`;
+        } else {
+            sql += ` DO NOTHING`;
+        }
+
+        await this.db.run(sql, values);
+        return data;
+    }
+
     /**
      * 批量插入底层实现（支持事务）
      * @private
@@ -240,7 +266,7 @@ class Model {
                 let totalChanges = 0;
                 try {
                     await this.beginTransaction();
-                    stmt =await this.db.prepare(sql);
+                    stmt = await this.db.prepare(sql);
                     for (const row of datas) {
                         const values = columns.map(k => row[k]);
                         await new Promise((res, rej) => {
@@ -507,46 +533,46 @@ class Model {
       ]);
      */
 
- async updateManyBatchIn(batch = []) {
-    if (!batch.length) throw new Error('batch 不能为空');
+    async updateManyBatchIn(batch = []) {
+        if (!batch.length) throw new Error('batch 不能为空');
 
-    // 只支持按 id 更新，别搞花的
-    const ids = batch.map(b => b.filters.find(f => f.field === 'id')?.value);
-    if (ids.some(v => v === undefined)) {
-        throw new Error('batch 必须包含 id 作为过滤条件');
-    }
-
-    // 收集所有字段
-    const allFields = Array.from(
-        new Set(batch.flatMap(item => Object.keys(item.data)))
-    );
-
-    const sqlParts = [];
-    const values = [];
-
-    for (const field of allFields) {
-        let caseSql = `CASE id `;
-        for (let i = 0; i < batch.length; i++) {
-            const val = batch[i].data[field];
-            if (val !== undefined) {
-                caseSql += `WHEN ? THEN ? `;
-                values.push(ids[i], val);
-            }
+        // 只支持按 id 更新，别搞花的
+        const ids = batch.map(b => b.filters.find(f => f.field === 'id')?.value);
+        if (ids.some(v => v === undefined)) {
+            throw new Error('batch 必须包含 id 作为过滤条件');
         }
-        caseSql += `ELSE ${field} END`;
-        sqlParts.push(`${field} = ${caseSql}`);
-    }
 
-    const sql = `
+        // 收集所有字段
+        const allFields = Array.from(
+            new Set(batch.flatMap(item => Object.keys(item.data)))
+        );
+
+        const sqlParts = [];
+        const values = [];
+
+        for (const field of allFields) {
+            let caseSql = `CASE id `;
+            for (let i = 0; i < batch.length; i++) {
+                const val = batch[i].data[field];
+                if (val !== undefined) {
+                    caseSql += `WHEN ? THEN ? `;
+                    values.push(ids[i], val);
+                }
+            }
+            caseSql += `ELSE ${field} END`;
+            sqlParts.push(`${field} = ${caseSql}`);
+        }
+
+        const sql = `
         UPDATE ${this.table}
         SET ${sqlParts.join(', ')}
         WHERE id IN (${ids.map(() => '?').join(', ')})
     `;
 
-    values.push(...ids);
+        values.push(...ids);
 
-    return this.db.run(sql, values);
-}
+        return this.db.run(sql, values);
+    }
 
 
 
@@ -602,12 +628,12 @@ class Model {
         fields = ['t1.*'],
         joins = [],
         filters = [],
+        orderBy = '',         // 新增排序参数，示例: 't1.created_at DESC'
         pageIndex = 1,
         pageSize = 20
     } = {}) {
 
-        const { whereSql, values: whereValues } =
-            this._buildWhereByFilters(filters);
+        const { whereSql, values: whereValues } = this._buildWhereByFilters(filters);
 
         let joinSQL = `FROM ${this.table} AS t1`;
 
@@ -618,10 +644,15 @@ class Model {
         });
 
         let sql = `
-    SELECT ${fields.join(', ')}
-    ${joinSQL}
-    ${whereSql}
-    `;
+SELECT ${fields.join(', ')}
+${joinSQL}
+${whereSql}
+`;
+
+        // 排序处理
+        if (orderBy) {
+            sql += ` ORDER BY ${orderBy}`;
+        }
 
         if (pageSize !== -1) {
             const offset = (pageIndex - 1) * pageSize;

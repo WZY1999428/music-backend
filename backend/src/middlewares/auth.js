@@ -16,7 +16,7 @@ module.exports = function auth() {
                 if (!access_token) return ctx.unauthorized('No auth token provided in query');
                 try {
                     const payload = await verifyFileToken(access_token);
-                    ctx.state.user = payload; // 保存 payload 方便后续使用
+                    ctx.state.file = payload; // 保存 payload 方便后续使用
                 } catch (err) {
                     return ctx.unauthorized(err.message);
                 }

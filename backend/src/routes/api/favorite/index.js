@@ -1,11 +1,12 @@
 const { Favorite } = require("@/modules/sqlite/model");
+const { generateFileToken } = require("@/modules/tokens")
 module.exports = async (ctx) => {
     try {
         const pageIndex = parseInt(ctx.query.pageIndex) || 1;
         const pageSize = parseInt(ctx.query.pageSize) || 20;
         const favoriteQuery = await Favorite.joinFind({
             fields: [
-             "t1.id",
+                "t2.id",
                 "t2.name",
                 "t2.path",
                 "t2.isFolder",
@@ -41,8 +42,7 @@ module.exports = async (ctx) => {
             pageIndex,
             pageSize
         });
-
-        ctx.success(favoriteQuery);
+        ctx.success(favoriteQuery.map(f => ({ ...f, access_token: generateFileToken(f.id, ctx.state.user.userId) })));
     } catch (error) {
         ctx.fail(error.message);
     }

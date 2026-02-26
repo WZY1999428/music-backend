@@ -14,6 +14,7 @@
     "axios": "^1.13.2",
     "codemirror": "^6.0.2",
     "element-plus": "^2.11.8",
+    "hash-wasm": "^4.12.0",
     "howler": "^2.2.4",
     "pdfjs-dist": "^5.4.449",
     "pinia": "^3.0.4",

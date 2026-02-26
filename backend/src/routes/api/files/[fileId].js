@@ -1,6 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
-const { FileTable } = require("@/modules/sqlite/model");
+const { FileTable, RecentFiles } = require("@/modules/sqlite/model");
 const archiver = require("archiver");
 
 /**
@@ -27,6 +27,8 @@ module.exports = async (ctx) => {
             // 下载文件夹
             await zipDirectory(filePath, ctx, file.name + ".zip");
         } else {
+            // 添加到最近访问
+            await RecentFiles.upsert({ userId: ctx.state.file.userId, fileId: id }, ["userId", "fileId"]);
             const range = ctx.headers.range
             const stat = await fs.stat(filePath)
             const fileSize = stat.size

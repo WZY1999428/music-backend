@@ -8,8 +8,7 @@
           <h3 class="ml-4 font-bold text-2xl">小清新云盘</h3>
         </div>
         <div class="flex items-center h-full pr-20">
-          <el-button type="primary">上传</el-button>
-          <el-button type="warning">新建文件夹</el-button>
+          <el-button @click="uploadFile" type="primary">上传</el-button>
           <el-input class="ml-9" style="width: 240px; --el-border-color: #aec7b3" placeholder="搜索"
             v-model="fileStore.keyword" @keyup.enter="fileStore.forceRefresh" :prefix-icon="Search" />
           <div class="ml-10">
@@ -81,6 +80,7 @@ import { Search } from "@element-plus/icons-vue";
 import avatarImg from "@/assets/avatar.png";
 const fileStore = useFileStore();
 import { getStorageStatus } from "@/request/system";
+import Task from "@/utils/upload/task";
 const userStore = useUserStore();
 const activeIndex = ref("myFile");
 //  我的文件 最近使用 收藏夹 回收站
@@ -97,7 +97,7 @@ const menuItems = [
       {
         name: "最近使用",
         icon: "FolderShare",
-        id: "recentlyUsed",
+        id: "recentFiles",
       },
       {
         name: "收藏夹",
@@ -156,6 +156,24 @@ function handleClick(type, item) {
 const systemInfo = ref({});
 let timer = null;
 onMounted(() => getSystemInfo());
+
+
+function uploadFile() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*,video/*,audio/*,application/*";
+  input.click();
+  input.onchange = () => {
+    const files = input.files;
+    if (files) {
+      const idPath = fileStore.breadcrumbs.map(item => item.id);
+      const task = new Task(files[0], idPath.join("/"));
+      task.slice();
+    }
+  }
+
+}
+
 function getSystemInfo() {
   getStorageStatus()
     .then((res) => (systemInfo.value = res.data))

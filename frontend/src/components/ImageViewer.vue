@@ -1,7 +1,7 @@
 <template>
-    <ul ref="imageViewer" id="ViewerImage" style="display: none;">
-        <img v-for="src in images" :src="src"  >
-    </ul>
+    <div ref="imageViewer" style="display: none;">
+        <img :src="img" :alt="img" v-for="img in images">
+    </div>
 </template>
 
 
@@ -11,31 +11,43 @@ import "viewerjs/dist/viewer.css";
 const imageViewer = ref(null);
 
 const props = defineProps({
-    images: Array
+    images: Array,
+    opts: {
+        type: Object,
+        default: () => ({
+            index: 0,
+            loop: false,
+        })
+    }
 })
-
 onMounted(init)
-
 let viewer = null;
 function init() {
     viewer = new Viewer(imageViewer.value, {
-        inline: true,
-        viewed() {
-            viewer.zoomTo(1);
-        },
-        hide(){
-            console.log(123123);
-        }
+        className: "imageViewer",
+        inline: false,
+        loop: props.opts.loop
     });
+    viewer.view(props.opts.index);
+    viewer.show()
 }
 
-function show() {
-    viewer.show();
-}
-
-defineExpose({ show })
+defineExpose({
+    show() {
+        viewer.show()
+    },
+    hide() {
+        viewer.hide()
+    }
+})
 
 </script>
 
-<style>
+<style lang="scss">
+.imageViewer {
+    width: 100%;
+    height: 100vh;
+    position: fixed;
+    inset: 0 0 0 0;
+}
 </style>

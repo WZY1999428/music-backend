@@ -1,5 +1,6 @@
 import { recentlyFiles } from "@/request/trash"
 import { deleteFavorite, addFavorite } from "@/request/favorite"
+import { deleteRecentFiles } from "@/request/recentFiles"
 import { deleteFile, syncFile, createFolder, copyFile, mvFile } from "@/request/files"
 import cpSvg from "@/assets/svg/cp.svg?raw"
 export const fileStore = useFileStore();
@@ -18,6 +19,7 @@ const operationContext = {
     type: null,
 
     set(type, files) {
+        loadingSvg.value = cpSvg;
         this.type = type
         this.tempFiles.length = 0
         this.tempFiles.push(...files)
@@ -44,9 +46,11 @@ export function handleRowContextMenu({ event, file }) {
     const items = [
         { label: '刷新', icon: "refresh", action: () => fileStore.forceRefresh() },
         {
-            label: '排序方式', children: [
+            label: '排序方式',
+            children: [
                 { label: '按名称排序', action: () => { } },
-                { label: '按创建时间排序', action: () => { } }]
+                { label: '按创建时间排序', action: () => { } }
+            ]
         },
         {
             label: '查看方式', children: [
@@ -55,14 +59,30 @@ export function handleRowContextMenu({ event, file }) {
             ]
         }];
     if (file) {
-        items.insertAt(3, ...[
-            { label: '复制', icon: "copy", action: (file) => operationContext.setCopy(selectFiles.length ? selectFiles : [file]) },
-            { label: '移动', icon: "", action: (file) => operationContext.setMove(selectFiles.length ? selectFiles : [file]) },
-            { label: '删除', icon: "delete", action: (file) => deleteFileFun([file]) },
-            { label: file.favoriteId ? '取消收藏' : '收藏', action: (file) => toggleFavorite([file]) },
-            { label: '下载', icon: "cloudDownload", action: (file) => downloadFile(file.id, file.access_token) },
-            { label: '属性', icon: "attribute", action: (file) => downloadFile(file.id, file.access_token) },
-        ])
+        const getItems = {
+            "myFile": () => [
+                { label: '复制', icon: "copy", action: (file) => operationContext.setCopy(selectFiles.length ? selectFiles : [file]) },
+                { label: '移动', icon: "", action: (file) => operationContext.setMove(selectFiles.length ? selectFiles : [file]) },
+                { label: file.favoriteId ? '取消收藏' : '收藏', action: (file) => toggleFavorite([file]) },
+                { label: '删除', icon: "delete", action: (file) => deleteFileFun([file]) },
+                { label: '下载', icon: "cloudDownload", action: (file) => downloadFile(file.id, file.access_token) },
+                { label: '属性', icon: "attribute", action: (file) => downloadFile(file.id, file.access_token) },
+            ],
+            favorite: () => [
+                { label: file.favoriteId ? '取消收藏' : '收藏', action: (file) => toggleFavorite([file]) },
+            ],
+            recentFiles: () => [
+                { label: file.favoriteId ? '取消收藏' : '收藏', action: (file) => toggleFavorite([file]) },
+                { label: '删除此记录', icon: "delete", action: (file) => handleDeleteRecentFiles([file.recentFileId]) },
+                { label: '清空记录', icon: "delete", action: () => handleDeleteRecentFiles([], true) },
+            ],
+            recycleBin: () => [
+                { label: '清空回收站', icon: "delete", action: () => handleSyncFile() },
+                { label: '彻底删除', icon: "delete", action: () => handleSyncFile() },
+            ]
+        }
+        const menu = getItems[fileStore.queryType];
+        if (menu) items.insertAt(3, ...menu());
         if (file.isFolder) {
             items.insertAt(items.length - 1, { label: '同步目录内容', icon: "dataProcess", action: (file) => handleSyncFile(file) });
             if (operationContext.tempFiles.length && !operationContext.tempFiles.some(e => e.id == file.id)) {
@@ -70,11 +90,22 @@ export function handleRowContextMenu({ event, file }) {
             }
         }
     } else {
-        items.insertAt(3, ...[
-            { label: '新建文件', icon: "", action: () => handleCreateFolder() },
-            { label: '新建文件夹', icon: "", action: () => handleCreateFolder() },
-            { label: '同步目录内容', icon: "dataProcess", action: () => handleSyncFile() },
-        ]);
+        const getItems = {
+            "myFile": () => [
+                { label: '新建文件', icon: "", action: () => handleCreateFolder() },
+                { label: '新建文件夹', icon: "", action: () => handleCreateFolder() },
+                { label: '同步目录内容', icon: "dataProcess", action: () => handleSyncFile() },
+            ],
+            recentFiles: () => [
+                { label: '清空记录', icon: "delete", action: () => handleDeleteRecentFiles([], true) },
+            ],
+            recycleBin: () => [
+                { label: '清空回收站', icon: "delete", action: () => handleSyncFile() },
+            ]
+        }
+        const menu = getItems[fileStore.queryType];
+        if (menu) items.insertAt(3, ...menu());
+
         if (selectFiles.length) {
             items.insertAt(3, 0, ...[{ label: '复制', icon: "", action: () => operationContext.setCopy(selectFiles) }, { label: '移动', action: () => operationContext.setMove(selectFiles) }]);
         }
@@ -94,7 +125,7 @@ export function openFile(file) {
     if (file.isFolder) {
         fileStore.addPath(file.id, file.name);
     } else {
-        if (['jpg', 'jpeg', 'png', 'webp'].includes(file.extension)) {
+        if (['jpg', 'jpeg', 'png', 'webp', "gif"].includes(file.extension)) {
             showImageViewer([getFileUrl(file.id, file.access_token)]);
         } else {
             downloadFile(file.id, file.access_token);
@@ -158,6 +189,7 @@ export function onMouseup(e) {
 export function handlePaste(target) {
     if (!target) target = fileStore.breadcrumbs[fileStore.breadcrumbs.length - 1];
     loading.value = true
+    loadingSvg.value = null;
     if (![OP.COPY, OP.MOVE].includes(operationContext.type)) return;
     loadingText.value = operationContext.type == OP.COPY ? ' 正在复制文件中...' : ' 正在移动文件中...'
     const req = operationContext.type == OP.COPY ? copyFile : mvFile
@@ -291,6 +323,18 @@ export function deleteFileFun(files) {
 function toggleViewType() {
     viewType.value = viewType.value === "list" ? "grid" : "list";
     setItem("viewType", viewType.value);
+}
+
+
+function handleDeleteRecentFiles(ids, clear = false) {
+    loading.value = true
+    loadingText.value = "正在删除记录中..."
+    deleteRecentFiles({ ids, clear }).then(_res => {
+        ElMessage.success("删除成功")
+        fileStore.forceRefresh();
+    }).finally(() => {
+        loading.value = false
+    })
 }
 
 

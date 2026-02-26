@@ -7,7 +7,7 @@ const db = new MongoSqlite(path.resolve("", process.env.SQLITE_DB_PATH));
 // 1. 🥇 用户模型 (User Model)
 // 存储唯一的管理员账户信息和容量
 // ----------------------------------------------------------------------
-const User =  db.model("users", db.Schema({
+const User = db.model("users", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     username: "TEXT NOT NULL UNIQUE", // 唯一管理员账户名
     password: "TEXT NOT NULL",         // 密码哈希值 
@@ -43,7 +43,7 @@ const FileTable = db.model("files", db.Schema({
 // 3. 🔑 会话令牌模型 (Token Model)
 // 用于登录状态维持和 "记住我" 功能
 // ----------------------------------------------------------------------
-const Token =  db.model("tokens", db.Schema({
+const Token = db.model("tokens", db.Schema({
     id: "INTEGER PRIMARY KEY AUTOINCREMENT",
     token: "TEXT NOT NULL UNIQUE",
     userId: "INTEGER NOT NULL", // 关联到 users.id
@@ -94,5 +94,21 @@ const Favorite = db.model("favorites", db.Schema({
     constraints: ["UNIQUE (userId, fileId)"]
 }));
 
+
+// ----------------------------------------------------------------------
+// 7. 最近访问模型
+// 存储用户和文件之间的收藏关系
+// ----------------------------------------------------------------------
+const RecentFiles = db.model("recentFiles", db.Schema({
+    id: "INTEGER PRIMARY KEY AUTOINCREMENT",
+    userId: "INTEGER NOT NULL", // 关联到 users.id
+    fileId: "INTEGER NOT NULL ", // 关联到 files.id
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
+
+},
+    { constraints: ["UNIQUE (userId, fileId)"] }
+));
+
+
 // 导出所有模型供其他模块使用
-module.exports = { User, FileTable, Token, Setting, Upload, Favorite };
+module.exports = { User, FileTable, Token, Setting, Upload, Favorite, RecentFiles };
