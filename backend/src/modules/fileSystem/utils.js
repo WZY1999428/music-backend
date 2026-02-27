@@ -31,7 +31,6 @@ async function queueScanning(dirPaths = []) {
                 }
                 record.filePath = fullPath;
                 if (parent.id != 0) record.parentRef = parent;
-                console.log(record.parentRef);
                 files.push(record);
 
             }
@@ -51,8 +50,6 @@ async function queueScanning(dirPaths = []) {
                 filterCount++;
             }
         }
-
-
 
         if (filterCount > 0) console.log(`\n 已过滤${filterCount}个数据库存在的文件`);
         const newFiles = Array.from(fileMap.values());
@@ -82,7 +79,7 @@ async function queueScanning(dirPaths = []) {
                     for (const record of batch) {
                         delete record.filePath;
                         const parent = record.parentRef;
-                        delete record.parentRef;
+                        if (record.parentRef) delete record.parentRef;
                         let data = null;
                         try {
                             data = await FileTable.insert(record);
@@ -143,7 +140,6 @@ async function buildFileRecord(fullPath, parentId = 0) {
         ino: stat?.ino,
         mimeType: null,
         extension: null,
-        parentRef: null,
         category: null,
         size: stat ? (stat.isFile() ? stat.size : 0) : 0,
         hash: null,

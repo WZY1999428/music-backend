@@ -167,7 +167,7 @@ function uploadFile() {
     const files = input.files;
     if (files) {
       const idPath = fileStore.breadcrumbs.map(item => item.id);
-      const task = new Task(files[0], idPath.join("/"));
+      const task = new Task(files[0], idPath.pop() || 0);
       task.slice();
     }
   }

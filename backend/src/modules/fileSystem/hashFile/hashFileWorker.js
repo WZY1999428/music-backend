@@ -10,8 +10,7 @@ parentPort.on('message', (message) => {
     }).catch((error) => {
         parentPort.postMessage({ code: "error", data: error });
     });
-});
-
+}); 
 
 function hashFile(filePath) {
     return new Promise(async (resolve, reject) => {
@@ -21,7 +20,7 @@ function hashFile(filePath) {
                 resolve("");
             } else {
                 const stream = createReadStream(filePath);
-                const hash = crypto.createHash("md5");
+                const hash = crypto.createHash("sha256");
                 stream.on("data", chunk => hash.update(chunk));
                 stream.on("end", () => resolve(hash.digest("hex")));
                 stream.on("error", err => reject(err));

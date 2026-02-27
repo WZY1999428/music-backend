@@ -1,7 +1,7 @@
 import EventEmitter from "./event";
 import { sha256 } from 'hash-wasm';
 import Worker from './calculate.js?worker'
-import createRequestWrapper from "@/request";
+import createRequestWrapper, { createCancelableRequest } from "@/request";
 const defaultOptions = {
     maxThread: 5,
     chunkSize: 1024 ** 2 * 2,
@@ -16,11 +16,11 @@ const checkRequest = createRequestWrapper((params) => ({
 }));
 
 
-const uploadRequest = createRequestWrapper((data) => ({
+const uploadRequest = createCancelableRequest((data) => ({
     url: "/upload",
     method: "post",
     data,
-}), { autoCancel: false });
+}));
 
 const mergeRequest = createRequestWrapper((params) => ({
     url: "/upload/merge",
@@ -36,18 +36,20 @@ const status = {
     "checking": 3,
     "uploading": 4,
     "mergeing": 5,
-    "success": 4,
-    "fail": 5,
-    "cancel": 6
+    "success": 6,
+    "fail": 7,
+    "cancel": 8
 }
 
 class Task extends EventEmitter {
-    constructor(file, savePath, opt = defaultOptions) {
+    constructor(file, parentId, opt = defaultOptions) {
         super();
         this.maxThread = opt.maxThread || defaultOptions.maxThread;
         this.chunkSize = opt.chunkSize || defaultOptions.chunkSize;
         this.retry = opt.retry || defaultOptions.retry;
-        this.savePath = savePath;
+        this.parentId = parentId;
+        this.uploadTasks = new Map();
+        this.uploadFinisheds = [];
         this.file = file;
         this.error = null;
         this.hash = null;
@@ -97,7 +99,7 @@ class Task extends EventEmitter {
         this.status = status.hashing
         this.crateHash().then(hash => {
             this.hash = hash;
-            this.upload();
+            this.check();
             this.#emitChange();
         }).catch(e => {
             this.#emitError(e);
@@ -107,49 +109,100 @@ class Task extends EventEmitter {
 
     check() {
         this.status = status.checking
-        checkRequest({ hash: this.hash, savePath: this.savePath }).then(res => {
-
+        checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name }).then(res => {
+            const data = res.data;
+            if (data.exists) {
+                this.#emitSuccess();
+            } else {
+                const files = data.files;
+                if (files.length >= this.chunks.length) {
+                    this.merge();
+                } else {
+                    const uploaded = [];
+                    for (file of files) {
+                        const f = this.chunks.find(f => f.hash == file.chunkHash);
+                        if (f) uploaded.push(f);
+                    }
+                    this.uploadFinisheds = uploaded;
+                    this.upload();
+                }
+            }
         }).catch(e => {
-            this.#emitError(e);
+            if (e != __CANCELED__) this.#emitError(e);
         })
     }
 
-    mergeRequest() {
+    merge() {
         this.status = status.mergeing;
-        mergeRequest({ hash: this.hash, savePath: this.savePath }).then(res => {
-
+        mergeRequest({ hash: this.hash }).then(res => {
+            this.#emitSuccess();
         }).catch(e => {
-            this.#emitError(e);
+            if (!e.__CANCELED__) this.#emitError(e);
         })
     }
 
 
     async upload() {
-        const files = this.chunks.slice(0);
-        const _this = this;
-        const file = files.shift();
-        start(file, (status) => {
-
-        });
-        async function start(file, cb) {
-            let retryCount = _this.retry;
-            while (retryCount >= 0) {
-                try {
-                    const formData = new FormData();
-                    formData.append("file", file.blob, file.type);
-                    formData.append("hash", _this.hash);
-                    formData.append("index", file.index);
-                    formData.append("savePath", _this.savePath);
-                    formData.append("chunkHash", file.hash);
-                    await uploadRequest(formData);
-                    cb(true);
+        const files = [];
+        for (const chunk of this.chunks) {
+            if (!this.uploadFinisheds.find(f => f.hash == chunk.hash)) {
+                files.push(chunk);
+            }
+        }
+        const limit = this.maxThread;
+        let active = 0;
+        let canceld = false;
+        const queue = async () => {
+            while (files.length) {
+                if (active >= limit) {
+                    await new Promise(res => setTimeout(res, 50)); // 等待空闲槽
+                    continue;
+                }
+                const file = files.shift();
+                active++;
+                this.#uploadChunk(file).then((r) => canceld = r).finally(() => { active-- });
+                if (canceld) {
+                    this.uploadTasks.forEach(cancel => cancel());
+                    this.uploadTasks.clear();
                     break;
-                } catch (error) {
-                    retryCount--;
-                    if (retryCount < 0) {
-                        cb(false);
-                        _this.#emitError(error);
-                    }
+                };
+            }
+            while (this.uploadTasks.size) {
+                await new Promise(res => setTimeout(res, 50)); // 等待空闲槽
+            }
+        };
+        await queue();
+        if (!files.length) {
+            this.merge();
+        }
+    }
+
+    // 将 chunk 上传逻辑单独封装
+    async #uploadChunk(file) {
+        let retry = this.retry;
+        while (retry >= 0) {
+            try {
+                const formData = new FormData();
+                formData.append("file", file.blob, file.type);
+                formData.append("hash", this.hash);
+                formData.append("index", file.index);
+                formData.append("savePath", this.savePath);
+                formData.append("chunkHash", file.hash);
+                formData.append("filename", this.file.name);
+                const { request, cancel } = uploadRequest(formData);
+                this.uploadTasks.set(file.hash, { cancel });
+                await request;
+                this.uploadTasks.delete(file.hash);
+                this.uploadFinisheds.push(file);
+                return false;
+            } catch (err) {
+                if (err.__CANCELED__) {
+                    return true;
+                }
+                retry--;
+                if (retry < 0) {
+                    this.#emitError(err);
+                    return true;
                 }
             }
         }

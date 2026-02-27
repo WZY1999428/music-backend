@@ -1,4 +1,5 @@
 // 假设这是你的 db 实例和 Database/Schema 引用
+const { hash } = require("crypto");
 const MongoSqlite = require("./db");
 const path = require('path');
 const db = new MongoSqlite(path.resolve("", process.env.SQLITE_DB_PATH));
@@ -105,10 +106,27 @@ const RecentFiles = db.model("recentFiles", db.Schema({
     fileId: "INTEGER NOT NULL ", // 关联到 files.id
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
 
-},
-    { constraints: ["UNIQUE (userId, fileId)"] }
+}, { constraints: ["UNIQUE (userId, fileId)"] }
 ));
 
 
+
+// ----------------------------------------------------------------------
+// 8. 上传记录模型
+// 存储用户和文件之间的收藏关系
+// ----------------------------------------------------------------------
+const UploadRecord = db.model("uploadRecord", db.Schema({
+    id: "INTEGER PRIMARY KEY AUTOINCREMENT",
+    userId: "INTEGER NOT NULL", // 关联到 users.id
+    hash: "TEXT NOT NULL",
+    chunkHash: "TEXT NOT NULL",
+    chunkIndex: "INTEGER NOT NULL",
+    parentId: "TEXT NOT NULL",
+    tempPath: "TEXT NOT NULL",
+    originalName: "TEXT NOT NULL",
+    createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
+}, { constraints: ["UNIQUE (hash, chunkHash)"] }));
+
+
 // 导出所有模型供其他模块使用
-module.exports = { User, FileTable, Token, Setting, Upload, Favorite, RecentFiles };
+module.exports = { User, FileTable, Token, Setting, Upload, Favorite, RecentFiles, UploadRecord };

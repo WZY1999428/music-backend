@@ -21,7 +21,6 @@ module.exports = async (ctx) => {
         newPath = path.join(parent.rootPath, parent.path, name)
         await fs.mkdir(newPath)
         const record = await buildFileRecord(newPath, parentId)
-        delete record.parentRef;
         await FileTable.insert(record)
         ctx.success(null, "创建文件夹成功")
     } catch (error) {
