@@ -57,6 +57,11 @@ class Task extends EventEmitter {
         this.chunks = [];
     }
 
+    #emitCanceled() {
+        this.status = status.cancel
+        this.error = "任务已被取消";
+        this.emit("cancel");
+    }
 
     #emitError(e) {
         this.status = status.fail
@@ -129,6 +134,7 @@ class Task extends EventEmitter {
             }
         }).catch(e => {
             if (e != __CANCELED__) this.#emitError(e);
+            else this.#emitCanceled();
         })
     }
 
@@ -138,41 +144,42 @@ class Task extends EventEmitter {
             this.#emitSuccess();
         }).catch(e => {
             if (!e.__CANCELED__) this.#emitError(e);
+            else this.#emitCanceled();
         })
     }
 
 
     async upload() {
-        const files = [];
-        for (const chunk of this.chunks) {
-            if (!this.uploadFinisheds.find(f => f.hash == chunk.hash)) {
-                files.push(chunk);
-            }
-        }
+        // 1. 过滤已上传的分片
+        const files = this.chunks.filter(chunk => !this.uploadFinisheds.some(f => f.hash === chunk.hash));
+        if (files.length === 0) return this.merge();
         const limit = this.maxThread;
-        let active = 0;
-        let canceld = false;
-        const queue = async () => {
-            while (files.length) {
-                if (active >= limit) {
-                    await new Promise(res => setTimeout(res, 50)); // 等待空闲槽
-                    continue;
+        let isErrorOrCanceled = false;
+        const executor = async () => {
+            while (files.length > 0 && !isErrorOrCanceled) {
+                const file = files.shift(); // 从任务池取出一个
+                if (!file) break;
+                try {
+                    // 如果 #uploadChunk 返回 1, 说明被取消 2 说明出错
+                    const ret = await this.#uploadChunk(file);
+                    if (ret > 0 && !isErrorOrCanceled) {
+                        isErrorOrCanceled = ret === 1;
+                        if (isErrorOrCanceled) this.#emitCanceled();
+                        this.uploadTasks.forEach((task) => task.cancel());
+                        this.uploadTasks.clear();
+                    }
+                } catch (err) {
+                    isErrorOrCanceled = true;
                 }
-                const file = files.shift();
-                active++;
-                this.#uploadChunk(file).then((r) => canceld = r).finally(() => { active-- });
-                if (canceld) {
-                    this.uploadTasks.forEach(cancel => cancel());
-                    this.uploadTasks.clear();
-                    break;
-                };
-            }
-            while (this.uploadTasks.size) {
-                await new Promise(res => setTimeout(res, 50)); // 等待空闲槽
             }
         };
-        await queue();
-        if (!files.length) {
+
+        // 3. 同时启动 limit 个任务
+        const workers = Array.from({ length: limit }, () => executor());
+        // 4. 等待所有任务上传完成
+        await Promise.all(workers);
+        // 5. 检查是否全部完成
+        if (!isErrorOrCanceled && this.uploadFinisheds.length === this.chunks.length) {
             this.merge();
         }
     }
@@ -194,15 +201,16 @@ class Task extends EventEmitter {
                 await request;
                 this.uploadTasks.delete(file.hash);
                 this.uploadFinisheds.push(file);
-                return false;
+                return 0;
             } catch (err) {
+                this.uploadTasks.delete(file.hash);
                 if (err.__CANCELED__) {
-                    return true;
+                    return 1;
                 }
                 retry--;
-                if (retry < 0) {
+                if (retry <= 0) {
                     this.#emitError(err);
-                    return true;
+                    return 2;
                 }
             }
         }
