@@ -124,6 +124,7 @@ const UploadRecord = db.model("uploadRecord", db.Schema({
     parentId: "TEXT NOT NULL",
     tempPath: "TEXT NOT NULL",
     originalName: "TEXT NOT NULL",
+    relativePath: "TEXT",
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
 }, { constraints: ["UNIQUE (hash, chunkHash)"] }));
 

@@ -41,7 +41,7 @@ request.interceptors.response.use(res => {
 
     return Promise.reject(error);
 });
-//  包装自动取消上一次请求
+
 export const createRequestWrapper = (configFactory, { autoCancel = true } = {}) => {
     let controller = null;
     return (params) => {
@@ -53,11 +53,7 @@ export const createRequestWrapper = (configFactory, { autoCancel = true } = {}) 
         return request({
             ...config,
             signal: controller.signal
-        }).finally(() => {
-            controller = null;
-            // 注意：只有当请求是因为完成而结束时才置空
-            // 如果是因为下一次请求开始而 abort，不需要在这里干预
-        });
+        })
     };
 };
 
@@ -65,12 +61,8 @@ export const createCancelableRequest = (configFactory) => {
     return (params) => {
         const controller = new AbortController();
         const config = configFactory(params);
-        const promise = request({
-            ...config,
-            signal: controller.signal
-        })
         return {
-            request: promise,
+            request: request({ ...config, signal: controller.signal }),
             cancel: () => controller.abort()
         };
     };

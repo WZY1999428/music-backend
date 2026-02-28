@@ -6,7 +6,7 @@ const multer = require('@koa/multer');
 const upload = multer();
 const uploadTempDir = process.env.UPLOAD_TEMP_DIR
 module.exports = [upload.single('file'), async ctx => {
-    const { hash, index, parentId, chunkHash, filename } = ctx.request.body;
+    const { hash, index, parentId, chunkHash, filename, relativePath } = ctx.request.body;
     if (!filename) throw new Error("文件名不能为空");
     if (!hash) throw new Error("hash不能为空");
     if (!chunkHash) throw new Error("chunkHash不能为空");
@@ -20,6 +20,7 @@ module.exports = [upload.single('file'), async ctx => {
             chunkIndex: index,
             parentId: parentId || "0",
             tempPath,
+            relativePath,
             filename
         }, ["hash", "chunkHash"]);
         ctx.success('上传成功');
