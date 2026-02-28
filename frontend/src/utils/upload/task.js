@@ -66,6 +66,11 @@ class Task extends EventEmitter {
         this.chunks = [];
     }
 
+    #emitCanceled() {
+        this.status = status.cancel
+        this.error = "任务已被取消";
+        this.emit("cancel");
+    }
 
     #emitError(e) {
         this.status = status.fail
@@ -166,6 +171,7 @@ class Task extends EventEmitter {
             this.#emitSuccess();
         }).catch(e => {
             if (!e.__CANCELED__) this.#emitError(e);
+            else this.#emitCanceled();
         })
     }
 
