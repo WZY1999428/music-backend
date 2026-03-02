@@ -17,7 +17,8 @@ async function queueScanning(dirPaths = []) {
         const files = [];
         console.time("QueueScanning");
         console.log("正在加载文件数据库...");
-        const dbFiles = await FileTable.find(dirPaths.map(f => ({ field: "fullPathId", value: f.id == 0 ? `%0-%` : `%-${f.id}-%`, op: "like", logic: "OR" })), { pageSize: -1 });
+        const dbFiles = await FileTable.find(dirPaths.map(f => ({ field: "fullPathId", value: f.id == 0 ? `0%` : `%-${f.id}-%`, op: "like", logic: "OR" })), { pageSize: -1 });
+        console.log(dbFiles.length);
         while (dirPaths.length > 0) {
             const parent = dirPaths.shift();
             const parentPath = path.join(parent.rootPath, parent.path || "")
@@ -88,7 +89,6 @@ async function queueScanning(dirPaths = []) {
                             if (err.errno !== 19) console.error("插入失败:", err);
                             continue;
                         }
-                        console.log(parent);
                         if (parent) {
                             record.fullPathId = `${parent.fullPathId}-${data.id}`;
                             record.parentId = parent.id;

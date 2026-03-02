@@ -13,7 +13,7 @@ const checkRequest = createRequestWrapper((params) => ({
     url: "/upload/check",
     method: "get",
     params,
-}));
+}), { autoCancel: false });
 
 
 const uploadRequest = createCancelableRequest((data) => ({
@@ -26,10 +26,17 @@ const mergeRequest = createRequestWrapper((params) => ({
     url: "/upload/merge",
     method: "get",
     params,
-}));
+}), { autoCancel: false });
 
 
-const status = {
+const cancelRequest = createRequestWrapper((params) => ({
+    url: "/upload/cancel",
+    method: "delete",
+    params,
+}), { autoCancel: false });
+
+
+export const status = {
     "pending": 0,
     "slicing": 1,
     "hashing": 2,
@@ -38,18 +45,20 @@ const status = {
     "mergeing": 5,
     "success": 6,
     "fail": 7,
-    "cancel": 8
+    "cancel": 8,
+    "paused": 9
 }
 
 class Task extends EventEmitter {
     constructor(file, parentId, opt = defaultOptions) {
         super();
+        this.id = Math.random().toString(36).slice(2);
         this.maxThread = opt.maxThread || defaultOptions.maxThread;
         this.chunkSize = opt.chunkSize || defaultOptions.chunkSize;
         this.retry = opt.retry || defaultOptions.retry;
         this.parentId = parentId;
         this.uploadTasks = new Map();
-        this.uploadFinisheds = [];
+        this.uploadFinisheds = new Set();;
         this.file = file;
         this.error = null;
         this.hash = null;
@@ -66,54 +75,73 @@ class Task extends EventEmitter {
     #emitError(e) {
         this.status = status.fail
         this.error = e;
-        this.emit("error", e);
+        this.emit("error", e, this);
+        this.#emitChange();
     }
 
     #emitSuccess() {
         this.status = status.success
-        this.emit("success");
+        this.emit("success", this);
+        this.#emitChange();
     }
 
     #emitChange() {
         this.emit("change");
     }
 
-
-    start() {
-
+    #emitCancel() {
+        this.status = status.cancel
+        this.emit("cancel", this);
+        this.#emitChange();
     }
 
 
+    start() {
+        if (![status.pending, status.cancel, status.fail].includes(this.status)) {
+            return;
+        }
+        this.status = status.slicing
+        if (this.chunks.length) {
+            this.check();
+        } else {
+            this.slice();
+        }
+    }
+
     async slice() {
+        if (this.chunks.length) {
+            this.check();
+            this.#emitChange();
+            return;
+        }
         const chunks = [];
         let start = 0;
         let end = 0;
-        let index = 0;
         this.status = status.slicing
+        this.#emitChange();
         while (end < this.file.size) {
             end = Math.min(start + this.chunkSize, this.file.size);
             chunks.push({
                 blob: this.file.slice(start, end, this.file.type),
-                index,
+                index: chunks.length,
                 hash: null
             });
             start = end;
-            index++
         }
         this.chunks = chunks;
-        this.status = status.hashing
         this.crateHash().then(hash => {
             this.hash = hash;
             this.check();
             this.#emitChange();
         }).catch(e => {
-            this.#emitError(e);
+            if (e !== "hashing") this.#emitError(e);
         })
     }
 
 
     check() {
         this.status = status.checking
+        this.#emitChange();
         checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name }).then(res => {
             const data = res.data;
             if (data.exists) {
@@ -123,18 +151,17 @@ class Task extends EventEmitter {
                 if (files.length >= this.chunks.length) {
                     this.merge();
                 } else {
-                    const uploaded = [];
-                    for (file of files) {
+                    const uploaded = new Set();
+                    for (const file of files) {
                         const f = this.chunks.find(f => f.hash == file.chunkHash);
-                        if (f) uploaded.push(f);
+                        if (f) uploaded.add(f);
                     }
                     this.uploadFinisheds = uploaded;
                     this.upload();
                 }
             }
         }).catch(e => {
-            if (e != __CANCELED__) this.#emitError(e);
-            else this.#emitCanceled();
+            if (!e.__CANCELED__) this.#emitError(e);
         })
     }
 
@@ -150,36 +177,27 @@ class Task extends EventEmitter {
 
 
     async upload() {
-        // 1. 过滤已上传的分片
-        const files = this.chunks.filter(chunk => !this.uploadFinisheds.some(f => f.hash === chunk.hash));
-        if (files.length === 0) return this.merge();
-        const limit = this.maxThread;
-        let isErrorOrCanceled = false;
-        const executor = async () => {
-            while (files.length > 0 && !isErrorOrCanceled) {
-                const file = files.shift(); // 从任务池取出一个
-                if (!file) break;
-                try {
-                    // 如果 #uploadChunk 返回 1, 说明被取消 2 说明出错
-                    const ret = await this.#uploadChunk(file);
-                    if (ret > 0 && !isErrorOrCanceled) {
-                        isErrorOrCanceled = ret === 1;
-                        if (isErrorOrCanceled) this.#emitCanceled();
-                        this.uploadTasks.forEach((task) => task.cancel());
-                        this.uploadTasks.clear();
-                    }
-                } catch (err) {
-                    isErrorOrCanceled = true;
-                }
+        const files = this.chunks.filter(chunk => !this.uploadFinisheds.has(chunk.hash));
+        let canceld = false;
+        this.status = status.uploading;
+        this.#emitChange();
+        const worker = async () => {
+            while (files.length && !canceld && this.status == status.uploading) {
+                const file = files.shift();
+                const ret = await this.#uploadChunk(file);
+                this.#emitChange();
+                if (ret !== 0 && !canceld) {
+                    if (ret === 1 && this.status != status.paused) this.#emitCancel();
+                    canceld = true;
+                    this.uploadTasks.forEach(o => o.cancel());
+                    this.uploadTasks.clear();
+                    break;
+                };
             }
         };
-
-        // 3. 同时启动 limit 个任务
-        const workers = Array.from({ length: limit }, () => executor());
-        // 4. 等待所有任务上传完成
+        const workers = Array.from({ length: this.maxThread }, () => worker());
         await Promise.all(workers);
-        // 5. 检查是否全部完成
-        if (!isErrorOrCanceled && this.uploadFinisheds.length === this.chunks.length) {
+        if (!files.length && !canceld) {
             this.merge();
         }
     }
@@ -187,7 +205,7 @@ class Task extends EventEmitter {
     // 将 chunk 上传逻辑单独封装
     async #uploadChunk(file) {
         let retry = this.retry;
-        while (retry >= 0) {
+        while (retry > 0) {
             try {
                 const formData = new FormData();
                 formData.append("file", file.blob, file.type);
@@ -196,17 +214,15 @@ class Task extends EventEmitter {
                 formData.append("savePath", this.savePath);
                 formData.append("chunkHash", file.hash);
                 formData.append("filename", this.file.name);
+                formData.append("relativePath", this.file.webkitRelativePath);
                 const { request, cancel } = uploadRequest(formData);
                 this.uploadTasks.set(file.hash, { cancel });
                 await request;
                 this.uploadTasks.delete(file.hash);
-                this.uploadFinisheds.push(file);
+                this.uploadFinisheds.add(file);
                 return 0;
             } catch (err) {
-                this.uploadTasks.delete(file.hash);
-                if (err.__CANCELED__) {
-                    return 1;
-                }
+                if (err.__CANCELED__) return 1;
                 retry--;
                 if (retry <= 0) {
                     this.#emitError(err);
@@ -218,23 +234,16 @@ class Task extends EventEmitter {
 
     crateHash() {
         return new Promise((resolve, reject) => {
+            if (this.status == status.hashing) return reject("hashing");
             const worker = new Worker();
             const chunks = this.chunks;
+            this.status = status.hashing;
+            this.#emitChange();
             let index = 0;
-            postMsg();
-            worker.onmessage = async (e) => {
-                const result = e.data;
-                if (result.status == "success") {
-                    const chunk = chunks[index];
-                    chunk.hash = result.hash;
-                    index++;
-                    index < chunks.length ? postMsg() : sha256(chunks.map(chunk => chunk.hash).join('')).then(h => resolve(h)).catch(e => reject(e))
-                } else {
-                    console.error(result);
-                    reject(result.message)
-                }
-            }
-            async function postMsg() {
+            const cleanup = () => {
+                worker.terminate();
+            };
+            const postMsg = async () => {
                 const chunk = chunks[index];
                 const buffer = await chunk.blob.arrayBuffer();
                 worker.postMessage({
@@ -242,25 +251,63 @@ class Task extends EventEmitter {
                     index: chunk.index
                 }, [buffer])
             }
+            postMsg();
+            worker.onmessage = async (e) => {
+                const result = e.data;
+                if (this.status == 'cancel') {
+                    this.chunks = [];
+                    cleanup();
+                } else {
+                    if (result.status == "success") {
+                        const chunk = chunks[index];
+                        chunk.hash = result.hash;
+                        index++;
+                        if (index < chunks.length) {
+                            postMsg()
+                        } else {
+                            sha256(chunks.map(chunk => chunk.hash).join('')).then(h => resolve(h)).catch(e => reject(e))
+                            cleanup();
+                        }
+                    } else {
+                        cleanup();
+                        reject(result.message)
+                    }
+                }
+            }
+            worker.onmessageerror = (e) => {
+                cleanup();
+                reject(e)
+            };
+
         })
     }
 
 
     restore() {
-
+        if (this.status == status.paused) {
+            this.start();
+        }
     }
 
 
     pause() {
-
+        this.uploadTasks.forEach(o => o.cancel());
+        this.uploadTasks.clear();
+        this.status = status.paused;
+        this.emit("pause", this);
+        this.#emitChange();
     }
 
     cancel() {
-
+        this.status = status.cancel
+        this.uploadTasks.forEach(o => o.cancel());
+        this.uploadTasks.clear();
+        this.#emitCancel();
+        if (this.hash) cancelRequest({ hash: this.hash });
     }
 
     retry() {
-
+        this.start();
     }
 
 }

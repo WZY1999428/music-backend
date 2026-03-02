@@ -12,10 +12,12 @@ module.exports = async (ctx) => {
         if (data) {
             if (data.parentId != parentId) {
                 const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
+                if(!parent){
+                    throw new Error("父级id不存在");
+                }
                 if (parent.isFolder != 1) {
                     throw new Error("父级id不是一个文件夹");
                 }
-                console.log(parent.path, filename);
                 const filePath = path.join(parent.path, filename);
                 const fullPath = path.join(parent.rootPath, filePath)
                 await fs.copy(path.join(data.rootPath, data.path), fullPath);
@@ -35,6 +37,7 @@ module.exports = async (ctx) => {
             ctx.success({ files, exists: false })
         }
     } catch (error) {
+        console.log(error);
         ctx.fail(error.message)
     }
 };
