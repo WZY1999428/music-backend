@@ -24,11 +24,9 @@ module.exports = async (ctx) => {
                         fullPath = path.join(data.rootPath, relativePath);
                     };
                     await cpFile(dataPath, fullPath, hash, parentId)
-                    ctx.success({ filePath: [], exists: true })
+                    ctx.success({ filePath: filename, exists: true })
                 } else if (parent) {
-                    if (parent.isFolder != 1) {
-                        throw new Error("父级id不是一个文件夹");
-                    }
+                    if (parent.isFolder != 1) throw new Error("父级id不是一个文件夹");
                     const filePath = path.join(parent.path, filename);
                     const fullPath = path.join(data.rootPath, filePath)
                     await cpFile(dataPath, fullPath, hash, parentId)
