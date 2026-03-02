@@ -76,32 +76,31 @@ async function queueScanning(dirPaths = []) {
             while (chunks.length > 0) {
                 const batch = chunks.shift();
                 try {
-                    await FileTable.beginTransaction();
-                    for (const record of batch) {
-                        delete record.filePath;
-                        const parent = record.parentRef;
-                        if (record.parentRef) delete record.parentRef;
-                        let data = null;
-                        try {
-                            data = await FileTable.insert(record);
-                            record.id = data.id;
-                        } catch (err) {
-                            if (err.errno !== 19) console.error("插入失败:", err);
-                            continue;
+                    await FileTable.runInTransaction(async () => {
+                        for (const record of batch) {
+                            delete record.filePath;
+                            const parent = record.parentRef;
+                            if (record.parentRef) delete record.parentRef;
+                            let data = null;
+                            try {
+                                data = await FileTable.insert(record);
+                                record.id = data.id;
+                            } catch (err) {
+                                if (err.errno !== 19) console.error("插入失败:", err);
+                                continue;
+                            }
+                            if (parent) {
+                                record.fullPathId = `${parent.fullPathId}-${data.id}`;
+                                record.parentId = parent.id;
+                            } else {
+                                record.fullPathId = `0-${data.id}`;
+                                record.parentId = 0;
+                            }
+                            await FileTable.update({ id: data.id }, { fullPathId: record.fullPathId, parentId: record.parentId });
+                            process.stdout.write(`已插入${++i}/${count} 个文件\r`);
                         }
-                        if (parent) {
-                            record.fullPathId = `${parent.fullPathId}-${data.id}`;
-                            record.parentId = parent.id;
-                        } else {
-                            record.fullPathId = `0-${data.id}`;
-                            record.parentId = 0;
-                        }
-                        await FileTable.update({ id: data.id }, { fullPathId: record.fullPathId, parentId: record.parentId });
-                        process.stdout.write(`已插入${++i}/${count} 个文件\r`);
-                    }
-                    await FileTable.commit();
+                    });
                 } catch (error) {
-                    await FileTable.rollback();
                     throw error;
                 }
             }
@@ -125,6 +124,60 @@ async function queueScanning(dirPaths = []) {
 }
 
 
+async function ensureDirRecord(relativePath, parentId) {
+    const parsePath = path.parse(relativePath);
+    const dirs = parsePath.dir.split("/").filter(Boolean);
+    const parent = await FileTable.findOne([{ field: "path", value: parsePath.dir }]);
+    if (parent) {
+        return parent.id;
+    }
+    let fullPathId = "0";
+    if (dirs.length) {
+        let dirPath
+        if (parentId != 0) {
+            const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
+            dirPath = path.join(parent.rootPath, parent.path);
+            fullPathId = parent.fullPathId
+        } else dirPath = fileDir
+        for (const dir of dirs) {
+            dirPath = path.join(dirPath, dir);
+            const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
+            if (!await fs.pathExists(dirPath) || !parent) {
+                await fs.ensureDir(dirPath);
+                const file = await FileTable.findOne([{ field: "path", value: normalizePathForDB(fileDir, dirPath) }]);
+                if (!file) {
+                    const record = await buildFileRecord(dirPath, parentId);
+                    try {
+                        await FileTable.runInTransaction(async () => {
+                            const ret = await FileTable.insert(record);
+                            fullPathId = `${fullPathId}-${ret.id}`;
+                            await FileTable.update({ id: ret.id }, { fullPathId: fullPathId })
+                            parentId = ret.id
+                        })
+                    } catch (error) {
+                        if (error.errno === 19) {
+                            const existing = await FileTable.findOne([{ field: "path", value: record.path }]);
+                            if (!existing) throw error;
+                            parentId = existing.id;
+                            fullPathId = existing.fullPathId;
+                        } else {
+                            throw error;
+                        }
+                    }
+                } else {
+                    parentId = file.id
+                    fullPathId = file.fullPathId;
+                }
+            } else {
+                parentId = parent.id
+                fullPathId += `-${parentId}`
+            }
+        }
+    }
+    return parentId
+}
+
+
 async function buildFileRecord(fullPath, parentId = 0) {
     const { fileTypeFromBuffer } = await import('file-type');
     const { readChunk } = await import('read-chunk');
@@ -143,7 +196,7 @@ async function buildFileRecord(fullPath, parentId = 0) {
         category: null,
         size: stat ? (stat.isFile() ? stat.size : 0) : 0,
         hash: null,
-        path: path.relative(fileDir, fullPath)
+        path: normalizePathForDB(fileDir, fullPath)
     };
 
     if (stat && stat.isFile()) {
@@ -156,6 +209,28 @@ async function buildFileRecord(fullPath, parentId = 0) {
     }
 
     return record;
+}
+
+/**
+ * 将本地路径转换为数据库存储路径，统一使用 '/' 分隔符
+ * @param {string} baseDir - 根目录，用于生成相对路径
+ * @param {string} targetPath - 目标路径
+ * @returns {string} 数据库存储路径
+ */
+function normalizePathForDB(rootDir, fullPath) {
+    // 1. 相对路径
+    let relative = path.relative(rootDir, fullPath);
+
+    // 2. 统一使用 / 分隔
+    relative = relative.split(path.sep).join('/');
+
+    // 3. 去掉首尾空格
+    relative = relative.trim();
+
+    // 4. 可选：统一大小写
+    // relative = relative.toLowerCase();
+
+    return relative;
 }
 
 
@@ -256,5 +331,5 @@ function isValidFileName(name) {
 }
 
 
-module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName };
+module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName, ensureDirRecord, normalizePathForDB };
 

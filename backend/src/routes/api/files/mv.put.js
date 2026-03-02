@@ -5,7 +5,6 @@ const { parseParendIds } = require("@/modules/fileSystem/utils");
 
 module.exports = async (ctx) => {
     const moved = []
-    let isCommit = true;
     try {
         const { destId = 0, ids } = ctx.request.body;
         if (!ids.length) throw new Error('请选择需要移动的文件');
@@ -52,11 +51,9 @@ module.exports = async (ctx) => {
                 data: { path: file.newPath, name: file.name, parentId: file.newParentId, fullPathId: file.newFullPathId }
             })
         }
-        await FileTable.beginTransaction();
-        isCommit = false;
-        await FileTable.updateManyBatchIn(batchSql);
-        await FileTable.commit();
-        isCommit = true;
+        await FileTable.runInTransaction(async()=>{
+            await FileTable.updateManyBatchIn(batchSql);
+        });
         ctx.success("移动成功");
     } catch (err) {
         console.log(err);
@@ -67,7 +64,6 @@ module.exports = async (ctx) => {
                 await fs.move(srcAbs, destAbs,).catch(() => { })
             }
         }
-        if (!isCommit) await FileTable.rollback();
         ctx.fail("移动失败: " + err.message);
     }
 };

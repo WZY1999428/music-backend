@@ -142,7 +142,7 @@ class Task extends EventEmitter {
     check() {
         this.status = status.checking
         this.#emitChange();
-        checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name }).then(res => {
+        checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name, relativePath: this.file.webkitRelativePath }).then(res => {
             const data = res.data;
             if (data.exists) {
                 this.#emitSuccess();
