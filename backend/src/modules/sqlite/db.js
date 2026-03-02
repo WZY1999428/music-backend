@@ -17,6 +17,7 @@ class Database {
         this.db = new sqlite3.Database(dbFile);
         this.db.run(`PRAGMA journal_mode = WAL;`);
         this.db.run(`PRAGMA busy_timeout = 3000;`);
+        this.transactionLock = Promise.resolve();
     }
 
     /**
@@ -47,6 +48,38 @@ class Database {
                 else resolve(row || null);
             });
         });
+    }
+
+
+    /**
+     * 用 Promise 链做队列
+     * 在事务中执行给定的函数
+     * 如果函数执行成功，当前事务将被提交
+     * 如果函数执行失败，当前事务将被回退
+     * @param {function} fn - 需要执行的函数
+     * @returns {Promise} - Promise 对象
+     */
+    async runInTransaction(fn) {
+        const release = this.db.transactionLock;
+        let nextResolve;
+        // 创建一个 事务锁对象
+        this.db.transactionLock = new Promise(r => nextResolve = r);
+        await release;   // ✅ 等前面的事务完成
+        let beginTransaction = false;
+        try {
+            // 开启事务
+            await this.run("BEGIN TRANSACTION;");
+            beginTransaction = true;
+            const result = await fn();
+            await this.run("COMMIT;");
+            return result;
+        } catch (e) {
+            if (beginTransaction) await this.run("ROLLBACK;");
+            throw e;
+        } finally {
+            // 释放事务锁
+            nextResolve();
+        }
     }
 
     serialize(cb) {
@@ -161,6 +194,20 @@ class Model {
         `);
     }
 
+
+    /**
+     * 在事务中执行函数
+     * @param {function} fn - 需要执行的函数
+     * @returns {Promise<void>} - Promise 对象
+     * @example
+     * await model.runInTransaction(async () => {
+     *   // 在事务中执行的逻辑
+     * })
+     */
+    runInTransaction(fn) {
+        return this.db.runInTransaction(fn);
+    }
+
     /**
      * 开启事务
      * @returns {Promise<void>}
@@ -214,6 +261,38 @@ class Model {
 
         const lastID = await this.db.run(sql, values).then(r => r.lastID);
         return { ...data, id: lastID };
+    }
+
+    async insertAndUpdate(data, update = {}) {
+        let lastID;
+        try {
+            const keys = Object.keys(data);
+            const placeholders = keys.map(() => "?").join(", ");
+            const values = Object.values(data);
+
+            const updateKeys = Object.keys(update);
+            const updateClause = updateKeys.map(k => `${k} = ?`).join(", ");
+            const updateValues = Object.values(update);
+
+            await this.beginTransaction();
+
+            // 插入
+            const sql = `INSERT INTO ${this.table} (${keys.join(",")}) VALUES (${placeholders})`;
+            lastID = await this.db.run(sql, values).then(r => r.lastID);
+
+            // 如果有需要更新的字段，执行 UPDATE
+            if (updateKeys.length) {
+                const updateSql = `UPDATE ${this.table} SET ${updateClause} WHERE id = ?`;
+                await this.db.run(updateSql, [...updateValues, lastID]);
+            }
+            await this.commit();
+            return { ...data, id: lastID };
+        } catch (error) {
+            // 回滚事务，防止半写入
+            try { await this.rollback(); } catch (_) { }
+            console.error("insertAndUpdate error:", error);
+            throw error; // 抛出原始错误
+        }
     }
 
     async upsert(data, conflictKeys = ["id"]) {
@@ -644,10 +723,10 @@ class Model {
         });
 
         let sql = `
-SELECT ${fields.join(', ')}
-${joinSQL}
-${whereSql}
-`;
+                SELECT ${fields.join(', ')}
+                ${joinSQL}
+                ${whereSql}
+                `;
 
         // 排序处理
         if (orderBy) {

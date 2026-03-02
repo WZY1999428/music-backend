@@ -14,12 +14,14 @@ request.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
+const showMessageMap = new Set();
 // 响应拦截
 request.interceptors.response.use(res => {
     const data = res.data;
-    // 这里的判断逻辑保持你的原样
-    if (data.code !== 0 && res.headers['content-type'] !== "application/octet-stream") {
-        ElMessage.error(data.msg);
+    if (showMessageMap.has(res.config.url) && data.code !== 0 && res.headers['content-type'] !== "application/octet-stream") {
+        if (showMessage) {
+            ElMessage.error(data.msg);
+        }
         return Promise.reject(data);
     }
     return data;
@@ -42,7 +44,7 @@ request.interceptors.response.use(res => {
     return Promise.reject(error);
 });
 
-export const createRequestWrapper = (configFactory, { autoCancel = true } = {}) => {
+export const createRequestWrapper = (configFactory, { autoCancel = true, showMessage = true } = {}) => {
     let controller = null;
     return (params) => {
         if (autoCancel && controller) {
@@ -50,6 +52,7 @@ export const createRequestWrapper = (configFactory, { autoCancel = true } = {}) 
         }
         controller = new AbortController();
         const config = configFactory(params);
+        if (showMessage) showMessageMap.add(config.url)
         return request({
             ...config,
             signal: controller.signal
@@ -57,12 +60,13 @@ export const createRequestWrapper = (configFactory, { autoCancel = true } = {}) 
     };
 };
 
-export const createCancelableRequest = (configFactory) => {
+export const createCancelableRequest = (configFactory, { showMessage = true } = {}) => {
     return (params) => {
         const controller = new AbortController();
         const config = configFactory(params);
+        if (showMessage) showMessageMap.add(config.url)
         return {
-            request: request({ ...config, signal: controller.signal }),
+            request: request({ ...config, showMessage, signal: controller.signal }),
             cancel: () => controller.abort()
         };
     };

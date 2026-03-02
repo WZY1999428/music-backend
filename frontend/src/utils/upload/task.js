@@ -13,27 +13,27 @@ const checkRequest = createRequestWrapper((params) => ({
     url: "/upload/check",
     method: "get",
     params,
-}), { autoCancel: false });
+}), { autoCancel: false, showMessage: false });
 
 
 const uploadRequest = createCancelableRequest((data) => ({
     url: "/upload",
     method: "post",
     data,
-}));
+}), { showMessage: false });
 
 const mergeRequest = createRequestWrapper((params) => ({
     url: "/upload/merge",
     method: "get",
     params,
-}), { autoCancel: false });
+}), { autoCancel: false, showMessage: false });
 
 
 const cancelRequest = createRequestWrapper((params) => ({
     url: "/upload/cancel",
     method: "delete",
     params,
-}), { autoCancel: false });
+}), { autoCancel: false, showMessage: false });
 
 
 export const status = {
@@ -142,7 +142,7 @@ class Task extends EventEmitter {
     check() {
         this.status = status.checking
         this.#emitChange();
-        checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name }).then(res => {
+        checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name, relativePath: this.file.webkitRelativePath }).then(res => {
             const data = res.data;
             if (data.exists) {
                 this.#emitSuccess();
