@@ -8,8 +8,22 @@
           <h3 class="ml-4 font-bold text-2xl">小清新云盘</h3>
         </div>
         <div class="flex items-center h-full pr-20">
-          <el-button @click="uploadFile(true)" type="primary">上传</el-button>
-          <el-button @click="uploadFile(false)" type="primary">上传文件夹</el-button>
+          <div class="flex items-center" style="--el-popover-padding:5px;">
+            <el-popover   trigger="click" :width="600" placement="bottom" >
+              <div style="width: 300px;">
+                111111111
+
+              </div>
+              <template #reference>
+                <el-icon :size="20" class="mr-6">
+                  <UploadFilled color="#3498db" />
+                </el-icon>
+              </template>
+            </el-popover>
+
+            <el-button @click="uploadFile(false)" type="primary">上传</el-button>
+            <el-button @click="uploadFile(true)" type="primary">上传文件夹</el-button>
+          </div>
           <el-input class="ml-9" style="width: 240px; --el-border-color: #aec7b3" placeholder="搜索"
             v-model="fileStore.keyword" @keyup.enter="fileStore.forceRefresh" :prefix-icon="Search" />
           <div class="ml-10">
@@ -77,11 +91,11 @@
 </template>
 
 <script setup>
-import { Search } from "@element-plus/icons-vue";
+import { Search, UploadFilled } from "@element-plus/icons-vue";
 import avatarImg from "@/assets/avatar.png";
 const fileStore = useFileStore();
+const uploadStore = useUploadStore();
 import { getStorageStatus } from "@/request/system";
-import Uploader from "@/utils/upload";
 const userStore = useUserStore();
 const activeIndex = ref("myFile");
 //  我的文件 最近使用 收藏夹 回收站
@@ -149,7 +163,7 @@ const menuItems = [
     ],
   },
 ];
-
+uploadStore.init();
 function handleClick(type, item) {
   activeIndex.value = item.id;
   fileStore.setFileType(type == "category" ? type : item.id, item.id);
@@ -157,23 +171,12 @@ function handleClick(type, item) {
 const systemInfo = ref({});
 let timer = null;
 onMounted(() => getSystemInfo());
-const upload = new Uploader();
 
-function uploadFile(isFile) {
-  const input = document.createElement("input");
-  input.type = "file";
-  if (!isFile) input.webkitdirectory = true;
-  input.click();
-  input.onchange = () => {
-    const files = input.files;
-    const idPath = fileStore.breadcrumbs.map(item => item.id);
-    const parentId = idPath.pop() || 0;
-    console.log(files);
-    if (files) {
-      upload.addTasks(files, parentId);
-    }
-  }
-
+function uploadFile(isDir) {
+  let pid = fileStore.breadcrumbs.map(item => item.id).pop();
+  pid = pid || 0;
+  if (isDir) uploadStore.addDirs(pid);
+  else uploadStore.addFile(pid);
 }
 
 function getSystemInfo() {
@@ -213,3 +216,6 @@ if (getItem("token")) userStore.fetchUserInfo();
   font-weight: 600;
 }
 </style>
+
+
+

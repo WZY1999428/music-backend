@@ -123,7 +123,7 @@ const UploadRecord = db.model("uploadRecord", db.Schema({
     chunkIndex: "INTEGER NOT NULL",
     parentId: "TEXT NOT NULL",
     tempPath: "TEXT NOT NULL",
-    originalName: "TEXT NOT NULL",
+    filename: "TEXT NOT NULL",
     relativePath: "TEXT",
     createdAt: "DATETIME DEFAULT CURRENT_TIMESTAMP",
 }, { constraints: ["UNIQUE (hash, chunkHash)"] }));
