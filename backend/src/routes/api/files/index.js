@@ -1,6 +1,5 @@
 const { FileTable } = require("@/modules/sqlite/model");
 const { generateFileToken } = require("@/modules/tokens")
-const scanning = {}; // 简单锁
 module.exports = async (ctx) => {
     try {
         const parentId = ctx.query.parentId || 0;

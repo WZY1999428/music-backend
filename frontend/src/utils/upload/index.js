@@ -34,8 +34,8 @@ class Uploader extends EventEmitter {
             this.runningTasks.delete(task.id);
             this.#run();
         }
-        task.on('success', (task) => {
-            this.#emitSuccess();
+        task.on('completed', (task) => {
+            this.#emitSuccess(task);
             dleteOnly.call(this, task);
         });
         task.on('pause', (task) => {
@@ -43,7 +43,6 @@ class Uploader extends EventEmitter {
             dleteOnly.call(this, task);
         });
         task.on('error', (e, task) => {
-            console.log(e);
             this.#emitError(e);
             dleteOnly.call(this, task);
         });
@@ -98,8 +97,8 @@ class Uploader extends EventEmitter {
         this.#emitChange();
     }
 
-    #emitSuccess() {
-        this.emit("success");
+    #emitSuccess(task) {
+        this.emit("completed", task);
         this.#emitChange();
     }
 
@@ -109,11 +108,28 @@ class Uploader extends EventEmitter {
         const now = Date.now();
         clearTimeout(this.#debounceTimeout);
         if (now - this.#changeTimer >= 300) {
-            this.emit("change", Array.from(this.tasks.values()));
+            this.emit("change", this.#formatFiles());
             this.#changeTimer = now;
         }
         // 确保最后一次可能小于300也会执行
-        this.#debounceTimeout = setTimeout(() => this.emit("change", Array.from(this.tasks.values())), 300);
+        this.#debounceTimeout = setTimeout(() => this.emit("change", this.#formatFiles()), 300);
+    }
+
+    #formatFiles() {
+        return Array.from(this.tasks.values()).map(item => {
+            const uploadFinisheds = Array.from(item.uploadFinisheds);
+            const progress = item.uploadFinisheds.size / item.chunks.length;
+            return {
+                id: item.id,
+                status: item.status,
+                error: item.error,
+                filename: item.file?.webkitRelativePath ?? item.file?.name,
+                progress: isFinite(progress) ? progress * 100 : 0,
+                size: item.file?.size,
+                uploadedSize: uploadFinisheds.reduce((a, b) => a + (b.blob?.size || 0), 0),
+                uploadDate: item.uploadDate
+            }
+        })
     }
 
     #emitCancel(task) {

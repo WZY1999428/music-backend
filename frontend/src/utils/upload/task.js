@@ -1,6 +1,7 @@
 import EventEmitter from "./event";
 import { sha256 } from 'hash-wasm';
 import Worker from './calculate.js?worker'
+import { dayjs } from "element-plus";
 import createRequestWrapper, { createCancelableRequest } from "@/request";
 const defaultOptions = {
     maxThread: 5,
@@ -43,8 +44,8 @@ export const status = {
     "checking": 3,
     "uploading": 4,
     "mergeing": 5,
-    "success": 6,
-    "fail": 7,
+    "completed": 6,
+    "failed": 7,
     "cancel": 8,
     "paused": 9
 }
@@ -59,6 +60,7 @@ class Task extends EventEmitter {
         this.parentId = parentId;
         this.uploadTasks = new Map();
         this.uploadFinisheds = new Set();;
+        this.uploadDate = dayjs().format('YYYY-MM-DD HH:mm:ss');
         this.file = file;
         this.error = null;
         this.hash = null;
@@ -73,15 +75,16 @@ class Task extends EventEmitter {
     }
 
     #emitError(e) {
-        this.status = status.fail
+        console.log(e);
+        this.status = status.failed
         this.error = e;
         this.emit("error", e, this);
         this.#emitChange();
     }
 
     #emitSuccess() {
-        this.status = status.success
-        this.emit("success", this);
+        this.status = status.completed
+        this.emit("completed", this);
         this.#emitChange();
     }
 
@@ -97,7 +100,7 @@ class Task extends EventEmitter {
 
 
     start() {
-        if (![status.pending, status.cancel, status.fail].includes(this.status)) {
+        if (![status.pending, status.cancel, status.failed].includes(this.status)) {
             return;
         }
         this.status = status.slicing
@@ -134,7 +137,7 @@ class Task extends EventEmitter {
             this.check();
             this.#emitChange();
         }).catch(e => {
-            if (e !== "hashing") this.#emitError(e);
+            if (e !== "hashing") this.#emitError("slice error:" + e.message);
         })
     }
 
@@ -144,6 +147,7 @@ class Task extends EventEmitter {
         this.#emitChange();
         checkRequest({ hash: this.hash, parentId: this.parentId, filename: this.file.name, relativePath: this.file.webkitRelativePath }).then(res => {
             const data = res.data;
+            this.uploadFinisheds = new Set(this.chunks)
             if (data.exists) {
                 this.#emitSuccess();
             } else {
@@ -151,17 +155,12 @@ class Task extends EventEmitter {
                 if (files.length >= this.chunks.length) {
                     this.merge();
                 } else {
-                    const uploaded = new Set();
-                    for (const file of files) {
-                        const f = this.chunks.find(f => f.hash == file.chunkHash);
-                        if (f) uploaded.add(f);
-                    }
-                    this.uploadFinisheds = uploaded;
+                    this.uploadFinisheds = new Set(files.filter(file => this.chunks.some(f => f.hash == file.chunkHash)));
                     this.upload();
                 }
             }
         }).catch(e => {
-            if (!e.__CANCELED__) this.#emitError(e);
+            if (!e.__CANCELED__) this.#emitError("check error:" + e.message);
         })
     }
 
@@ -170,7 +169,7 @@ class Task extends EventEmitter {
         mergeRequest({ hash: this.hash }).then(res => {
             this.#emitSuccess();
         }).catch(e => {
-            if (!e.__CANCELED__) this.#emitError(e);
+            if (!e.__CANCELED__) this.#emitError("merge error:" + e.message);
             else this.#emitCanceled();
         })
     }
@@ -225,7 +224,7 @@ class Task extends EventEmitter {
                 if (err.__CANCELED__) return 1;
                 retry--;
                 if (retry <= 0) {
-                    this.#emitError(err);
+                    this.#emitError("upload error:" + err.message);
                     return 2;
                 }
             }
@@ -270,7 +269,7 @@ class Task extends EventEmitter {
                         }
                     } else {
                         cleanup();
-                        reject(result.message)
+                        reject(result)
                     }
                 }
             }
@@ -301,6 +300,8 @@ class Task extends EventEmitter {
     cancel() {
         this.status = status.cancel
         this.uploadTasks.forEach(o => o.cancel());
+        this.chunks = [];
+        this.uploadFinisheds.clear();
         this.uploadTasks.clear();
         this.#emitCancel();
         if (this.hash) cancelRequest({ hash: this.hash });

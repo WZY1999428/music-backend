@@ -1,3 +1,15 @@
+/**
+ * Format a file size in bytes into a human-readable string.
+ *
+ * @param {number} bytes - The file size in bytes.
+ * @param {Object} options - Optional configuration options.
+ * @param {number} [options.decimals=2] - The number of decimal places to round to.
+ * @param {number} [options.base=1024] - The base to use when converting bytes to a larger unit.
+ * @param {Array<string>} [options.units=['B', 'KB', 'MB', 'GB', 'TB', 'PB']] - The units to use when converting bytes.
+ *
+ * @returns {string} A human-readable string representing the file size.
+ */
+
 export function formatFileSize(bytes, options = {}) {
     if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
 
