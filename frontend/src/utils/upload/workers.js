@@ -7,7 +7,6 @@ export default class WorkerTask {
         this.workers = Array.from({ length: this.maxWorkers }, () => new Task());
     }
 
-
     addTask(chunks) {
         return new Promise((resolve, reject) => {
             const task = this.workers.find(worker => worker.status == "pending");
@@ -20,10 +19,7 @@ export default class WorkerTask {
             }
         })
     }
-
 }
-
-
 
 class Task extends EventEmitter {
     constructor() {
