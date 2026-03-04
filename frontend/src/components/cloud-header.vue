@@ -35,6 +35,13 @@
                                                 </el-icon>
                                                 等待上传
                                             </span>
+                                            <span v-else-if="item.status == UploadStatus.waitingHashing"
+                                                class="status-tag flex items-center text-xs text-orange-500 font-medium  px-2 py-0.5 rounded">
+                                                <el-icon class="mr-1">
+                                                    <CoffeeCup />
+                                                </el-icon>
+                                                等待文件哈希计算
+                                            </span>
                                             <span v-else-if="item.status == UploadStatus.paused"
                                                 class="status-tag flex items-center text-xs text-orange-500 font-medium  px-2 py-0.5 rounded">
                                                 <el-icon class="mr-1">
@@ -91,12 +98,12 @@
                                         <div class="flex items-center justify-between">
                                             <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <el-button link type="warning" size="small"
-                                                    v-if="item.status == UploadStatus.uploading"
+                                                    v-if="item.status == UploadStatus.uploading" @click="uploadStore.pause(item.id)"
                                                     :icon="VideoPause">暂停</el-button>
                                                 <el-button link type="primary" size="small"
-                                                    v-if="item.status == UploadStatus.paused"
+                                                    v-if="item.status == UploadStatus.paused" @click="uploadStore.resume(item.id)"
                                                     :icon="VideoPlay">继续</el-button>
-                                                <el-button link type="info" size="small"
+                                                <el-button link type="info" size="small" @click="uploadStore.retry(item.id)"
                                                     v-if="item.status == UploadStatus.failed"
                                                     :icon="RefreshRight">重试</el-button>
                                                 <el-popconfirm class="box-item" title="确定要全部取消上传吗?"
@@ -118,10 +125,11 @@
                                     v-model:current-page="uploadStore.pageIndex" :total="uploadStore.fileTotal"
                                     class="mt-2" />
                             </div>
-                            <div class="upload-popover-btns  flex justify-between items-center">
-                                <el-checkbox v-model="uploadStore.autoDeleteFinished">自动删除已完成任务</el-checkbox>
+                            <div class="upload-popover-btns  flex justify-end items-center">
+                                <!-- <el-checkbox v-model="uploadStore.autoDeleteFinished">自动删除已完成任务</el-checkbox> -->
                                 <div>
-                                    <el-button size="small">全部暂停</el-button>
+                                    <el-button size="small" @click="uploadStore.pauseAll()">全部暂停</el-button>
+                                    <el-button size="small" @click="uploadStore.continueAll()">全部继续</el-button>
                                     <el-popconfirm class="box-item" title="确定要全部取消上传吗?" @confirm="uploadStore.clear()"
                                         placement="top-start">
                                         <template #reference>
@@ -173,7 +181,6 @@ import avatarImg from "@/assets/avatar.png";
 const fileStore = useFileStore();
 const uploadStore = useUploadStore();
 const userStore = useUserStore();
-
 
 function uploadFile(isDir) {
     let pid = fileStore.breadcrumbs.map(item => item.id).pop();

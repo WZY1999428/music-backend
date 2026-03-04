@@ -1,14 +1,14 @@
 import EventEmitter from "./event";
-import { sha256 } from 'hash-wasm';
-import Worker from './calculate.js?worker'
 import { dayjs } from "element-plus";
+import WorkerTask from "./workers";
+import { sha256 } from 'hash-wasm';
+const hashWorkers = new WorkerTask();
 import createRequestWrapper, { createCancelableRequest } from "@/request";
 const defaultOptions = {
     maxThread: 5,
     chunkSize: 1024 ** 2 * 2,
     retry: 3,
 }
-
 
 const checkRequest = createRequestWrapper((params) => ({
     url: "/upload/check",
@@ -38,16 +38,17 @@ const cancelRequest = createRequestWrapper((params) => ({
 
 
 export const status = {
-    "pending": 0,
-    "slicing": 1,
-    "hashing": 2,
-    "checking": 3,
-    "uploading": 4,
-    "mergeing": 5,
-    "completed": 6,
-    "failed": 7,
-    "cancel": 8,
-    "paused": 9
+    pending: "pending",
+    slicing: "slicing",
+    waitingHashing: "waitingHashing",
+    hashing: "hashing",
+    checking: "checking",
+    uploading: "uploading",
+    mergeing: "mergeing",
+    completed: "completed",
+    failed: "failed",
+    cancel: "cancel",
+    paused: "paused",
 }
 
 class Task extends EventEmitter {
@@ -71,11 +72,10 @@ class Task extends EventEmitter {
     #emitCanceled() {
         this.status = status.cancel
         this.error = "任务已被取消";
-        this.emit("cancel");
+        this.emit("cancel", this);
     }
 
     #emitError(e) {
-        console.log(e);
         this.status = status.failed
         this.error = e;
         this.emit("error", e, this);
@@ -133,11 +133,17 @@ class Task extends EventEmitter {
         }
         this.chunks = chunks;
         this.crateHash().then(hash => {
-            this.hash = hash;
-            this.check();
-            this.#emitChange();
+            if (this.status == status.hashing) {
+                this.hash = hash;
+                this.check();
+                this.#emitChange();
+            }
         }).catch(e => {
-            if (e !== "hashing") this.#emitError("slice error:" + e.message);
+            if (e == "waiting worker") {
+                this.status = status.waitingHashing;
+            } else {
+                if (e !== "hashing") this.#emitError("slice error:" + e.message);
+            }
         })
     }
 
@@ -234,56 +240,26 @@ class Task extends EventEmitter {
     crateHash() {
         return new Promise((resolve, reject) => {
             if (this.status == status.hashing) return reject("hashing");
-            const worker = new Worker();
-            const chunks = this.chunks;
+            const chunks = [...this.chunks];
             this.status = status.hashing;
+            if (chunks.length == 0) {
+                sha256(`${this.file.webkitRelativePath || this.file.name}${this.file.size}`).then(hash => {
+                    resolve(hash);
+                }).catch(e => reject(e));
+            } else {
+                hashWorkers.addTask(chunks).then(hash => {
+                    resolve(hash);
+                }).catch(e => reject(e));
+            }
             this.#emitChange();
-            let index = 0;
-            const cleanup = () => {
-                worker.terminate();
-            };
-            const postMsg = async () => {
-                const chunk = chunks[index];
-                const buffer = await chunk.blob.arrayBuffer();
-                worker.postMessage({
-                    buffer,
-                    index: chunk.index
-                }, [buffer])
-            }
-            postMsg();
-            worker.onmessage = async (e) => {
-                const result = e.data;
-                if (this.status == 'cancel') {
-                    this.chunks = [];
-                    cleanup();
-                } else {
-                    if (result.status == "success") {
-                        const chunk = chunks[index];
-                        chunk.hash = result.hash;
-                        index++;
-                        if (index < chunks.length) {
-                            postMsg()
-                        } else {
-                            sha256(chunks.map(chunk => chunk.hash).join('')).then(h => resolve(h)).catch(e => reject(e))
-                            cleanup();
-                        }
-                    } else {
-                        cleanup();
-                        reject(result)
-                    }
-                }
-            }
-            worker.onmessageerror = (e) => {
-                cleanup();
-                reject(e)
-            };
 
         })
     }
 
 
-    restore() {
+    resume() {
         if (this.status == status.paused) {
+            this.status = status.pending;
             this.start();
         }
     }

@@ -18,7 +18,6 @@ async function queueScanning(dirPaths = []) {
         console.time("QueueScanning");
         console.log("正在加载文件数据库...");
         const dbFiles = await FileTable.find(dirPaths.map(f => ({ field: "fullPathId", value: f.id == 0 ? `0%` : `%-${f.id}-%`, op: "like", logic: "OR" })), { pageSize: -1 });
-        console.log(dbFiles.length);
         while (dirPaths.length > 0) {
             const parent = dirPaths.shift();
             const parentPath = path.join(parent.rootPath, parent.path || "")
@@ -128,9 +127,7 @@ async function ensureDirRecord(relativePath, parentId) {
     const parsePath = path.parse(relativePath);
     const dirs = parsePath.dir.split("/").filter(Boolean);
     const parent = await FileTable.findOne([{ field: "path", value: parsePath.dir }]);
-    if (parent) {
-        return parent.id;
-    }
+    if (parent) return parent.id;
     let fullPathId = "0";
     if (dirs.length) {
         let dirPath
@@ -140,8 +137,8 @@ async function ensureDirRecord(relativePath, parentId) {
             fullPathId = parent.fullPathId
         } else dirPath = fileDir
         for (const dir of dirs) {
+            const parent = await FileTable.findOne([{ field: "path", value: dirPath }]);
             dirPath = path.join(dirPath, dir);
-            const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
             if (!await fs.pathExists(dirPath) || !parent) {
                 await fs.ensureDir(dirPath);
                 const file = await FileTable.findOne([{ field: "path", value: normalizePathForDB(fileDir, dirPath) }]);
@@ -169,8 +166,8 @@ async function ensureDirRecord(relativePath, parentId) {
                     fullPathId = file.fullPathId;
                 }
             } else {
-                parentId = parent.id
-                fullPathId += `-${parentId}`
+                parentId = parent.id;
+                fullPathId = parent.fullPathId;
             }
         }
     }

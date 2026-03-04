@@ -41,7 +41,6 @@ module.exports = async (ctx) => {
             }
             if (ids.size > 0) {
                 ids = Array.from(ids)
-                console.log(ids);
                 finalRmFiles = await FileTable.find([{ field: "id", value: ids, op: "in" }], { pageSize: -1 });
                 await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]);
                 await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]);
@@ -98,7 +97,6 @@ async function removeFile(finalRmFiles, failed) {
         } catch (err) {
             const code = err.code;
             // 文件不存在，不用管 
-            console.log(err);
             if (code === 'ENOENT') continue;
             // 中文描述
             let reason = '';

@@ -17,19 +17,21 @@ export const useUploadStore = defineStore('upload', () => {
     const handleBeforeUnload = (e) => {
         // 检查列表中是否还有正在上传或合并中的任务
         const isUploading = uploadList.value.some(file => [UpS.uploading, UpS.checking, UpS.hashing, UpS.mergeing].includes(file.status));
-        if (isUploading) {
-            e.preventDefault();
-            // 现代浏览器必须设置 returnValue 才会显示确认框
-            e.returnValue = '文件正在上传，离开将导致上传中断，确定离开吗？';
-            return e.returnValue;
-        }
+        // if (isUploading) {
+        //     e.preventDefault();
+        //     // 现代浏览器必须设置 returnValue 才会显示确认框
+        //     e.returnValue = '文件正在上传，离开将导致上传中断，确定离开吗？';
+        //     return e.returnValue;
+        // }
     };
 
     function init() {
         if (initialized) return;
         uploadEngine.on('change', files => {
             fileTotal.value = files.length;
+            pageIndex.value = Math.min(pageIndex.value, Math.ceil(fileTotal.value / pageSize.value));
             uploadList.value = files.slice((pageIndex.value - 1) * pageSize.value, pageIndex.value * pageSize.value);
+
         });
 
         uploadEngine.on('completed', _ => {
@@ -83,5 +85,5 @@ export const useUploadStore = defineStore('upload', () => {
         uploadEngine.clear();
     }
 
-    return { uploadList, addFile, addDirs, pause, resume, retry, cancel, clear, init, autoDeleteFinished, pageIndex, pageSize,fileTotal }
+    return { uploadList, addFile, addDirs, pause, resume, retry, cancel, clear, init, autoDeleteFinished, pageIndex, pageSize, fileTotal }
 })

@@ -32,14 +32,12 @@ module.exports = async (ctx) => {
             const ret = await FileTable.insert(newRecord)
             await FileTable.update({ id: ret.id }, { fullPathId: `${fullPathId}-${ret.id}` })
         });
-        await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => console.log(err));
+        await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
         await fs.rm(path.parse(tempPath).dir, { recursive: true }).catch(() => { });
         mergingSet.delete(hash);
         ctx.success("合并完成")
     } catch (error) {
-        console.log(error, hash);
-        const ret = await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => console.log(err));
-        console.log("删除", ret);
+        const ret = await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
         mergingSet.delete(hash);
         ctx.fail("合并失败：" + error.message)
     }

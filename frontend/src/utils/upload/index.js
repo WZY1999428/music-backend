@@ -19,20 +19,32 @@ class Uploader extends EventEmitter {
     }
 
     addTasks(files, parentId) {
-        for (const file of files) {
-            this.addTask(file, parentId);
+        let index = 0;
+        function next() {
+            for (let i = 0; i < 100 && index < files.length; i++) {
+                this.addTask(files[index++], parentId);
+            }
+            if (index < files.length) {
+                setTimeout(next.bind(this), 0);
+            }
         }
-    }
 
+        next.call(this);
+    }
+    #runTimer = 0;
+    #runDebounceTimeout = null;
     addTask(file, parentId) {
         const task = new Task(file, parentId);
-        task.on('change', () => {
-            this.#emitChange();
-        });
-
-        function dleteOnly(task) {
+        const dleteOnly = (task) => {
+            const now = Date.now();
+            clearTimeout(this.#runDebounceTimeout);
             this.runningTasks.delete(task.id);
-            this.#run();
+            if (task.status == status.completed) this.tasks.delete(task.id);
+            if (now - this.#runTimer >= 200) {
+                this.#runTimer = now;
+                this.#run();
+            }
+            this.#runDebounceTimeout = setTimeout(() => this.#run(), 400);
         }
         task.on('completed', (task) => {
             this.#emitSuccess(task);
@@ -47,6 +59,7 @@ class Uploader extends EventEmitter {
             dleteOnly.call(this, task);
         });
         task.on('cancel', (task) => {
+            console.log("cancel");
             this.#emitCancel(task);
             dleteOnly.call(this, task);
         });
@@ -55,15 +68,18 @@ class Uploader extends EventEmitter {
     }
 
     #run() {
-        if (this.runningTasks.size >= this.maxThread) return;
+        const queue = Array.from(this.tasks.values());
         let nextCount = this.maxThread - this.runningTasks.size;
-        const tasks = Array.from(this.tasks.values()).filter(v => v.status == status.pending);
-        if (nextCount > tasks.length) nextCount = tasks.length;
-        for (let i = 0; i < nextCount; i++) {
-            const task = tasks.shift();
-            if (task) {
+        for (let i = 0; i <= nextCount; i++) {
+            const task = queue.find(o => [status.waitingHashing, status.pending].includes(o.status));
+            if (task && this.runningTasks.has(task.id)) {
+                i--;
+                continue;
+            } else if (task) {
                 this.runningTasks.set(task.id, task);
-                task.start();
+                task.start()
+            } else {
+                break;
             }
         }
     }
@@ -77,6 +93,14 @@ class Uploader extends EventEmitter {
         this._withTask(id, task => task.retry());
     }
 
+    pauseAll() {
+        this.tasks.forEach(o => o.pause());
+    }
+
+    resumeAll() {
+        this.tasks.forEach(o => o.resume());
+    }
+
     cancel(id) {
         this._withTask(id, task => task.cancel());
     }
@@ -88,7 +112,6 @@ class Uploader extends EventEmitter {
     clear() {
         this.tasks.forEach(o => o.cancel());
         this.tasks.clear();
-        this.runningTasks.clear();
     }
 
 
@@ -111,7 +134,6 @@ class Uploader extends EventEmitter {
             this.emit("change", this.#formatFiles());
             this.#changeTimer = now;
         }
-        // 确保最后一次可能小于300也会执行
         this.#debounceTimeout = setTimeout(() => this.emit("change", this.#formatFiles()), 300);
     }
 
