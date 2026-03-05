@@ -10,15 +10,18 @@
         <cloudAside></cloudAside>
       </el-aside>
       <el-main style="padding: 0">
-        <router-view></router-view>
+        <DragUploadArea>
+          <router-view></router-view>
+        </DragUploadArea>
       </el-main>
     </el-container>
   </el-container>
 </template>
 
 <script setup>
-import cloudHeader from "@/components/cloud-header.vue";
-import cloudAside from "@/components/cloud-aside.vue";
+import cloudHeader from "@/components/cloudHeader.vue";
+import cloudAside from "@/components/cloudAside.vue";
+import DragUploadArea from "@/components/DragUploadArea.vue";
 </script>
 
 <style>

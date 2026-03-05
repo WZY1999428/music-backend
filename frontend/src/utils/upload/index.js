@@ -19,16 +19,16 @@ class Uploader extends EventEmitter {
     }
 
     addTasks(files, parentId) {
-        let index = 0;
+        files = Array.from(files);
         function next() {
-            for (let i = 0; i < 100 && index < files.length; i++) {
-                this.addTask(files[index++], parentId);
+            for (let i = 0; i < 100; i++) {
+                const f = files.shift()
+                if (f && f.name) this.addTask(f, parentId);
             }
-            if (index < files.length) {
-                setTimeout(next.bind(this), 0);
+            if (files.length) {
+                setTimeout(next.bind(this), 500);
             }
         }
-
         next.call(this);
     }
     #runTimer = 0;
@@ -59,7 +59,6 @@ class Uploader extends EventEmitter {
             dleteOnly.call(this, task);
         });
         task.on('cancel', (task) => {
-            console.log("cancel");
             this.#emitCancel(task);
             dleteOnly.call(this, task);
         });
@@ -68,10 +67,12 @@ class Uploader extends EventEmitter {
     }
 
     #run() {
-        const queue = Array.from(this.tasks.values());
+        const filter = [status.waitingHashing, status.pending];
+        const queue = Array.from(this.tasks.values()).filter(f => filter.includes(f.status));
         let nextCount = this.maxThread - this.runningTasks.size;
+        if (!queue.length) return;
         for (let i = 0; i <= nextCount; i++) {
-            const task = queue.find(o => [status.waitingHashing, status.pending].includes(o.status));
+            const task = queue.shift();
             if (task && this.runningTasks.has(task.id)) {
                 i--;
                 continue;
@@ -94,19 +95,53 @@ class Uploader extends EventEmitter {
     }
 
     pauseAll() {
-        this.tasks.forEach(o => o.pause());
+        this.tasks.forEach(o => {
+            if ([status.checking, status.pending, status.hashing, status.mergeing, status.uploading, status.waitingHashing].includes(o.status)) o.pause();
+        });
+        this.runningTasks.clear();
     }
 
     resumeAll() {
-        this.tasks.forEach(o => o.resume());
+        this.tasks.forEach(o => {
+            if ([status.paused, status.failed].includes(o.status)) {
+                o.status = status.pending;
+            }
+        });
+        this.#run();
+    }
+
+    getUploadList() {
+        return this.#formatFiles();
     }
 
     cancel(id) {
-        this._withTask(id, task => task.cancel());
+        this._withTask(id, task => task.cancel(true));
     }
 
+    remove(id) {
+        this._withTask(id, task => {
+            task.cancel(false);
+            this.tasks.delete(task.id);
+            this.#emitChange();
+        });
+    }
+
+    removeAll() {
+        this.tasks.forEach(o => o.cancel(false));
+        this.runningTasks.clear();
+        this.tasks.clear();
+        this.#emitChange();
+    }
+
+
     resume(id) {
-        this._withTask(id, task => task.restore());
+        this._withTask(id, task => {
+            if (this.runningTasks.size >= this.maxThread) {
+                task.status = pending;
+            } else {
+                task.resume()
+            }
+        });
     }
 
     clear() {
@@ -138,7 +173,8 @@ class Uploader extends EventEmitter {
     }
 
     #formatFiles() {
-        return Array.from(this.tasks.values()).map(item => {
+        const list = Array.from(this.tasks.values());
+        return list.map(item => {
             const uploadFinisheds = Array.from(item.uploadFinisheds);
             const progress = item.uploadFinisheds.size / item.chunks.length;
             return {

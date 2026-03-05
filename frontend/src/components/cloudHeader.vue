@@ -98,16 +98,19 @@
                                         <div class="flex items-center justify-between">
                                             <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <el-button link type="warning" size="small"
-                                                    v-if="item.status == UploadStatus.uploading" @click="uploadStore.pause(item.id)"
+                                                    v-if="item.status == UploadStatus.uploading"
+                                                    @click="uploadStore.pause(item.id)"
                                                     :icon="VideoPause">暂停</el-button>
                                                 <el-button link type="primary" size="small"
-                                                    v-if="item.status == UploadStatus.paused" @click="uploadStore.resume(item.id)"
+                                                    v-if="item.status == UploadStatus.paused"
+                                                    @click="uploadStore.resume(item.id)"
                                                     :icon="VideoPlay">继续</el-button>
-                                                <el-button link type="info" size="small" @click="uploadStore.retry(item.id)"
+                                                <el-button link type="info" size="small"
+                                                    @click="uploadStore.retry(item.id)"
                                                     v-if="item.status == UploadStatus.failed"
                                                     :icon="RefreshRight">重试</el-button>
                                                 <el-popconfirm class="box-item" title="确定要全部取消上传吗?"
-                                                    @confirm="uploadStore.cancel(item.id)" placement="top-start">
+                                                    @confirm="uploadStore.remove(item.id)" placement="top-start">
                                                     <template #reference>
                                                         <el-button link type="danger" size="small"
                                                             v-if="item.status == UploadStatus.uploading"
@@ -122,14 +125,16 @@
                             </div>
                             <div class="p-2" v-if="uploadStore.uploadList.length">
                                 <el-pagination size="small" background layout="prev, pager, next"
+                                    @change="uploadStore.getList()" :page-size="uploadStore.pageSize"
                                     v-model:current-page="uploadStore.pageIndex" :total="uploadStore.fileTotal"
                                     class="mt-2" />
                             </div>
-                            <div class="upload-popover-btns  flex justify-end items-center">
+                            <div class="upload-popover-btns  flex justify-end items-center"
+                                v-if="uploadStore.uploadList.length">
                                 <!-- <el-checkbox v-model="uploadStore.autoDeleteFinished">自动删除已完成任务</el-checkbox> -->
                                 <div>
                                     <el-button size="small" @click="uploadStore.pauseAll()">全部暂停</el-button>
-                                    <el-button size="small" @click="uploadStore.continueAll()">全部继续</el-button>
+                                    <el-button size="small" @click="uploadStore.resumeAll()">全部继续</el-button>
                                     <el-popconfirm class="box-item" title="确定要全部取消上传吗?" @confirm="uploadStore.clear()"
                                         placement="top-start">
                                         <template #reference>
@@ -142,13 +147,19 @@
                         </div>
                     </div>
                     <template #reference>
-                        <el-icon :size="28" class="mr-6 cursor-pointer">
-                            <UploadFilled color="#3498db" />
-                        </el-icon>
+                        <div class=" cursor-pointer h-full mr-8 flex items-center justify-center flex-col">
+                            <el-badge :value="uploadStore.fileTotal" :max="100" :hidden="uploadStore.fileTotal == 0">
+                                <el-icon :size="28"
+                                    class="rounded-full p-1 transition-all hover:bg-blue-100 hover:scale-110 shadow-sm"
+                                    title="上传文件">
+                                    <UploadFilled color="#3498db" />
+                                </el-icon>
+                            </el-badge>
+                        </div>
                     </template>
                 </el-popover>
 
-                <el-button @click="uploadFile(false)" type="primary">上传</el-button>
+                <el-button @click="uploadFile(false)" type="primary">上传文件</el-button>
                 <el-button @click="uploadFile(true)" type="primary">上传文件夹</el-button>
             </div>
             <el-input class="ml-9" style="width: 240px; --el-border-color: #aec7b3" placeholder="搜索"
@@ -193,11 +204,11 @@ uploadStore.init();
 
 function getUploadStatusText(s) {
     const statusMap = {
-        1: "文件拆分中",
-        2: "文件哈希计算中",
-        3: "文件校验中",
-        4: "文件上传中",
-        5: "文件合并中",
+        "slicing": "文件拆分中",
+        "hashing": "文件哈希计算中",
+        "checking": "文件校验中",
+        "uploading": "文件上传中",
+        "mergeing": "文件合并中",
     }
     return statusMap[s] || "未知状态"
 }
