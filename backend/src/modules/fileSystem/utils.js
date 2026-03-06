@@ -3,7 +3,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
-const { FileTable, Favorite } = require("@/modules/sqlite/model");
+const { FileTable, Favorite, FilePathTable } = require("@/modules/sqlite/model");
 const HashFile = require("./hashFile");
 const MAX_WORKERS = Math.min(require("os").cpus().length, 8);
 const hashFile = new HashFile(MAX_WORKERS);
@@ -14,101 +14,16 @@ async function queueScanning(dirPaths = []) {
     if (isScanning) throw new Error("正在扫描中，请稍后重试");
     isScanning = true;
     try {
-        const files = [];
-        console.time("QueueScanning");
-        console.log("正在加载文件数据库...");
-        const dbFiles = await FileTable.find(dirPaths.map(f => ({ field: "fullPathId", value: f.id == 0 ? `0%` : `%-${f.id}-%`, op: "like", logic: "OR" })), { pageSize: -1 });
-        while (dirPaths.length > 0) {
-            const parent = dirPaths.shift();
-            const parentPath = path.join(parent.rootPath, parent.path || "")
-            const entries = await fs.readdir(parentPath, { withFileTypes: true });
-            for (const entry of entries) {
-                const fullPath = path.join(parentPath, entry.name);
-                const record = await buildFileRecord(fullPath, parent.id || 0);
-                if (!record) continue;
-                if (entry.isDirectory()) {
-                    dirPaths.push(record);
-                }
-                record.filePath = fullPath;
-                if (parent.id != 0) record.parentRef = parent;
-                files.push(record);
-
-            }
-            process.stdout.write(`\r已读取，${files.length}个文件`);
-        }
-        const fileMap = new Map(files.map(f => [f.ino, f]));
-        let filterCount = 0;
-        for (let i = 0; i < dbFiles.length; i++) {
-            const dbf = dbFiles[i];
-            const file = fileMap.get(dbf.ino);
-            if (file && await fs.exists(path.join(dbf.rootPath, dbf.path))) {
-                file.parentId = dbf.parentId;
-                file.fullPathId = dbf.fullPathId;
-                fileMap.delete(dbf.ino);
-                dbFiles.splice(i, 1);
-                i--;
-                filterCount++;
-            }
-        }
-
-        if (filterCount > 0) console.log(`\n 已过滤${filterCount}个数据库存在的文件`);
-        const newFiles = Array.from(fileMap.values());
-        if (newFiles.length > 0) {
-            const records = [];
-            console.log("正在按批次处理文件信息...");
-            let batchIndex = 0;
-            let count = newFiles.length;
-            const batchLength = Math.ceil(newFiles.length / BATCH_SIZE);
-            while (newFiles.length > 0) {
-                const b = newFiles.splice(0, BATCH_SIZE).map(f => hashFile.addTask(f));
-                const data = await Promise.all(b);
-                records.push(...data);
-                process.stdout.write(`\r已处理，${++batchIndex}/${batchLength} 批次  已处理${records.length}个文件 , 共${count}个文件`);
-            }
-            console.log("文件信息处理完成。开始插入数据库。");
-            records.sort((a, b) => a.path.length - b.path.length);
-            const chunks = records.reduce((r, v, i) => {
-                if (i % BATCH_SIZE === 0) r.push([]); r[r.length - 1].push(v); return r;
-            }, []);
-            records.splice(0, records.length);
-            let i = 0;
-            while (chunks.length > 0) {
-                const batch = chunks.shift();
-                try {
-                    await FileTable.runInTransaction(async () => {
-                        for (const record of batch) {
-                            delete record.filePath;
-                            const parent = record.parentRef;
-                            if (record.parentRef) delete record.parentRef;
-                            let data = null;
-                            try {
-                                data = await FileTable.insert(record);
-                                record.id = data.id;
-                            } catch (err) {
-                                if (err.errno !== 19) console.error("插入失败:", err);
-                                continue;
-                            }
-                            if (parent) {
-                                record.fullPathId = `${parent.fullPathId}-${data.id}`;
-                                record.parentId = parent.id;
-                            } else {
-                                record.fullPathId = `0-${data.id}`;
-                                record.parentId = 0;
-                            }
-                            await FileTable.update({ id: data.id }, { fullPathId: record.fullPathId, parentId: record.parentId });
-                            process.stdout.write(`已插入${++i}/${count} 个文件\r`);
-                        }
-                    });
-                } catch (error) {
-                    throw error;
-                }
-            }
-        }
-
+        const dbFiles = await getFileList(dirPaths.map(f => ({ field: "ancestor_id", value: f.id || 0 }, { field: "depth", value: f.depth || 0 })));
+        const files = await readFiles(dirPaths, dbFiles);
+        await writeFiles(files);
         if (dbFiles.length > 0) {
-            const ids = dbFiles.map(f => f.id);
-            await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]).catch(() => { });
-            await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]).catch(() => { });
+            const batchIds = dbFiles.map(f => f.id).reduce((r, v, i) => { if (i % BATCH_SIZE === 0) r.push([]); r[r.length - 1].push(v); return r; }, []);
+            for (const ids of batchIds) {
+                await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]).catch(() => { });
+                await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]).catch(() => { });
+                await FilePathTable.deleteMany([{ field: "descendant_id", value: ids, op: "in", logic: "or" }, { field: "ancestor_id", value: ids, op: "in" }])
+            }
         }
         hashFile.clear();
         isScanning = false;
@@ -122,19 +37,140 @@ async function queueScanning(dirPaths = []) {
     }
 }
 
+async function readFiles(dirPaths, dbFiles) {
+    console.time("QueueScanning");
+    console.log("正在加载文件数据库...");
+    const files = [];
+
+    while (dirPaths.length > 0) {
+        const parent = dirPaths.shift();
+        const parentPath = path.join(parent.rootPath, parent.path || "")
+        const entries = await fs.readdir(parentPath, { withFileTypes: true });
+        if (await fs.exists(parentPath)) {
+            for (const entry of entries) {
+                const fullPath = path.join(parentPath, entry.name);
+                const record = await buildFileRecord(fullPath, 0);
+                record.filePath = fullPath;
+                if (parent.path != "") record.parentRef = parent
+                files.push(record);
+                if (entry.isDirectory()) {
+                    dirPaths.push(record);
+                }
+            }
+        }
+
+        process.stdout.write(`\r已读取，${files.length}个文件`);
+    }
+
+
+    const fileMap = new Map(files.map(f => [f.ino, f]));
+    let filterCount = 0;
+    console.log(dbFiles.length);
+    for (let i = 0; i < dbFiles.length; i++) {
+        const dbf = dbFiles[i];
+        const file = fileMap.get(dbf.ino);
+        if (file && await fs.exists(path.join(dbf.rootPath, dbf.path))) {
+            file.parentId = dbf.parentId;
+            fileMap.delete(dbf.ino);
+            dbFiles.splice(i, 1);
+            i--;
+            filterCount++;
+        }
+    }
+
+    if (filterCount > 0) console.log(`\n 已过滤${filterCount}个数据库存在的文件`);
+    return Array.from(fileMap.values());
+}
+
+async function writeFiles(files) {
+    if (files.length > 0) {
+        const records = [];
+        console.log("正在按批次处理文件信息...");
+        let batchIndex = 0;
+        let count = files.length;
+        const batchLength = Math.ceil(files.length / BATCH_SIZE);
+        while (files.length > 0) {
+            const b = files.splice(0, BATCH_SIZE).map(f => hashFile.addTask(f));
+            const data = await Promise.all(b);
+            records.push(...data);
+            process.stdout.write(`\r已处理，${++batchIndex}/${batchLength} 批次  已处理${records.length}个文件 , 共${count}个文件`);
+        }
+        console.log("文件信息处理完成。开始插入数据库。");
+        records.sort((a, b) => a.path.length - b.path.length);
+        // console.log(records.slice(0,10));
+        let i = 0;
+        const ids = []
+        while (records.length > 0) {
+            const record = records.shift();
+            try {
+                delete record.filePath;
+                const parent = record.parentRef;
+                if (record.parentRef) delete record.parentRef
+                record.parentId = parent?.id || 0;
+                try {
+                    const data = await FileTable.insert(record);
+                    record.id = data.id;
+                    await FilePathTable.insert({ ancestor_id: record.id, descendant_id: record.id, depth: 0 });
+                    if (record.parentId != 0) {
+                        const parentPaths = await FilePathTable.find([{ field: "descendant_id", value: record.parentId }]);
+                        for (const p of parentPaths) await FilePathTable.insert({ ancestor_id: p.ancestor_id, descendant_id: data.id, depth: p.depth + 1 });
+                    }
+                } catch (err) {
+                    if (err.errno !== 19) console.error("插入失败:", err);
+                }
+                process.stdout.write(`已插入${++i}/${count} 个文件\r`);
+            } catch (error) {
+                throw error;
+            }
+        }
+    }
+}
+
+
+async function getFileList(filters, joins = [], { pageIndex = 1, pageSize = -1 } = {}) {
+    return await FilePathTable.joinFind({
+        fields: [
+            "t2.id",
+            "t2.name",
+            "t2.path",
+            "t2.isFolder",
+            't2.category',
+            "t2.size",
+            "t2.mimeType",
+            "t2.extension",
+            "t2.createdAt",
+            "t2.updatedAt",
+            "t2.status",
+            "t1.depth",
+            "t2.parentId",
+            "t1.ancestor_id",
+            "t1.descendant_id",
+        ],
+        joins: [
+            {
+                name: 'files',
+                type: 'LEFT JOIN',
+                on: 't2.id = t1.descendant_id'
+            },
+            ...joins
+        ],
+        filters,
+        pageIndex,
+        pageSize,
+    });
+}
+
 
 async function ensureDirRecord(relativePath, parentId) {
     const parsePath = path.parse(relativePath);
     const dirs = parsePath.dir.split("/").filter(Boolean);
     const parent = await FileTable.findOne([{ field: "path", value: parsePath.dir }]);
     if (parent) return parent.id;
-    let fullPathId = "0";
     if (dirs.length) {
         let dirPath
         if (parentId != 0) {
             const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
             dirPath = path.join(parent.rootPath, parent.path);
-            fullPathId = parent.fullPathId
         } else dirPath = fileDir
         for (const dir of dirs) {
             const parent = await FileTable.findOne([{ field: "path", value: dirPath }]);
@@ -147,8 +183,7 @@ async function ensureDirRecord(relativePath, parentId) {
                     try {
                         await FileTable.runInTransaction(async () => {
                             const ret = await FileTable.insert(record);
-                            fullPathId = `${fullPathId}-${ret.id}`;
-                            await FileTable.update({ id: ret.id }, { fullPathId: fullPathId })
+                            // await FileTable.update({ id: ret.id }, { fullPathId: fullPathId })
                             parentId = ret.id
                         })
                     } catch (error) {
@@ -156,18 +191,15 @@ async function ensureDirRecord(relativePath, parentId) {
                             const existing = await FileTable.findOne([{ field: "path", value: record.path }]);
                             if (!existing) throw error;
                             parentId = existing.id;
-                            fullPathId = existing.fullPathId;
                         } else {
                             throw error;
                         }
                     }
                 } else {
                     parentId = file.id
-                    fullPathId = file.fullPathId;
                 }
             } else {
                 parentId = parent.id;
-                fullPathId = parent.fullPathId;
             }
         }
     }
@@ -180,12 +212,10 @@ async function buildFileRecord(fullPath, parentId = 0) {
     const { readChunk } = await import('read-chunk');
     const stat = await fs.stat(fullPath).catch(() => null);
     const name = path.basename(fullPath);
-    // 当前节点 fullPathId = 父级 fullPathId + 当前 parentId（或者占位，插入后更新）
     let record = {
         name,
         isFolder: stat ? (stat.isDirectory() ? 1 : 0) : 1,
         parentId,
-        fullPathId: '0', // 先占位，插入后更新
         rootPath: fileDir,
         ino: stat?.ino,
         mimeType: null,
@@ -328,5 +358,5 @@ function isValidFileName(name) {
 }
 
 
-module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName, ensureDirRecord, normalizePathForDB };
+module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName, ensureDirRecord, normalizePathForDB, getFileList };
 
