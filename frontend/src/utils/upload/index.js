@@ -77,8 +77,12 @@ class Uploader extends EventEmitter {
         this._withTask(id, task => task.retry());
     }
 
+
     cancel(id) {
-        this._withTask(id, task => task.cancel());
+        this._withTask(id, task => {
+            task.cancel();
+            this.tasks.delete(task.id);
+        });
     }
 
     resume(id) {

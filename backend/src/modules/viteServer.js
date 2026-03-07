@@ -20,7 +20,7 @@ module.exports = async function viteServerMiddleware(app) {
         const endsWithsWhiteList = [".js", ".ts", ".css", ".png", ".jpg", ".jpeg", ".gif"]
         if (startsWithsWhiteList.some(item => url.startsWith(item)) || endsWithsWhiteList.some(item => url.endsWith(item))) {
             return next();
-        }
+        } 
         // 处理 HTML
         try {
             const html = await fs.readFile(HtmlPath, 'utf-8');

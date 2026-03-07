@@ -304,7 +304,7 @@ class Task extends EventEmitter {
         this.uploadFinisheds.clear();
         this.uploadTasks.clear();
         this.#emitCancel();
-        if (this.hash) cancelRequest({ hash: this.hash });
+        if (this.hash && this.status != status.completed) cancelRequest({ hash: this.hash });
     }
 
     retry() {

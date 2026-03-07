@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { useFileStore } from "./file";
 import Uploader from '@/utils/upload';
-import { status as UpS } from '@/utils/upload/task';
+import Task, { status as UpS } from '@/utils/upload/task';
 
 let initialized = false;
 export const useUploadStore = defineStore('upload', () => {
@@ -32,7 +32,10 @@ export const useUploadStore = defineStore('upload', () => {
             uploadList.value = files.slice((pageIndex.value - 1) * pageSize.value, pageIndex.value * pageSize.value);
         });
 
-        uploadEngine.on('completed', _ => {
+        uploadEngine.on('completed', task => {
+            if(autoDeleteFinished.value){
+                     uploadEngine.cancel(task.id);
+            }
             fileStore.forceRefresh(true);
         });
 
