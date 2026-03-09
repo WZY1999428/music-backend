@@ -17,38 +17,28 @@ export const useUploadStore = defineStore('upload', () => {
     const handleBeforeUnload = (e) => {
         // 检查列表中是否还有正在上传或合并中的任务
         const isUploading = uploadList.value.some(file => [UpS.uploading, UpS.checking, UpS.hashing, UpS.mergeing].includes(file.status));
-        if (isUploading) {
-            e.preventDefault();
-            // 现代浏览器必须设置 returnValue 才会显示确认框
-            e.returnValue = '文件正在上传，离开将导致上传中断，确定离开吗？';
-            return e.returnValue;
-        }
+        // if (isUploading) {
+        //     e.preventDefault();
+        //     // 现代浏览器必须设置 returnValue 才会显示确认框
+        //     e.returnValue = '文件正在上传，离开将导致上传中断，确定离开吗？';
+        //     return e.returnValue;
+        // }
     };
+
+    function updatePageFiles(files) {
+        fileTotal.value = files.length;
+        pageIndex.value = Math.min(pageIndex.value, Math.ceil(fileTotal.value / pageSize.value));
+        uploadList.value = files.slice((pageIndex.value - 1) * pageSize.value, pageIndex.value * pageSize.value);
+    }
 
     function init() {
         if (initialized) return;
-        uploadEngine.on('change', files => {
-            fileTotal.value = files.length;
-            uploadList.value = files.slice((pageIndex.value - 1) * pageSize.value, pageIndex.value * pageSize.value);
-        });
-
-        uploadEngine.on('completed', task => {
-            if(autoDeleteFinished.value){
-                     uploadEngine.cancel(task.id);
-            }
+        uploadEngine.on('change', files => updatePageFiles(files));
+        uploadEngine.on('completed', _ => {
             fileStore.forceRefresh(true);
         });
-
         window.addEventListener('beforeunload', handleBeforeUnload);
         initialized = true;
-    }
-    function addFile(pid) {
-        openDialog(pid, false);
-    }
-
-
-    function addDirs(pid) {
-        openDialog(pid, true);
     }
 
     function openDialog(pid, isDir = true) {
@@ -64,27 +54,28 @@ export const useUploadStore = defineStore('upload', () => {
         }
     }
 
-
-
-    function pause(id) {
-        uploadEngine.pause(id);
-    }
-
-    function resume(id) {
-        uploadEngine.resume(id);
-    }
-
-    function retry(id) {
-        uploadEngine.retry(id);
-    }
-
-    function cancel(id) {
-        uploadEngine.cancel(id);
-    }
     function clear() {
         uploadList.value = [];
         uploadEngine.clear();
     }
-
-    return { uploadList, addFile, addDirs, pause, resume, retry, cancel, clear, init, autoDeleteFinished, pageIndex, pageSize,fileTotal }
+    return {
+        uploadList,
+        clear,
+        init,
+        autoDeleteFinished,
+        pageIndex,
+        pageSize,
+        fileTotal,
+        getList: () => updatePageFiles(uploadEngine.getUploadList()),
+        remove: (id) => uploadEngine.remove(id),
+        addDirs: (pid) => openDialog(pid, true),
+        addFile: (pid) => openDialog(pid, false),
+        retry: (id) => uploadEngine.retry(id),
+        cancel: (id) => uploadEngine.cancel(id),
+        resume: (id) => uploadEngine.resume(id),
+        pause: (id) => uploadEngine.pause(id),
+        resumeAll: () => uploadEngine.resumeAll(),
+        pauseAll: () => uploadEngine.pauseAll(),
+        removeAll: () => uploadEngine.removeAll(),
+    }
 })

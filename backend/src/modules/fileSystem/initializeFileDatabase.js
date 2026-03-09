@@ -5,6 +5,17 @@ const { queueScanning } = require("./utils");
 const readline = require("readline");
 
 function askQuestion(q) {
+    const dbRootPaths = [...new Set(allFiles.map(f => f.rootPath || ""))].filter(p => p);
+    console.log(`
+          ⚠ 检测到文件数据库中没有与当前配置 rootPath 匹配的记录。 \n
+          数据库中存在的 rootPath:", ${dbRootPaths.length ? dbRootPaths.join(", ") : "(无)"} \n
+          "当前配置 rootPath:", fileDir \n
+          请选择处理方式： \n
+          1. 清空数据库并重新同步 \n
+          2. 直接同步（不清空数据库，可能出现重复记录） \n
+          3. 退出 \n
+         `);
+
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -28,7 +39,7 @@ async function initFileDB() {
         ] 
         await fs.ensureDir(fileDir);
         await FileTable.ready;
-        const allFiles = await FileTable.find([]); 
+        const allFiles = await FileTable.find([]);
         if (allFiles.length === 0) {
             console.log("初始化文件数据库...");
             await queueScanning(filePaths);
@@ -39,14 +50,6 @@ async function initFileDB() {
         // 检查是否有与当前 fileDir 匹配的记录
         const matching = allFiles.filter(f => f.rootPath === fileDir);
         if (matching.length === 0) {
-            const dbRootPaths = [...new Set(allFiles.map(f => f.rootPath || ""))].filter(p => p);
-            console.log("\n⚠ 检测到文件数据库中没有与当前配置 rootPath 匹配的记录。");
-            console.log("数据库中存在的 rootPath:", dbRootPaths.length ? dbRootPaths.join(", ") : "(无)");
-            console.log("当前配置 rootPath:", fileDir);
-            console.log("\n请选择处理方式：");
-            console.log("1. 清空数据库并重新同步");
-            console.log("2. 直接同步（不清空数据库，可能出现重复记录）");
-            console.log("3. 退出");
             const ans = await askQuestion("\n输入选项（1/2/3）：");
             if (ans === "1") {
                 console.log("清空数据库...");

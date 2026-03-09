@@ -755,6 +755,7 @@ class Model {
     async deleteMany(filters = []) {
         if (!filters.length) throw new Error('filters 不能为空');
         const { whereSql, values } = this._buildWhereByFilters(filters);
+        console.log(`DELETE FROM ${this.table} ${whereSql}`, values);
         return this.db.run(`DELETE FROM ${this.table} ${whereSql}`, values);
     }
 }

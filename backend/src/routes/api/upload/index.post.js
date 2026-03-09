@@ -13,7 +13,7 @@ module.exports = [upload.single('file'), async ctx => {
     if (!hash) throw new Error("hash不能为空");
     if (!chunkHash) throw new Error("chunkHash不能为空");
     try {
-        const tempPath = path.join(uploadTempDir, genFileHash(hash, relativePath), `${chunkHash}.temp`);
+        const tempPath = path.join(uploadTempDir, genFileHash(hash, relativePath || filename), `${genFileHash(chunkHash, relativePath || filename)}.temp`);
         await fs.outputFile(tempPath, ctx.request.file.buffer);
         await UploadRecord.upsert({
             userId: ctx.state.user.userId, // 关联到 users.id

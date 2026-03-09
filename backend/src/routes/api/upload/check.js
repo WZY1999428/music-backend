@@ -23,16 +23,16 @@ module.exports = async (ctx) => {
                         parentId = await ensureDirRecord(relativePath, parentId);
                         fullPath = path.join(data.rootPath, relativePath);
                     };
-                    await cpFile(dataPath, fullPath, hash, parentId)
-                    ctx.success({ filePath: filename, exists: true })
+                    const cpd = await cpFile(dataPath, fullPath, hash, parentId)
+                    cpd ? ctx.success({ filePath: filename, exists: true }) : ctx.success({ files: [], exists: false })
                 } else if (parent) {
                     if (parent.isFolder != 1) throw new Error("父级id不是一个文件夹");
                     const filePath = path.join(parent.path, filename);
                     const fullPath = path.join(data.rootPath, filePath)
-                    await cpFile(dataPath, fullPath, hash, parentId)
-                    ctx.success({ filePath: filePath, exists: true })
+                    const cpd = await cpFile(dataPath, fullPath, hash, parentId)
+                    cpd ? ctx.success({ filePath: filename, exists: true }) : ctx.success({ files: [], exists: false })
                 } else {
-                    ctx.success({ filePath: [], exists: false })
+                    ctx.success({ files: [], exists: false })
                 }
             } else {
                 ctx.success({ filePath: file.path, exists: true })
@@ -48,12 +48,19 @@ module.exports = async (ctx) => {
 };
 
 async function cpFile(src, dest, hash, parentId) {
-    if (src != dest) {
-        await fs.copy(src, dest);
-        const newRecord = await buildFileRecord(dest, parentId);
-        newRecord.hash = hash;
-        await FileTable.insert(newRecord)
-        const ret = await FileTable.insert(newRecord)
-        await FileTable.update({ id: ret.id }, { fullPathId: `0-${ret.id}` })
+    try {
+        if (src != dest) {
+            await fs.copy(src, dest);
+            const newRecord = await buildFileRecord(dest, parentId);
+            await FileTable.runInTransaction(async () => {
+                const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
+                newRecord.hash = hash;
+                const ret = await FileTable.insert(newRecord)
+                await FileTable.update({ id: ret.id }, { fullPathId: parent ? `${parent.fullPathId}-${ret.id}` : `0-${ret.id}` })
+            })
+        }
+        return true;
+    } catch (error) {
+        return false;
     }
 }

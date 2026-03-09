@@ -19,20 +19,32 @@ class Uploader extends EventEmitter {
     }
 
     addTasks(files, parentId) {
-        for (const file of files) {
-            this.addTask(file, parentId);
+        files = Array.from(files);
+        function next() {
+            for (let i = 0; i < 100; i++) {
+                const f = files.shift()
+                if (f && f.name) this.addTask(f, parentId);
+            }
+            if (files.length) {
+                setTimeout(next.bind(this), 500);
+            }
         }
+        next.call(this);
     }
-
+    #runTimer = 0;
+    #runDebounceTimeout = null;
     addTask(file, parentId) {
         const task = new Task(file, parentId);
-        task.on('change', () => {
-            this.#emitChange();
-        });
-
-        function dleteOnly(task) {
+        const dleteOnly = (task) => {
+            const now = Date.now();
+            clearTimeout(this.#runDebounceTimeout);
             this.runningTasks.delete(task.id);
-            this.#run();
+            if (task.status == status.completed) this.tasks.delete(task.id);
+            if (now - this.#runTimer >= 200) {
+                this.#runTimer = now;
+                this.#run();
+            }
+            this.#runDebounceTimeout = setTimeout(() => this.#run(), 400);
         }
         task.on('completed', (task) => {
             this.#emitSuccess(task);
@@ -55,15 +67,20 @@ class Uploader extends EventEmitter {
     }
 
     #run() {
-        if (this.runningTasks.size >= this.maxThread) return;
+        const filter = [status.waitingHashing, status.pending];
+        const queue = Array.from(this.tasks.values()).filter(f => filter.includes(f.status));
         let nextCount = this.maxThread - this.runningTasks.size;
-        const tasks = Array.from(this.tasks.values()).filter(v => v.status == status.pending);
-        if (nextCount > tasks.length) nextCount = tasks.length;
-        for (let i = 0; i < nextCount; i++) {
-            const task = tasks.shift();
-            if (task) {
+        if (!queue.length) return;
+        for (let i = 0; i <= nextCount; i++) {
+            const task = queue.shift();
+            if (task && this.runningTasks.has(task.id)) {
+                i--;
+                continue;
+            } else if (task) {
                 this.runningTasks.set(task.id, task);
-                task.start();
+                task.start()
+            } else {
+                break;
             }
         }
     }
@@ -77,22 +94,59 @@ class Uploader extends EventEmitter {
         this._withTask(id, task => task.retry());
     }
 
+    pauseAll() {
+        this.tasks.forEach(o => {
+            if ([status.checking, status.pending, status.hashing, status.mergeing, status.uploading, status.waitingHashing].includes(o.status)) o.pause();
+        });
+        this.runningTasks.clear();
+    }
+
+    resumeAll() {
+        this.tasks.forEach(o => {
+            if ([status.paused, status.failed].includes(o.status)) {
+                o.status = status.pending;
+            }
+        });
+        this.#run();
+    }
+
+    getUploadList() {
+        return this.#formatFiles();
+    }
 
     cancel(id) {
+        this._withTask(id, task => task.cancel(true));
+    }
+
+    remove(id) {
         this._withTask(id, task => {
-            task.cancel();
+            task.cancel(false);
             this.tasks.delete(task.id);
+            this.#emitChange();
         });
     }
 
+    removeAll() {
+        this.tasks.forEach(o => o.cancel(false));
+        this.runningTasks.clear();
+        this.tasks.clear();
+        this.#emitChange();
+    }
+
+
     resume(id) {
-        this._withTask(id, task => task.restore());
+        this._withTask(id, task => {
+            if (this.runningTasks.size >= this.maxThread) {
+                task.status = pending;
+            } else {
+                task.resume()
+            }
+        });
     }
 
     clear() {
         this.tasks.forEach(o => o.cancel());
         this.tasks.clear();
-        this.runningTasks.clear();
     }
 
 
@@ -115,12 +169,12 @@ class Uploader extends EventEmitter {
             this.emit("change", this.#formatFiles());
             this.#changeTimer = now;
         }
-        // 确保最后一次可能小于300也会执行
         this.#debounceTimeout = setTimeout(() => this.emit("change", this.#formatFiles()), 300);
     }
 
     #formatFiles() {
-        return Array.from(this.tasks.values()).map(item => {
+        const list = Array.from(this.tasks.values());
+        return list.map(item => {
             const uploadFinisheds = Array.from(item.uploadFinisheds);
             const progress = item.uploadFinisheds.size / item.chunks.length;
             return {

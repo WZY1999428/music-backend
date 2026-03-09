@@ -68,7 +68,7 @@
                 <el-table-column label="文件图标" width="80" align="center">
                     <template #default="{ row }">
                         <div class="flex justify-center">
-                            <icon :name="formatFileIcon(row)"></icon>
+                            <icon :name="formatFileIcon(row)"></icon> 
                         </div>
                     </template>
                 </el-table-column>
@@ -90,7 +90,7 @@
                 <template v-if="!fileStore.loading">
                     <el-empty v-if="!fileStore.error" description="暂无文件"></el-empty>
                     <el-empty v-else description="网络请求失败了">
-                        <el-button type="primary" @click="fileStore.forceRefresh(true)">刷新</el-button>
+                        <el-button type="primary" @click="fileStore.forceRefresh">刷新</el-button>
                     </el-empty>
                 </template>
             </template>
