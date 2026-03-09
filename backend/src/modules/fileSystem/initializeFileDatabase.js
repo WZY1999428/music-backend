@@ -28,20 +28,16 @@ function askQuestion(q) {
     );
 }
 
-async function initFileDB() {
+async function initFileDB() { 
     try {
-        const filePaths = [
+        const filePaths = [ 
             {
                 rootPath: fileDir,
                 path: "",
                 id: 0,
             }
-        ]
-
-        const stat = await fs.stat(fileDir);
-        if (!stat.isDirectory()) {
-            throw new Error(`${fileDir} 目录不存在`);
-        }
+        ] 
+        await fs.ensureDir(fileDir);
         await FileTable.ready;
         const allFiles = await FileTable.find([]);
         if (allFiles.length === 0) {
@@ -49,7 +45,7 @@ async function initFileDB() {
             await queueScanning(filePaths);
             console.log("文件数据库初始化完成");
             return true;
-        }
+        } 
 
         // 检查是否有与当前 fileDir 匹配的记录
         const matching = allFiles.filter(f => f.rootPath === fileDir);

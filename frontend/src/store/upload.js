@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { useFileStore } from "./file";
 import Uploader from '@/utils/upload';
-import { status as UpS } from '@/utils/upload/task';
+import Task, { status as UpS } from '@/utils/upload/task';
 
 let initialized = false;
 export const useUploadStore = defineStore('upload', () => {

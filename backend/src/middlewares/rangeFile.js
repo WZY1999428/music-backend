@@ -100,7 +100,6 @@ module.exports = function rangeFile(rootDir) {
             this.push(null);
           },
         });
-        console.log(111111111111);
         return;
       }
 

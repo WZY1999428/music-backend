@@ -2,55 +2,57 @@ const fs = require("fs-extra");
 const path = require("path");
 const { FileTable, RecentFiles } = require("@/modules/sqlite/model");
 const archiver = require("archiver");
-
 /**
  * 获取文件内容
  * @param {Object} ctx - Koa2 Context 对象
  * @param {number} ctx.query.fileId - 文件ID
  */
 
-module.exports = async (ctx) => {
-    try {
-        const id = ctx.params.fileId
-        if (id == 0) {
-            // 下载根目录下的所有文件
-            await zipDirectory(process.env.PUBLIC_FILE_PATCH, ctx, n = Date.now() + ".zip");
-            return;
-        }
-        const file = await FileTable.findOne([
-            { field: "id", value: id }
-        ])
-        if (!file) return ctx.fail("文件不存在");
-        const filePath = path.join(file.rootPath, file.path);
-        const stat = await fs.stat(filePath)
-        if (stat.isDirectory()) {
-            // 下载文件夹
-            await zipDirectory(filePath, ctx, file.name + ".zip");
-        } else {
-            // 添加到最近访问
-            await RecentFiles.upsert({ userId: ctx.state.file.userId, fileId: id }, ["userId", "fileId"]);
-            const range = ctx.headers.range
-            const stat = await fs.stat(filePath)
-            const fileSize = stat.size
-            ctx.set("Accept-Ranges", "bytes")
-            ctx.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`)
-            ctx.set("Content-Type", "application/octet-stream")
-            if (range) {
-                const [startStr, endStr] = range.replace(/bytes=/, '').split('-')
-                const start = parseInt(startStr, 10)
-                const end = endStr ? parseInt(endStr, 10) : fileSize - 1
-                ctx.status = 206
-                ctx.set("Content-Range", `bytes ${start}-${end}/${fileSize}`)
-                ctx.set("Content-Length", end - start + 1)
-                ctx.body = fs.createReadStream(filePath, { start, end })
-            } else {
-                ctx.set("Content-Length", fileSize)
-                ctx.body = fs.createReadStream(filePath)
+module.exports = {
+    get: async (ctx) => {
+        try {
+            const id = ctx.params.fileId
+            if (id == 0) {
+                // 下载根目录下的所有文件
+                await zipDirectory(process.env.PUBLIC_FILE_PATCH, ctx, n = Date.now() + ".zip");
+                return;
             }
+            const file = await FileTable.findOne([
+                { field: "id", value: id }
+            ])
+            if (!file) return ctx.fail("文件不存在");
+            const filePath = path.join(file.rootPath, file.path);
+            const stat = await fs.stat(filePath)
+            if (stat.isDirectory()) {
+                // 下载文件夹
+                await zipDirectory(filePath, ctx, file.name + ".zip");
+            } else {
+                // 添加到最近访问
+                await RecentFiles.upsert({ userId: ctx.state.file.userId, fileId: id }, ["userId", "fileId"]);
+                const range = ctx.headers.range
+                const stat = await fs.stat(filePath)
+                const fileSize = stat.size
+                ctx.set("Accept-Ranges", "bytes")
+                ctx.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`)
+                ctx.set("Content-Type", "application/octet-stream")
+                if (range) {
+                    const [startStr, endStr] = range.replace(/bytes=/, '').split('-')
+                    const start = parseInt(startStr, 10)
+                    const end = endStr ? parseInt(endStr, 10) : fileSize - 1
+                    ctx.status = 206
+                    ctx.set("Content-Range", `bytes ${start}-${end}/${fileSize}`)
+                    ctx.set("Content-Length", end - start + 1)
+                    ctx.body = fs.createReadStream(filePath, { start, end })
+                } else {
+                    ctx.set("Content-Length", fileSize)
+                    ctx.body = fs.createReadStream(filePath)
+                }
+            }
+        } catch (error) {
+            ctx.fail(error.message)
         }
-    } catch (error) {
-        ctx.fail(error.message)
-    }
+    },
+    authRequired: false
 }
 
 

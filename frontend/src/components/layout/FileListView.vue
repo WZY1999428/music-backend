@@ -68,7 +68,7 @@
                 <el-table-column label="文件图标" width="80" align="center">
                     <template #default="{ row }">
                         <div class="flex justify-center">
-                            <icon :name="formatFileIcon(row)"></icon>
+                            <icon :name="formatFileIcon(row)"></icon> 
                         </div>
                     </template>
                 </el-table-column>

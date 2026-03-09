@@ -2,7 +2,7 @@
 const Koa = require('koa');
 const path = require('path');
 const { bodyParser } = require('@koa/bodyparser');
-const registerRoutes = require('./utils/registerRoutes');
+const { registerRoutes } = require('./utils/registerRoutes');
 const viteServerMiddleware = require('@/modules/viteServer');
 const attachErrorHandler = require('./utils/errorHandler');
 const router = registerRoutes(path.join(__dirname, './routes'));

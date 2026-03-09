@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch', 'all'];
-
+const whileListMap = new Set();
 function registerRoutes(routerDir, prefix = '') {
   const router = new Router();
 
@@ -29,12 +29,18 @@ function registerRoutes(routerDir, prefix = '') {
         let routeName = path.basename(file, path.extname(file)); // 去掉扩展名
 
         // 文件名支持 method 后缀，如 login.get.js
+
         const parts = routeName.split('.');
         if (parts.length === 2 && HTTP_METHODS.includes(parts[1].toLowerCase())) {
           routeName = parts[0];
           method = parts[1].toLowerCase();
         }
 
+        // ==== 处理 noAuth 后缀 ====
+        if (routeName.includes('.noAuth')) {
+          routeName = routeName.replace('.noAuth', ''); // 去掉 noAuth
+          noAuthMap.add(routeName);
+        }
         // 解析 params，比如 xxx[id] -> xxx/:id
         routeName = parseRouteName(routeName);
 
@@ -43,15 +49,17 @@ function registerRoutes(routerDir, prefix = '') {
 
         const routePath = path.posix.join(parentPath, routeName);
         let handlers = [];
-
+        let authRequired = true;
         if (typeof mod === 'function') {
           handlers = [mod];
         } else if (Array.isArray(mod)) {
           handlers = mod; // 支持中间件数组
-        } else {
-          return;
-        }
+        } else if (typeof mod === 'object' && mod.get) {
+          if (mod.authRequired !== undefined) authRequired = mod.authRequired;
+          handlers = [mod.get];
+        } else return;
         const routerPath = prefix + (routePath.startsWith('/') ? routePath : '/' + routePath);
+        if (!authRequired) whileListMap.add(routerPath);
         router[method](routerPath, ...handlers);
       }
     });
@@ -62,4 +70,4 @@ function registerRoutes(routerDir, prefix = '') {
   return router;
 }
 
-module.exports = registerRoutes;
+module.exports = { registerRoutes, whileListMap };
