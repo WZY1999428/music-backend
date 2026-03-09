@@ -283,7 +283,6 @@ class Task extends EventEmitter {
     resume() {
         if (this.status == status.paused) {
             this.status = status.pending;
-            console.log(this.lastStatus);
             switch (this.lastStatus) {
                 case status.pending:
                     this.start();

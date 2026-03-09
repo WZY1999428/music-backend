@@ -18,7 +18,6 @@ module.exports = async (ctx) => {
         const files = await getFileList(filters);
         ctx.success(files.map(f => ({ ...f, access_token: generateFileToken(f.id, ctx.state.user.userId) })));
     } catch (err) {
-        console.log(err);
         ctx.fail("获取列表失败: " + err.message); 
     }
 };

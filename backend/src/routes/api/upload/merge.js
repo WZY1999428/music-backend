@@ -2,7 +2,7 @@
 const { FileTable, UploadRecord } = require("@/modules/sqlite/model");
 const fs = require("fs-extra");
 const path = require("path");
-const { buildFileRecord, ensureDirRecord, normalizePathForDB } = require("@/modules/fileSystem/utils");
+const { buildFileRecord, ensureDirRecord, createClosurePaths } = require("@/modules/fileSystem/utils");
 const mergingSet = new Set();
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 module.exports = async (ctx) => {
@@ -16,13 +16,11 @@ module.exports = async (ctx) => {
         if (!record.length) throw new Error("文件不存在");
         let { parentId, relativePath, tempPath } = record[0];
         let savePath = "";
-        let fullPathId = "";
         if (relativePath) parentId = await ensureDirRecord(relativePath, parentId);
         if (parentId != 0) {
             const data = await FileTable.findOne([{ field: "id", value: parentId }]);
             if (!data) throw new Error("合并失败数据路径不存在");
             savePath = path.join(data.rootPath, data.path);
-            fullPathId = data.fullPathId
         } else savePath = fileDir;
         await fs.ensureDir(savePath);
         const filePath = await merge(record, savePath)
@@ -30,14 +28,14 @@ module.exports = async (ctx) => {
         newRecord.hash = hash;
         await FileTable.runInTransaction(async () => {
             const ret = await FileTable.insert(newRecord)
-            await FileTable.update({ id: ret.id }, { fullPathId: `${fullPathId}-${ret.id}` })
+            await createClosurePaths(ret.id, parentId)
         });
         await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
         await fs.rm(path.parse(tempPath).dir, { recursive: true }).catch(() => { });
         mergingSet.delete(hash);
         ctx.success("合并完成")
     } catch (error) {
-        const ret = await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
+        await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
         mergingSet.delete(hash);
         ctx.fail("合并失败：" + error.message)
     }

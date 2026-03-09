@@ -121,7 +121,6 @@ module.exports = async (ctx) => {
                 await FileTable.commit();
                 transactionStarted = false;
             } catch (err) {
-                console.log(err);
                 // 回退文件 & mkdir & 数据库
                 for (const f of moved) await fs.move(f.dest, f.src).catch(() => { });
                 for (const d of mkdirs) await fs.rmdir(d.path, { recursive: true }).catch(() => { });

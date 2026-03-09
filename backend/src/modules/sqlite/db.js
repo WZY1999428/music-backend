@@ -404,8 +404,6 @@ class Model {
      * @example
      * _buildWhereByFilters([
      *  [
-        { field: 'fullPathId', op: 'like', value: '%-123-%', logic: 'OR', groupStart: true },
-        { field: 'fullPathId', op: 'like', value: '-123%', groupEnd: true },
         { field: 'id', op: '!=', value: 123 }
     ]
      * ])
@@ -755,7 +753,6 @@ class Model {
     async deleteMany(filters = []) {
         if (!filters.length) throw new Error('filters 不能为空');
         const { whereSql, values } = this._buildWhereByFilters(filters);
-        console.log(`DELETE FROM ${this.table} ${whereSql}`, values);
         return this.db.run(`DELETE FROM ${this.table} ${whereSql}`, values);
     }
 }

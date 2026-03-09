@@ -1,39 +1,21 @@
-const { FileTable } = require("@/modules/sqlite/model");
+const { FilePathTable } = require("@/modules/sqlite/model");
 const { generateFileToken } = require("@/modules/tokens")
+const { getFileList } = require("@/modules/fileSystem/utils")
 module.exports = async (ctx) => {
     try {
         const parentId = ctx.query.parentId || 0;
         const keyword = ctx.query.keyword || '';
-        const filters = [{ field: "status", value: 0 }];
-        if (keyword) filters.push(...[{ field: "name", value: `%${keyword}%`, op: "LIKE" }, { field: "fullPathId", value: `${parentId == 0 ? '' : '%-'} ${parentId}-%`, op: "LIKE" }, { field: "isFolder", value: 1 }]);
-        else filters.push(...[{ field: "parentId", value: parentId }, { field: "isFolder", value: 1 }]);
-        let files = await FileTable.joinFind({
-            fields: [
-                "t1.id",
-                "t1.name",
-                "t1.path",
-                "t1.isFolder",
-                "t1.parentId",
-                't1.category',
-                "t1.size",
-                "t1.mimeType",
-                "t1.extension",
-                "t1.createdAt",
-                "t1.updatedAt",
-                "t1.status",
-                "t2.id as favoriteId"
-            ],
-            joins: [
-                {
-                    name: 'favorites',
-                    type: 'LEFT JOIN',
-                    on: 't2.fileId = t1.id'
-                }
-            ],
-            filters,
-            pageIndex: 1,
-            pageSize: -1,
-        });
+        const filters = [{ field: "t2.status", value: 0 }, { field: "t2.isFolder", value: 1 }];
+        if (parentId == 0) {
+            if (!keyword) filters.push({ field: "t2.parentId", value: 0 });
+        } else {
+            const parent = await FilePathTable.findOne([{ field: "ancestor_id", value: parentId }]);
+            if (!parent) throw new Error("父级目录不存在");
+            filters.push({ field: "ancestor_id", value: parentId });
+            filters.push(keyword ? { field: "depth", value: 0, op: ">" } : { field: "depth", value: 1, op: "=" });
+        }
+        if (keyword) filters.push({ field: "t2.name", value: `%${keyword}%`, op: "LIKE" })
+        const files = await getFileList(filters);
         ctx.success(files.map(f => ({ ...f, access_token: generateFileToken(f.id, ctx.state.user.userId) })));
     } catch (err) {
         ctx.fail("获取列表失败: " + err.message);

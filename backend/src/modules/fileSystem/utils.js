@@ -31,7 +31,6 @@ async function queueScanning(dirPaths = []) {
         console.timeEnd("QueueScanning");
     } catch (error) {
         isScanning = false;
-        console.log(error);
         hashFile.clear();
         throw error;
     }
@@ -110,11 +109,7 @@ async function writeFiles(files) {
                 try {
                     const data = await FileTable.insert(record);
                     record.id = data.id;
-                    await FilePathTable.insert({ ancestor_id: record.id, descendant_id: record.id, depth: 0 });
-                    if (record.parentId != 0) {
-                        const parentPaths = await FilePathTable.find([{ field: "descendant_id", value: record.parentId }]);
-                        for (const p of parentPaths) await FilePathTable.insert({ ancestor_id: p.ancestor_id, descendant_id: data.id, depth: p.depth + 1 });
-                    }
+                    await createClosurePaths(record.id, record.parentId)
                 } catch (err) {
                     if (err.errno !== 19) console.error("插入失败:", err);
                 }
@@ -183,7 +178,7 @@ async function ensureDirRecord(relativePath, parentId) {
                     try {
                         await FileTable.runInTransaction(async () => {
                             const ret = await FileTable.insert(record);
-                            // await FileTable.update({ id: ret.id }, { fullPathId: fullPathId })
+                            await createClosurePaths(ret.id, parentId)
                             parentId = ret.id
                         })
                     } catch (error) {
@@ -204,6 +199,71 @@ async function ensureDirRecord(relativePath, parentId) {
         }
     }
     return parentId
+}
+
+
+async function createClosurePaths(selfId, parentId) {
+    await FilePathTable.insert({ ancestor_id: selfId, descendant_id: selfId, depth: 0, })
+    if (parentId) {
+        const parentPaths = await FilePathTable.find([{ field: "descendant_id", value: parentId }]);
+        for (const p of parentPaths) await FilePathTable.insert({ ancestor_id: p.ancestor_id, descendant_id: selfId, depth: p.depth + 1 });
+    }
+}
+
+
+async function updateClosurePaths(selfId, newParentId) {
+    // 1. 断开该节点及其所有子孙节点与旧祖先的关系
+    // 逻辑：找到所有以 selfId 的子孙为 descendant 的路径，且其 ancestor 不在子孙集合中的路径
+    // 在 SQL 中通常是：DELETE FROM path WHERE descendant_id IN (SELECT id FROM descendants) 
+    // AND ancestor_id NOT IN (SELECT id FROM descendants)
+    // 获取该节点下所有的子孙（包括自己）
+    const descendants = await FilePathTable.find([{ field: "ancestor_id", value: selfId }]);
+    const descendantIds = descendants.map(d => d.descendant_id);
+    // 删除所有指向这些子孙的外部祖先关系
+    // 必须保留子孙内部的相对关系（即 ancestor 也在 descendantIds 里的路径）
+    for (const dId of descendantIds) {
+        await FilePathTable.deleteMany([
+            { field: "descendant_id", value: dId },
+            { field: "ancestor_id", value: descendantIds, op: "NOT_IN" } // 伪代码：排除内部关系
+        ]);
+    }
+    // 2. 建立该节点及其子孙与新祖先及其上方所有祖先的关系
+    if (newParentId) {
+        // 获取新父节点的所有祖先路径
+        const newParentAncestors = await FilePathTable.find([{ field: "descendant_id", value: newParentId }]);
+        // 循环新祖先
+        for (const pa of newParentAncestors) {
+            // 循环子孙
+            for (const d of descendants) {
+                await FilePathTable.insert({
+                    ancestor_id: pa.ancestor_id,
+                    descendant_id: d.descendant_id,
+                    depth: pa.depth + d.depth + 1
+                });
+            }
+        }
+    }
+}
+
+async function deleteClosurePaths(selfId) {
+    // 1. 首先找到该节点下的所有子孙节点 ID (包括自己)
+    // 因为 ancestor_id = selfId 的记录列出了所有的子孙
+    const descendants = await FilePathTable.find([
+        { field: "ancestor_id", value: selfId }
+    ]);
+
+    const descendantIds = descendants.map(d => d.descendant_id);
+
+    // 2. 删除所有以这些 ID 作为 descendant_id 的路径
+    // 这会自动切断这些节点与上方所有祖先的关系，以及它们内部的关系
+    if (descendantIds.length > 0) {
+        await FilePathTable.deleteMany([
+            { field: "descendant_id", value: descendantIds, operator: "IN" }
+        ]);
+    }
+
+    // 3. (可选) 如果你还需要删除实际的文件记录表，可以在这里操作
+    // await FileTable.deleteMany([{ field: "id", value: descendantIds, operator: "IN" }]);
 }
 
 
@@ -358,5 +418,5 @@ function isValidFileName(name) {
 }
 
 
-module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName, ensureDirRecord, normalizePathForDB, getFileList };
+module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName, ensureDirRecord, normalizePathForDB, getFileList, createClosurePaths, updateClosurePaths, deleteClosurePaths };
 

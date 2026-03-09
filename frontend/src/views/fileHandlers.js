@@ -285,8 +285,8 @@ export function deleteFileFun(files) {
             h(ElRadioGroup, {
                 modelValue: radio.value,
                 options: [
-                    { label: '永久删除', value: '0' },
                     { label: '添加到回收站', value: '1' },
+                    { label: '永久删除', value: '0' },
                 ],
                 'onUpdate:modelValue': (val) => {
                     radio.value = val

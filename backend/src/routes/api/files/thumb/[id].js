@@ -16,7 +16,6 @@ module.exports = {
         try {
             const id = ctx.params.id
             const file = await FileTable.findOne([{ field: "id", value: id }]);
-            console.log(file);
             if (!file) return ctx.fail("文件不存在");
             const filePath = path.join(file.rootPath, file.path);
             const stat = await fs.stat(filePath)
@@ -34,7 +33,6 @@ module.exports = {
                 ctx.body = fs.createReadStream(outPath)
             }
         } catch (error) {
-            console.log(error);
             ctx.fail(error.message)
         }
     },

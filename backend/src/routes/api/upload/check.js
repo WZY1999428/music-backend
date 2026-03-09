@@ -53,10 +53,9 @@ async function cpFile(src, dest, hash, parentId) {
             await fs.copy(src, dest);
             const newRecord = await buildFileRecord(dest, parentId);
             await FileTable.runInTransaction(async () => {
-                const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
                 newRecord.hash = hash;
                 const ret = await FileTable.insert(newRecord)
-                await FileTable.update({ id: ret.id }, { fullPathId: parent ? `${parent.fullPathId}-${ret.id}` : `0-${ret.id}` })
+                 await createClosurePaths(ret.id, parentId)
             })
         }
         return true;

@@ -138,7 +138,6 @@ const handleLogin = async () => {
 // 在组件挂载时，立即检查状态
 onMounted(async () => {
     isInitialized.value = await checkInitializationStatus();
-    console.log(isInitialized.value);
 });
 </script>
 

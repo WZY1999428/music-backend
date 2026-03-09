@@ -27,7 +27,6 @@ module.exports = [upload.single('file'), async ctx => {
         }, ["hash", "chunkHash"]);
         ctx.success('上传成功');
     } catch (error) {
-        console.log("上传失败", error);
         ctx.success(error.message);
     }
 
