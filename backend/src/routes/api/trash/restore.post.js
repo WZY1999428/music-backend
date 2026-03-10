@@ -76,6 +76,7 @@ async function mkdirParent(file) {
         let oldId = parent.id;
         lastParent = parent.parentId;
         delete parent.id;
+        // 如果父级到了 下面的都得重新创建
         if (parent && [1, 3].includes(parent.status)) {
             parent.path = path.join(path.dirname(parent.path), parent.name).split(path.sep).join('/');
             const parent2 = await FileTable.findOne([{ field: "path", value: parent.path }]);
