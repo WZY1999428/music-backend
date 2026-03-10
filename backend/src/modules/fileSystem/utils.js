@@ -122,11 +122,21 @@ async function writeFiles(files) {
 }
 
 
-async function getFileList(filters, joins = [], { pageIndex = 1, pageSize = -1 } = {}) {
+async function getFileList(
+    filters = [],
+    joins = [{
+        name: 'files',
+        type: 'LEFT JOIN',
+        on: 't2.id = t1.descendant_id'
+    }],
+    { pageIndex = 1, pageSize = -1 } = {}) {
+
+
     return await FilePathTable.joinFind({
         fields: [
             "t2.id",
             "t2.name",
+            "t2.rootPath",
             "t2.path",
             "t2.isFolder",
             't2.category',
@@ -142,11 +152,6 @@ async function getFileList(filters, joins = [], { pageIndex = 1, pageSize = -1 }
             "t1.descendant_id",
         ],
         joins: [
-            {
-                name: 'files',
-                type: 'LEFT JOIN',
-                on: 't2.id = t1.descendant_id'
-            },
             ...joins
         ],
         filters,
@@ -224,7 +229,7 @@ async function updateClosurePaths(selfId, newParentId) {
     for (const dId of descendantIds) {
         await FilePathTable.deleteMany([
             { field: "descendant_id", value: dId },
-            { field: "ancestor_id", value: descendantIds, op: "NOT_IN" } // 伪代码：排除内部关系
+            { field: "ancestor_id", value: descendantIds, op: "not in" } // 伪代码：排除内部关系
         ]);
     }
     // 2. 建立该节点及其子孙与新祖先及其上方所有祖先的关系
@@ -261,9 +266,6 @@ async function deleteClosurePaths(selfId) {
             { field: "descendant_id", value: descendantIds, operator: "IN" }
         ]);
     }
-
-    // 3. (可选) 如果你还需要删除实际的文件记录表，可以在这里操作
-    // await FileTable.deleteMany([{ field: "id", value: descendantIds, operator: "IN" }]);
 }
 
 
@@ -307,47 +309,12 @@ async function buildFileRecord(fullPath, parentId = 0) {
 function normalizePathForDB(rootDir, fullPath) {
     // 1. 相对路径
     let relative = path.relative(rootDir, fullPath);
-
     // 2. 统一使用 / 分隔
     relative = relative.split(path.sep).join('/');
-
     // 3. 去掉首尾空格
     relative = relative.trim();
-
-    // 4. 可选：统一大小写
-    // relative = relative.toLowerCase();
-
     return relative;
 }
-
-
-function parseParendIds(fullPathId) {
-    const ids = [];
-    const arr = fullPathId.split("-");
-    for (let i = 0; i < arr.length; i++) {
-        const num = parseInt(arr[i]);
-        if (isFinite(num) && num != 0) ids.push(num);
-    }
-    return ids
-}
-
-
-function replacePathSegmentByName(path, name) {
-    return path.join(node.path, `../${name}`);
-}
-
-
-function replacePathSegment(fullPath, index, newName) {
-    const parts = fullPath.split(path.sep).filter(Boolean);
-
-    if (index < 0 || index >= parts.length) {
-        throw new Error('index 越界了，路径段不存在');
-    }
-
-    parts[index] = newName;
-    return path.join(...parts);
-}
-
 
 function getFileCategory(mimeType, extension) {
     if (!mimeType && !extension) return 'other';
@@ -418,5 +385,5 @@ function isValidFileName(name) {
 }
 
 
-module.exports = { buildFileRecord, hashFile, queueScanning, parseParendIds, replacePathSegment, replacePathSegmentByName, isValidFileName, ensureDirRecord, normalizePathForDB, getFileList, createClosurePaths, updateClosurePaths, deleteClosurePaths };
+module.exports = { buildFileRecord, hashFile, queueScanning, isValidFileName, ensureDirRecord, normalizePathForDB, getFileList, createClosurePaths, updateClosurePaths, deleteClosurePaths };
 

@@ -18,10 +18,8 @@ const showMessageMap = new Set();
 // 响应拦截
 request.interceptors.response.use(res => {
     const data = res.data;
-    if (showMessageMap.has(res.config.url) && data.code !== 0 && res.headers['content-type'] !== "application/octet-stream") {
-        if (showMessage) {
-            ElMessage.error(data.msg);
-        }
+    if (data.code !== 0 && res.headers['content-type'] !== "application/octet-stream") {
+        if (showMessageMap.has(res.config.url)) ElMessage.error(data.msg);
         return Promise.reject(data);
     }
     return data;

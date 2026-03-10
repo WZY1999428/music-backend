@@ -77,8 +77,10 @@ export function handleRowContextMenu({ event, file }) {
                 { label: '清空记录', icon: "delete", action: () => handleDeleteRecentFiles([], true) },
             ],
             recycleBin: () => [
+                { label: '还原文件', icon: "delete", action: (file) => recentlyFilesFun([file]) },
+                { label: '彻底删除', icon: "delete", action: (file) => handleSyncFile() },
                 { label: '清空回收站', icon: "delete", action: () => handleSyncFile() },
-                { label: '彻底删除', icon: "delete", action: () => handleSyncFile() },
+
             ]
         }
         const menu = getItems[fileStore.queryType];
