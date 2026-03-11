@@ -321,6 +321,10 @@ class Model {
         return data;
     }
 
+    execSql(sql, value) {
+        return this.db.run(sql, value)
+    }
+
     /**
      * 批量插入底层实现（支持事务）
      * @private

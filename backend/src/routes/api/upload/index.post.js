@@ -29,7 +29,6 @@ module.exports = [upload.single('file'), async ctx => {
     } catch (error) {
         ctx.success(error.message);
     }
-
 }];
 
 
