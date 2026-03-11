@@ -11,7 +11,9 @@ module.exports = async (ctx) => {
     const { fileIds } = ctx.request.body;
     const notExistFiles = [];
     try {
-        const files = await getFileList([{ field: "t1.ancestor_id", value: fileIds, op: "in" }, { field: "t1.depth", value: 0 }, { field: "t2.status", value: 1 }]);
+        const files = await getFileList({
+            filters: [{ field: "t1.ancestor_id", value: fileIds, op: "in" }, { field: "t1.depth", value: 0 }, { field: "t2.status", value: 1 }]
+        });
         for (const file of files) {
             if (restoremSet.has(file.id)) continue;
             if (!fs.pathExists(path.join(file.rootPath, file.path))) {
@@ -22,7 +24,10 @@ module.exports = async (ctx) => {
                 })
                 continue
             }
-            const parentChain = await getFileList([{ field: "descendant_id", value: file.id }, { field: "t2.id", value: file.id, op: "!=" }], [{ name: 'files', type: 'LEFT JOIN', on: 't2.id = t1.ancestor_id' }]);
+            const parentChain = await getFileList({
+                filters: [{ field: "descendant_id", value: file.id }, { field: "t2.id", value: file.id, op: "!=" }],
+                joins: [{ name: 'files', type: 'LEFT JOIN', on: 't2.id = t1.ancestor_id' }]
+            });
             const ids = parentChain.map(item => item.id);
             const removedParent = await FileTable.find([{ field: "id", value: ids, op: "in" }, { field: "status", value: [1, 3], op: "in" }]);
             if (!removedParent.length) {
@@ -53,7 +58,7 @@ async function restorePath(file) {
     await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
     await FileTable.runInTransaction(async () => {
         await FileTable.updateMany([{ field: "id", value: file.id }], { status: 0, path: newPath });
-        const children = await getFileList([{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]);
+        const children = await getFileList({ filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }] });
         for (const child of children) {
             const relative = path.relative(oldPath, child.path); // 相对于旧父路径的相对路径
             child.path = path.join(newPath, relative);

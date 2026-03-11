@@ -14,7 +14,9 @@ async function queueScanning(dirPaths = []) {
     if (isScanning) throw new Error("正在扫描中，请稍后重试");
     isScanning = true;
     try {
-        const dbFiles = await getFileList(dirPaths.map(f => ({ field: "ancestor_id", value: f.id || 0 }, { field: "depth", value: f.depth || 0 })));
+        const dbFiles = await getFileList({
+            filters: dirPaths.map(f => ({ field: "ancestor_id", value: f.id || 0 }, { field: "depth", value: f.depth || 0 }))
+        });
         const files = await readFiles(dirPaths, dbFiles);
         await writeFiles(files);
         if (dbFiles.length > 0) {
@@ -122,21 +124,22 @@ async function writeFiles(files) {
 }
 
 
-async function getFileList(
-    filters = [],
-    joins = [{
+async function getFileList({
+    filters: filters = [],
+    joins: joins = [],
+    fields: fields = [],
+    pageIndex: pageIndex = 1,
+    pageSize: pageSize = 20
+}) {
+    joins.unshift({
         name: 'files',
         type: 'LEFT JOIN',
         on: 't2.id = t1.descendant_id'
-    }],
-    { pageIndex = 1, pageSize = -1 } = {}) {
-
-
+    });
     return await FilePathTable.joinFind({
         fields: [
             "t2.id",
             "t2.name",
-            "t2.rootPath",
             "t2.path",
             "t2.isFolder",
             't2.category',
@@ -150,10 +153,9 @@ async function getFileList(
             "t2.parentId",
             "t1.ancestor_id",
             "t1.descendant_id",
+            ...fields
         ],
-        joins: [
-            ...joins
-        ],
+        joins,
         filters,
         pageIndex,
         pageSize,

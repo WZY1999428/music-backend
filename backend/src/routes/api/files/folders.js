@@ -15,7 +15,10 @@ module.exports = async (ctx) => {
             filters.push(keyword ? { field: "depth", value: 0, op: ">" } : { field: "depth", value: 1, op: "=" });
         }
         if (keyword) filters.push({ field: "t2.name", value: `%${keyword}%`, op: "LIKE" })
-        const files = await getFileList(filters);
+        const files = await getFileList({
+            filters,
+            fields: ["t2.rootPath"]
+        });
         ctx.success(files.map(f => ({ ...f, access_token: generateFileToken(f.id, ctx.state.user.userId) })));
     } catch (err) {
         ctx.fail("获取列表失败: " + err.message);

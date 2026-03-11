@@ -16,17 +16,16 @@ module.exports = async (ctx) => {
                 if (!file || removedMap.has(file.id)) continue;
                 removedMap.add(file.id);
                 if (!await fs.pathExists(path.join(file.rootPath, file.path))) {
-                    const files = await getFileList([{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">=" }]);
+                    const files = await getFileList({ filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">=" }] });
                     await removefiles(files)
                     continue;
                 }
-                const recycleFiles = await getFileList([{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }, { field: "status", value: 1 }]);
+                const recycleFiles = await getFileList({ filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }, { field: "status", value: 1 }] });
                 let whiteIds = [];
                 if (recycleFiles.length) {
                     whiteIds = await parentToRecycle(file.id, recycleFiles.sort((a, b) => b.depth - a.depth));
                 }
-                console.log(whiteIds);
-                const rmFiles = await getFileList([{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }, { field: "t2.id", value: whiteIds, op: "not in" }]);
+                const rmFiles = await getFileList({ filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }, { field: "t2.id", value: whiteIds, op: "not in" }] });
                 await removefiles(rmFiles)
                 if (whiteIds.length) await renameFileName(file, 3)
                 else await removefiles([file])
@@ -36,12 +35,11 @@ module.exports = async (ctx) => {
             for (const file of files) await renameFileName(file, 1);
             await FileTable.updateMany([{ field: "id", value: fileIds, op: "in" }, { field: "status", value: 0 }], { status: 1 });
             ctx.success("文件已入回收站");
-
         }
-        fileIds.forEach(id => removedMap.clear(id));
     } catch (error) {
-        fileIds.forEach(id => removedMap.clear(id));
         ctx.fail(error.message);
+    } finally {
+        fileIds.forEach(id => removedMap.delete(id));
     }
 }
 
@@ -65,7 +63,9 @@ async function renameFileName(file, status = 3) {
     await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
     await FileTable.runInTransaction(async () => {
         await FileTable.updateMany([{ field: "id", value: file.id }], { status: status, path: newPath });
-        const children = await getFileList([{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]);
+        const children = await getFileList({
+            filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]
+        });
         for (const child of children) {
             const relative = path.relative(oldPath, child.path); // 相对于旧父路径的相对路径
             child.path = path.join(newPath, relative).split(path.sep).join("/");
@@ -80,7 +80,9 @@ async function renameFileName(file, status = 3) {
 async function parentToRecycle(parentId, files) {
     const whiteIds = new Set();
     for (const file of files) {
-        const chain = await getFileList([{ field: "ancestor_id", value: parentId }, { field: "depth", value: 0, op: ">" }, { field: "depth", value: file.depth, op: "<" }]);
+        const chain = await getFileList({
+            filters: [{ field: "ancestor_id", value: parentId }, { field: "depth", value: 0, op: ">" }, { field: "depth", value: file.depth, op: "<" }]
+        });
         chain.sort((a, b) => b.depth - a.depth);
         let currentId = file.parentId;
         for (const f of chain) {
@@ -90,7 +92,9 @@ async function parentToRecycle(parentId, files) {
             }
         }
         if (file.isFolder == 1) {
-            const children = await getFileList([{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]);
+            const children = await getFileList({
+                filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]
+            });
             whiteIds.add(...children.map(f => f.id));
         }
         whiteIds.add(file.id)

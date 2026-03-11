@@ -43,7 +43,9 @@ module.exports = async (ctx) => {
                 if (file.isFolder) {
                     const idMap = new Map();
                     idMap.set(oldId, newFile.id);
-                    const children = await getFileList([{ field: "ancestor_id", value: oldId }, { field: "depth", value: 0, op: ">" }])
+                    const children = await getFileList(
+                        { filters: [{ field: "ancestor_id", value: oldId }, { field: "depth", value: 0, op: ">" }] }
+                    )
                     for (const childFile of children.sort((a, b) => a.depth - b.depth)) {
                         const newParentId = idMap.get(childFile.parentId);
                         const oldChildId = childFile.id;

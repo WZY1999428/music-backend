@@ -5,7 +5,7 @@ const { createClosurePaths, getFileList } = require("@/modules/fileSystem/utils"
 
 module.exports = async (ctx) => {
     const moved = []; // 用于 rollback
-    
+
     try {
         const { destId = 0, ids = [] } = ctx.request.body;
         if (!ids.length) throw new Error('请选择需要移动的文件');
@@ -50,10 +50,9 @@ module.exports = async (ctx) => {
 
                 // 如果是文件夹，更新子树
                 if (file.isFolder) {
-                    const children = await getFileList([
-                        { field: "ancestor_id", value: file.id },
-                        { field: "depth", value: 0, op: ">" }
-                    ]);
+                    const children = await getFileList({
+                        filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]
+                    });
 
                     // 按深度排序，父节点先更新
                     children.sort((a, b) => a.depth - b.depth);

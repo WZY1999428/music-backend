@@ -4,6 +4,7 @@ module.exports = async (ctx) => {
     try {
         const pageIndex = parseInt(ctx.query.pageIndex) || 1;
         const pageSize = parseInt(ctx.query.pageSize) || 20;
+        console.log(ctx.state.user.userId);
         const favoriteQuery = await Favorite.joinFind({
             fields: [
                 "t2.id",
