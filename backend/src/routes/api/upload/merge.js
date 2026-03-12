@@ -1,5 +1,5 @@
 // 合并文件
-const { FileTable, UploadRecord } = require("@/modules/sqlite/model");
+const { FileTable, UploadRecord } = require("@/modules/mongo/model");
 const fs = require("fs-extra");
 const path = require("path");
 const { buildFileRecord, ensureDirRecord, createClosurePaths } = require("@/modules/fileSystem/utils");
@@ -12,13 +12,13 @@ module.exports = async (ctx) => {
         if (!hash) throw new Error("hash不能为空");
         if (mergingSet.has(hash)) return ctx.fail("文件正在合并请勿重复请求");
         mergingSet.add(hash);
-        const record = await UploadRecord.find([{ field: "hash", value: hash }], { pageSize: -1 });
+        const record = await UploadRecord.find({ hash }, { pageSize: -1 });
         if (!record.length) throw new Error("文件不存在");
         let { parentId, relativePath, tempPath } = record[0];
         let savePath = "";
         if (relativePath) parentId = await ensureDirRecord(relativePath, parentId);
         if (parentId != 0) {
-            const data = await FileTable.findOne([{ field: "id", value: parentId }]);
+            const data = await FileTable.findOne({ id: parentId });
             if (!data) throw new Error("合并失败数据路径不存在");
             savePath = path.join(data.rootPath, data.path);
         } else savePath = fileDir;
@@ -30,12 +30,12 @@ module.exports = async (ctx) => {
             const ret = await FileTable.insert(newRecord)
             await createClosurePaths(ret.id, parentId)
         });
-        await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
+        await UploadRecord.deleteMany({ hash }).catch((err) => { });
         await fs.rm(path.parse(tempPath).dir, { recursive: true }).catch(() => { });
         mergingSet.delete(hash);
         ctx.success("合并完成")
     } catch (error) {
-        await UploadRecord.deleteMany([{ field: "hash", value: hash }]).catch((err) => { });
+        await UploadRecord.deleteMany({ hash }).catch((err) => { });
         mergingSet.delete(hash);
         ctx.fail("合并失败：" + error.message)
     }

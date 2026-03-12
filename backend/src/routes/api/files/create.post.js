@@ -1,4 +1,4 @@
-const { FileTable } = require('@/modules/sqlite/model')
+const { FileTable } = require('@/modules/mongo/model')
 const { buildFileRecord, createClosurePaths, isValidFileName } = require("@/modules/fileSystem/utils");
 const fs = require('fs-extra')
 const path = require('path')
@@ -8,10 +8,9 @@ module.exports = async (ctx) => {
         const { parentId, name } = ctx.request.body
         if (name == "") throw new Error('文件名不能为空');
         if (!isValidFileName(name)) throw new Error('文件名不合法');
-        const sqlField = [{ field: 'parentId', value: parentId }]
-        const files = await FileTable.find(sqlField)
+        const files = await FileTable.find({ parentId })
         if (files.some(f => f.name == name)) throw new Error('文件名已存在');
-        let parent = await FileTable.findOne([{ field: 'id', value: parentId }])
+        let parent = await FileTable.findOne({ id: parentId })
         if (!parent) parent = { rootPath: process.env.PUBLIC_FILE_PATCH, path: "" }
         newPath = path.join(parent.rootPath, parent.path, name)
         await fs.mkdir(newPath)

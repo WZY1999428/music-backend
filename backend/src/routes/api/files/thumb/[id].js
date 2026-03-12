@@ -2,7 +2,7 @@ const fs = require("fs-extra");
 const sharp = require('sharp');
 const path = require("path");
 const { verifyFileToken } = require("@/modules/tokens");
-const { FileTable } = require("@/modules/sqlite/model");
+const { FileTable } = require("@/modules/mongo/model");
 module.exports = {
     get: async (ctx) => {
         const access_token = ctx.query['access_token'];
@@ -15,7 +15,7 @@ module.exports = {
 
         try {
             const id = ctx.params.id
-            const file = await FileTable.findOne([{ field: "id", value: id }]);
+            const file = await FileTable.findOne({ id });
             if (!file) return ctx.fail("文件不存在");
             const filePath = path.join(file.rootPath, file.path);
             const stat = await fs.stat(filePath)

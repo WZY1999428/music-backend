@@ -1,4 +1,4 @@
-const { RecentFiles } = require("@/modules/sqlite/model");
+const { RecentFiles } = require("@/modules/mongo/model");
 module.exports = async (ctx) => {
     try {
         const { ids, clear } = ctx.request.body;
@@ -7,9 +7,7 @@ module.exports = async (ctx) => {
             await RecentFiles.clear();
             return ctx.success("最近访问清空成功");
         } else {
-            const datas = ids.map((id, index) => ({ field: "id", value: id, logic: index === ids.length - 1 ? "AND" : 'OR' }));
-            datas.push({ field: "userId", value: ctx.state.user.userId });
-            await RecentFiles.deleteMany(datas);
+            await RecentFiles.deleteMany({ $and: [{ id: { $in: ids } }, { userId: ctx.state.user.userId }] });
             return ctx.success("删除记录成功");
         }
     } catch (error) {

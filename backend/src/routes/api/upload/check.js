@@ -1,5 +1,5 @@
 // 检查文件是否存在
-const { FileTable, UploadRecord } = require("@/modules/sqlite/model");
+const { FileTable, UploadRecord } = require("@/modules/mongo/model");
 const { buildFileRecord, ensureDirRecord } = require("@/modules/fileSystem/utils");
 const fs = require("fs-extra");
 const path = require("path");
@@ -8,13 +8,13 @@ module.exports = async (ctx) => {
         let { hash, parentId, filename, relativePath } = ctx.query;
         if (!hash) throw new Error("hash不能为空");
         if (!parentId) throw new Error("parentId不能为空");
-        const files = await FileTable.find([{ "field": "hash", "value": hash }], { pageSize: -1 });
+        const files = await FileTable.find({ hash }, { pageSize: -1 });
         if (files.length) {
             const file = files.some(f => f.path == relativePath || f.parentId == parentId);
             if (!file) {
                 const data = files[0];
                 const dataPath = path.join(data.rootPath, data.path);
-                const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
+                const parent = await FileTable.findOne({ id: parentId });
                 if (!parent && parentId != 0) {
                     throw new Error("父级id不存在");
                 } else if (parentId == 0) {
@@ -55,7 +55,7 @@ async function cpFile(src, dest, hash, parentId) {
             await FileTable.runInTransaction(async () => {
                 newRecord.hash = hash;
                 const ret = await FileTable.insert(newRecord)
-                 await createClosurePaths(ret.id, parentId)
+                await createClosurePaths(ret.id, parentId)
             })
         }
         return true;

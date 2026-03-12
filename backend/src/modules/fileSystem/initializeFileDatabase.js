@@ -1,4 +1,4 @@
-const { FileTable } = require("@/modules/sqlite/model");
+const { FileTable } = require("@/modules/mongo/model");
 const fs = require("fs-extra");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 const { queueScanning } = require("./utils");
@@ -28,24 +28,24 @@ function askQuestion(q) {
     );
 }
 
-async function initFileDB() { 
+async function initFileDB() {
     try {
-        const filePaths = [ 
+        const filePaths = [
             {
                 rootPath: fileDir,
                 path: "",
                 id: 0,
             }
-        ] 
+        ]
         await fs.ensureDir(fileDir);
         await FileTable.ready;
-        const allFiles = await FileTable.find([]);
+        const allFiles = await FileTable.find({});
         if (allFiles.length === 0) {
             console.log("初始化文件数据库...");
             await queueScanning(filePaths);
             console.log("文件数据库初始化完成");
             return true;
-        } 
+        }
 
         // 检查是否有与当前 fileDir 匹配的记录
         const matching = allFiles.filter(f => f.rootPath === fileDir);
@@ -53,7 +53,8 @@ async function initFileDB() {
             const ans = await askQuestion("\n输入选项（1/2/3）：");
             if (ans === "1") {
                 console.log("清空数据库...");
-                await FileTable.deleteMany([{ field: "rootPath", value: "", op: "!=" }]);
+                // [{ field: "rootPath", value: "", op: "!=" }]
+                await FileTable.deleteMany({ rootPath: { $ne: "" } });
                 console.log("重新扫描目录...");
                 await queueScanning(filePaths);
                 console.log("完成：数据库已重建并同步。");

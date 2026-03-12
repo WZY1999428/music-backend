@@ -3,7 +3,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
-const { FileTable, Favorite, FilePathTable } = require("@/modules/sqlite/model");
+const { FileTable, Favorite, FilePathTable } = require("@/modules/mongo/model");
 const HashFile = require("./hashFile");
 const MAX_WORKERS = Math.min(require("os").cpus().length, 8);
 const hashFile = new HashFile(MAX_WORKERS);
@@ -15,16 +15,19 @@ async function queueScanning(dirPaths = []) {
     isScanning = true;
     try {
         const dbFiles = await getFileList({
-            filters: dirPaths.map(f => ({ field: "ancestor_id", value: f.id || 0 }, { field: "depth", value: f.depth || 0 }))
+            filters: dirPaths.map(f => ({ ancestor_id: f.id || 0 }, { depth: f.depth || 0 })),
+            pageSize: 0
         });
         const files = await readFiles(dirPaths, dbFiles);
         await writeFiles(files);
         if (dbFiles.length > 0) {
             const batchIds = dbFiles.map(f => f.id).reduce((r, v, i) => { if (i % BATCH_SIZE === 0) r.push([]); r[r.length - 1].push(v); return r; }, []);
             for (const ids of batchIds) {
-                await FileTable.deleteMany([{ field: "id", value: ids, op: "in" }]).catch(() => { });
-                await Favorite.deleteMany([{ field: "fileId", value: ids, op: "in" }]).catch(() => { });
-                await FilePathTable.deleteMany([{ field: "descendant_id", value: ids, op: "in", logic: "or" }, { field: "ancestor_id", value: ids, op: "in" }])
+                await FileTable.deleteMany({ id: { $in: ids } }).catch(() => { });
+                await Favorite.deleteMany({ id: { $in: ids } }).catch(() => { });
+                await FilePathTable.deleteMany({
+                    $or: [{ ancestor_id: { $in: ids } }, { descendant_id: { $in: ids } }]
+                })
             }
         }
         hashFile.clear();
@@ -59,7 +62,6 @@ async function readFiles(dirPaths, dbFiles) {
                 }
             }
         }
-
         process.stdout.write(`\r已读取，${files.length}个文件`);
     }
 
@@ -166,20 +168,20 @@ async function getFileList({
 async function ensureDirRecord(relativePath, parentId) {
     const parsePath = path.parse(relativePath);
     const dirs = parsePath.dir.split("/").filter(Boolean);
-    const parent = await FileTable.findOne([{ field: "path", value: parsePath.dir }]);
+    const parent = await FileTable.findOne({ path: parsePath.dir });
     if (parent) return parent.id;
     if (dirs.length) {
         let dirPath
         if (parentId != 0) {
-            const parent = await FileTable.findOne([{ field: "id", value: parentId }]);
+            const parent = await FileTable.findOne({ id: parentId });
             dirPath = path.join(parent.rootPath, parent.path);
         } else dirPath = fileDir
         for (const dir of dirs) {
-            const parent = await FileTable.findOne([{ field: "path", value: dirPath }]);
+            const parent = await FileTable.findOne({ path: dirPath });
             dirPath = path.join(dirPath, dir);
             if (!await fs.pathExists(dirPath) || !parent) {
                 await fs.ensureDir(dirPath);
-                const file = await FileTable.findOne([{ field: "path", value: normalizePathForDB(fileDir, dirPath) }]);
+                const file = await FileTable.findOne({ path: normalizePathForDB(fileDir, dirPath) });
                 if (!file) {
                     const record = await buildFileRecord(dirPath, parentId);
                     try {
@@ -190,7 +192,7 @@ async function ensureDirRecord(relativePath, parentId) {
                         })
                     } catch (error) {
                         if (error.errno === 19) {
-                            const existing = await FileTable.findOne([{ field: "path", value: record.path }]);
+                            const existing = await FileTable.findOne({ path: record.path });
                             if (!existing) throw error;
                             parentId = existing.id;
                         } else {
@@ -212,7 +214,7 @@ async function ensureDirRecord(relativePath, parentId) {
 async function createClosurePaths(selfId, parentId) {
     await FilePathTable.insert({ ancestor_id: selfId, descendant_id: selfId, depth: 0, })
     if (parentId) {
-        const parentPaths = await FilePathTable.find([{ field: "descendant_id", value: parentId }]);
+        const parentPaths = await FilePathTable.find({ descendant_id: parentId });
         for (const p of parentPaths) await FilePathTable.insert({ ancestor_id: p.ancestor_id, descendant_id: selfId, depth: p.depth + 1 });
     }
 }
@@ -224,7 +226,7 @@ async function updateClosurePaths(selfId, newParentId) {
     // 在 SQL 中通常是：DELETE FROM path WHERE descendant_id IN (SELECT id FROM descendants) 
     // AND ancestor_id NOT IN (SELECT id FROM descendants)
     // 获取该节点下所有的子孙（包括自己）
-    const descendants = await FilePathTable.find([{ field: "ancestor_id", value: selfId }]);
+    const descendants = await FilePathTable.find({ ancestor_id: selfId });
     const descendantIds = descendants.map(d => d.descendant_id);
     // 删除所有指向这些子孙的外部祖先关系
     // 必须保留子孙内部的相对关系（即 ancestor 也在 descendantIds 里的路径）
@@ -237,7 +239,7 @@ async function updateClosurePaths(selfId, newParentId) {
     // 2. 建立该节点及其子孙与新祖先及其上方所有祖先的关系
     if (newParentId) {
         // 获取新父节点的所有祖先路径
-        const newParentAncestors = await FilePathTable.find([{ field: "descendant_id", value: newParentId }]);
+        const newParentAncestors = await FilePathTable.find({ descendant_id: newParentId });
         // 循环新祖先
         for (const pa of newParentAncestors) {
             // 循环子孙
@@ -255,18 +257,14 @@ async function updateClosurePaths(selfId, newParentId) {
 async function deleteClosurePaths(selfId) {
     // 1. 首先找到该节点下的所有子孙节点 ID (包括自己)
     // 因为 ancestor_id = selfId 的记录列出了所有的子孙
-    const descendants = await FilePathTable.find([
-        { field: "ancestor_id", value: selfId }
-    ]);
+    const descendants = await FilePathTable.find({ ancestor_id: selfId });
 
     const descendantIds = descendants.map(d => d.descendant_id);
 
     // 2. 删除所有以这些 ID 作为 descendant_id 的路径
     // 这会自动切断这些节点与上方所有祖先的关系，以及它们内部的关系
     if (descendantIds.length > 0) {
-        await FilePathTable.deleteMany([
-            { field: "descendant_id", value: descendantIds, operator: "IN" }
-        ]);
+        await FilePathTable.deleteMany({ descendant_id: { $in: descendantIds } });
     }
 }
 

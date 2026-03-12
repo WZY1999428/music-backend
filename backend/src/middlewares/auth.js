@@ -1,4 +1,4 @@
-const { checkToken, verifyFileToken } = require("@/modules/tokens");
+const { checkToken } = require("@/modules/tokens");
 const { whileListMap } = require("@/utils/registerRoutes");
 const { pathToRegexp } = require("path-to-regexp");
 const noAuthRegex = Array.from(whileListMap.values()).map(p => pathToRegexp(p));
@@ -17,7 +17,6 @@ module.exports = function auth() {
             } catch (err) {
                 return ctx.unauthorized(err.message);
             }
-
             return await next(); // token 验证成功才继续
         }
         // 3️⃣ 其他非 /api 或 /public 的路径直接放行（如前端页面）

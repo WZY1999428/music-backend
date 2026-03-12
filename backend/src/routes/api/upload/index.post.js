@@ -1,5 +1,5 @@
 // 上传文件
-const { UploadRecord } = require("@/modules/sqlite/model");
+const { UploadRecord } = require("@/modules/mongo/model");
 const fs = require('fs-extra');
 const path = require('path');
 const crypto = require('crypto');

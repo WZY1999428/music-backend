@@ -1,11 +1,14 @@
-const { User } = require("@/modules/sqlite/model");
+const { User } = require("@/modules/mongo/model");
 module.exports = async (ctx) => {
-    const user_id = ctx.state.user.userId;
-    const uInfo = await User.findOne([{ field: "id", value: user_id }]);
-    if (!uInfo) return ctx.fail("用户不存在");
-    ctx.success({
-        username: uInfo.username,
-        id: uInfo.id,
-        createdAt: uInfo.createdAt
-    });
+    try {
+        const uInfo = await User.findOne({ id: ctx.state.user.userId });
+        if (!uInfo) throw new Error("用户不存在");
+        ctx.success({
+            username: uInfo.username,
+            id: uInfo.id,
+            createdAt: uInfo.createdAt
+        });
+    } catch (error) {
+        ctx.fail(error.message);
+    }
 }

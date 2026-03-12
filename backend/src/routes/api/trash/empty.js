@@ -1,11 +1,11 @@
-const { FileTable } = require("@/modules/sqlite/model");
+const { FileTable } = require("@/modules/mongo/model");
 const fs = require("fs-extra");
 const path = require("path");
 
 module.exports = async (ctx) => {
     try {
         while (true) {
-            const files = await FileTable.find([{ field: "status", value: 1 }],{pageSize: -1});
+            const files = await FileTable.find({ status: 1 }, { pageSize: 0 });
             if (files.length === 0) break;
             let successCount = 0;
             for (const file of files) {

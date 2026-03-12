@@ -1,6 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
-const { FileTable, FilePathTable } = require("@/modules/sqlite/model");
+const { FileTable, FilePathTable } = require("@/modules/mongo/model");
 const { createClosurePaths, getFileList } = require("@/modules/fileSystem/utils");
 
 module.exports = async (ctx) => {
@@ -14,7 +14,7 @@ module.exports = async (ctx) => {
         // 目标文件夹信息
         let destFile = { rootPath: process.env.PUBLIC_FILE_PATCH, path: "", id: 0 };
         if (destId != 0) {
-            destFile = await FileTable.findOne([{ field: "id", value: destId }]);
+            destFile = await FileTable.findOne({ id: destId });
             if (!destFile) throw new Error('目标文件夹不存在');
         }
         const targetAbsPath = path.join(destFile.rootPath, destFile.path);
@@ -22,8 +22,7 @@ module.exports = async (ctx) => {
         if (!targetStat.isDirectory()) throw new Error('目标路径不是文件夹');
 
         // 获取要移动的文件
-        const files = await FileTable.find([{ field: "id", value: ids, op: "in" }]);
-
+        const files = await FileTable.find({ id: { $in: ids } });
         for (const file of files) {
             const oldAbsPath = path.join(file.rootPath, file.path);
             const newAbsPath = path.join(targetAbsPath, path.basename(file.path));
@@ -38,20 +37,18 @@ module.exports = async (ctx) => {
                 file.parentId = destId;
                 file.path = moved[moved.length - 1].newPath;
                 await FileTable.update({ id: file.id }, file);
-
                 // 删除旧闭包表路径（除了自己）
-                await FilePathTable.deleteMany([
-                    { field: "descendant_id", value: file.id },
-                    { field: "ancestor_id", op: "!=", value: file.id }
-                ]);
-
+                await FilePathTable.deleteMany(
+                    { descendant_id: file.id },
+                    { ancestor_id: { $ne: file.id } }
+                );
                 // 建立新的闭包表路径
                 await createClosurePaths(file.id, destId);
 
                 // 如果是文件夹，更新子树
                 if (file.isFolder) {
                     const children = await getFileList({
-                        filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }]
+                        filters: { ancestor_id: file.id, depth: { $gt: 0 } }
                     });
 
                     // 按深度排序，父节点先更新
@@ -66,9 +63,8 @@ module.exports = async (ctx) => {
                         child.path = path.join(file.path, path.relative(path.join(file.rootPath, file.path), path.join(child.rootPath, child.path)));
                         await FileTable.update({ id: child.id }, child);
                         // 更新闭包表
-                        await FilePathTable.deleteMany([{ field: "descendant_id", value: child.id }, { field: "ancestor_id", op: "!=", value: child.id }]);
+                        await FilePathTable.deleteMany({ descendant_id: child.id, ancestor_id: { $ne: child.id } });
                         await createClosurePaths(child.id, child.parentId);
-
                         idMap.set(child.id, child.id);
                     }
                 }

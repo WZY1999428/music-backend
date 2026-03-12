@@ -1,6 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
-const { FileTable } = require("@/modules/sqlite/model");
+const { FileTable } = require("@/modules/mongo/model");
 
 module.exports = async (ctx) => {
     try {
@@ -33,9 +33,7 @@ module.exports = async (ctx) => {
         // 如果是目录，更新所有子项路径
         const srcStat = await fs.stat(destAbs);
         if (srcStat.isDirectory()) {
-            const children = await FileTable.find([{ field: "path", value: srcFile.path + "%", op: "like" }],{
-                pageSize: -1
-            });
+            const children = await FileTable.find({ path: { $lLike: srcFile.path } }, { pageSize: 0 });
             for (const child of children) {
                 if (!child.path.startsWith(srcFile.path)) continue;
                 const relativeChildPath = child.path.slice(srcFile.path.length);

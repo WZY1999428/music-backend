@@ -1,8 +1,8 @@
 // 恢复文件/文件夹到原位置（可回退）
 const path = require("path");
 const fs = require("fs-extra");
-const { FileTable } = require("@/modules/sqlite/model");
-const { createClosurePaths, getFileList, updateClosurePaths, deleteClosurePaths, buildFileRecord } = require("@/modules/fileSystem/utils");
+const { FileTable } = require("@/modules/mongo/model");
+const { getFileList, updateClosurePaths, deleteClosurePaths, buildFileRecord } = require("@/modules/fileSystem/utils");
 const restoremSet = new Set();
 module.exports = async (ctx) => {
     //  还原时当前文件 有父节点在回收站 创建父节点再还原
@@ -29,7 +29,7 @@ module.exports = async (ctx) => {
                 joins: [{ name: 'files', type: 'LEFT JOIN', on: 't2.id = t1.ancestor_id' }]
             });
             const ids = parentChain.map(item => item.id);
-            const removedParent = await FileTable.find([{ field: "id", value: ids, op: "in" }, { field: "status", value: [1, 3], op: "in" }]);
+            const removedParent = await FileTable.find({ $and: [{ id: { $in: ids }, status: { $in: [1, 3] } }] });
             if (!removedParent.length) {
                 await restorePath(file);
                 await FileTable.update({ id: file.id }, { status: 0 })
@@ -55,66 +55,35 @@ module.exports = async (ctx) => {
 async function restorePath(file) {
     const oldPath = file.path
     const newPath = path.join(path.dirname(file.path), file.name);
-    await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath));
+    const oldFullPath = path.join(file.rootPath, file.path);
+    const newFullPath = path.join(file.rootPath, newPath);
+    await fs.move(oldFullPath, newFullPath);
     await FileTable.runInTransaction(async () => {
-        await FileTable.updateMany([{ field: "id", value: file.id }], { status: 0, path: newPath });
-        const children = await getFileList({ filters: [{ field: "ancestor_id", value: file.id }, { field: "depth", value: 0, op: ">" }] });
+        await FileTable.updateMany({ id: file.id }, { status: 0, path: newPath });
+        const children = await getFileList({ filters: { ancestor_id: file.id, depth: { $gt: 0 } } });
         for (const child of children) {
             const relative = path.relative(oldPath, child.path); // 相对于旧父路径的相对路径
             child.path = path.join(newPath, relative);
-            await FileTable.updateMany([{ field: "id", value: child.id }], { path: child.path });
+            await FileTable.updateMany({ id: child.id }, { path: child.path });
         }
+    }).catch(e => {
+        fs.move(newFullPath, oldFullPath);
+        throw e
     })
 }
 
 
 async function mkdirParent(file) {
-    const pathSplit = file.path.split('/').filter(Boolean);
-    pathSplit.pop();
-    const pathArr = [];
-    const newParentChain = new Map();
-    let lastParent = null;
-    while (pathSplit.length > 0) {
-        pathArr.push(pathSplit.shift())
-        const fullPath = pathArr.join('/');
-        const parent = await FileTable.findOne([{ field: "path", value: fullPath }]);
-        let oldId = parent.id;
-        lastParent = parent.parentId;
-        delete parent.id;
-        // 如果父级到了 下面的都得重新创建
-        if (parent && [1, 3].includes(parent.status)) {
-            parent.path = path.join(path.dirname(parent.path), parent.name).split(path.sep).join('/');
-            const parent2 = await FileTable.findOne([{ field: "path", value: parent.path }]);
-            if (await fs.pathExists(path.join(file.rootPath, parent.path)) && parent2) {
-                newParentChain.set(fullPath, { oldId: oldId, newId: parent2.id, pid: lastParent, name: parent.name });
-                lastParent = parent2.parentId
-            } else {
-                const fullPath = path.join(parent.rootPath, parent.path);
-                await fs.mkdir(fullPath, { recursive: true });
-                const record = await buildFileRecord(fullPath, lastParent)
-                record.hash = parent.hash;
-                const newParent = await FileTable.insert(record);
-                newParentChain.set(fullPath, { oldId: oldId, newId: newParent.id, pid: lastParent });
-                lastParent = newParent.parentId
-            }
-        } else {
-            newParentChain.set(fullPath, { oldId: oldId, newId: oldId, pid: lastParent });
-        }
-    }
-
-    file.parentId = lastParent
-    pathArr.push(file.name)
-    const newPath = pathArr.join('/');
-    await fs.move(path.join(file.rootPath, file.path), path.join(file.rootPath, newPath), { overwrite: true });
-    console.log(newPath);
-    await FileTable.runInTransaction(async () => {
-        for (const [oldId, newId, pid] of newParentChain) {
-            if (oldId == newId) continue;
-            await deleteClosurePaths(oldId)
-            await updateClosurePaths(newId, pid)
-            await FileTable.updateMany([{ field: "id", value: newId }], { parentId: pid, status: 0 });
-        }
-        await FileTable.updateMany([{ field: "id", value: file.id }], { parentId: lastParent, status: 0, path: newPath });
-        await updateClosurePaths(file.id, lastParent);
+    console.log(file);
+    //  从上往下找父节点 如果父节点 在回收站 就创建新的文件夹在恢复文件
+    //  如果当前文件有相同文件了那就重新命名文件  文件名-恢复-恢复日期
+    const files = await getFileList({
+        filters: { ancestor_id: file.id, depth: { $lt: file.depth } },
+        fields: ["t2.rootPath"]
     })
+    console.log(files);
+
+
+    
+
 }

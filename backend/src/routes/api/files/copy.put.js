@@ -1,6 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
-const { FileTable, FilePathTable } = require("@/modules/sqlite/model");
+const { FileTable, FilePathTable } = require("@/modules/mongo/model");
 const { buildFileRecord, createClosurePaths, normalizePathForDB, getFileList } = require("@/modules/fileSystem/utils");
 /**
  * 复制文件
@@ -17,11 +17,11 @@ module.exports = async (ctx) => {
         const { ids = [], destId } = ctx.request.body;
         if (!ids.length) return ctx.fail("请选择要复制的文件");
         if (ids.includes(destId)) return ctx.fail("不能复制把自己复制到自己的目录");
-        const files = await FileTable.find([{ field: "id", value: ids, op: "in" }]);
+        const files = await FileTable.find({ id: { $in: ids } });
         if (!files.length) return ctx.fail("源文件不存在");
         let destFile = { id: 0, rootPath: process.env.PUBLIC_FILE_PATCH, path: "" };
         if (destId != 0) {
-            destFile = await FileTable.findOne([{ field: "id", value: destId }]);
+            destFile = await FileTable.findOne({ id: destId });
             if (!destFile) return ctx.fail("目标路径不存在");
         }
         const targetPath = path.join(destFile.rootPath, destFile.path)
@@ -62,8 +62,8 @@ module.exports = async (ctx) => {
         ctx.success("复制成功");
     } catch (err) {
         for (const file of copydFile) await fs.remove(path.join(file.rootPath, file.path)).catch(() => { });
-        await FileTable.deleteMany([{ field: "id", value: insertQueue, op: "in" }]).catch(() => { });
-        await FilePathTable.deleteMany([{ field: "ancestor_id", value: insertQueue, op: "in" }]).catch(() => { })
+        await FileTable.deleteMany({ id: { $in: insertQueue } }).catch(() => { });
+        await FilePathTable.deleteMany({ ancestor_id: { $in: insertQueue } }).catch(() => { })
         ctx.fail("复制失败: " + err.message);
     }
 };

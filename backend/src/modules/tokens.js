@@ -1,4 +1,4 @@
-const { Token } = require("./sqlite/model"); // 你的 SQLite 封装模型
+const { Token } = require("@/modules/mongo/model"); // 你的 SQLite 封装模型
 const jwt = require("jsonwebtoken");
 
 
@@ -17,7 +17,6 @@ function generateFileToken(fileId, userId, expiresIn = "1h") {
 
     const iatMs = payload.iat * 1000;
     const expMs = payload.exp * 1000;
-
     const life = expMs - iatMs;
     const used = now - iatMs;
 
@@ -88,7 +87,7 @@ async function verifyFileToken(token) {
 async function createToken(userId, expiresIn = "1d") {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn });
   const payload = jwt.verify(token, process.env.JWT_SECRET);
-  const existing = await Token.findOne([{ field: "userId", value: userId }]);
+  const existing = await Token.findOne({ userId });
   if (existing) {
     await Token.update({ userId }, { token, expiresAt: payload.exp * 1000 }); // 你的 insert 实际是 upsert
   } else {
@@ -106,12 +105,12 @@ async function checkToken(token) {
     // 验证 JWT 签名和过期
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     // 检查数据库是否存在且未过期
-    const record = await Token.findOne([
-      { field: "userId", value: payload.userId },
-      { field: "token", value: token },
-      { field: "enabled", value: 1 },
-      { field: "expiresAt", value: Date.now(), op: ">" },
-    ]);
+    const record = await Token.findOne({
+      userId: payload.userId,
+      token,
+      enabled: 1,
+      expiresAt: { $gt: Date.now() }
+    });
     if (!record) throw new Error("Token revoked or expired");
     return payload; // 返回 payload，更通用
   } catch (err) {
@@ -124,7 +123,7 @@ async function checkToken(token) {
  * @returns {Promise<String|null>} token
  */
 async function getTokenByUserId(userId) {
-  const record = await Token.findOne([{ field: "userId", value: userId }]);
+  const record = await Token.findOne({ userId });
   return record ? record.token : null;
 }
 module.exports = {

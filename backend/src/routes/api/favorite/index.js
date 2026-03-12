@@ -1,10 +1,8 @@
-const { Favorite } = require("@/modules/sqlite/model");
+const { Favorite } = require("@/modules/mongo/model");
 const { generateFileToken } = require("@/modules/tokens")
 module.exports = async (ctx) => {
     try {
-        const pageIndex = parseInt(ctx.query.pageIndex) || 1;
-        const pageSize = parseInt(ctx.query.pageSize) || 20;
-        console.log(ctx.state.user.userId);
+        const { pageIndex = 1, pageSize = 100 } = parseInt(ctx.query.pageIndex) || 1;
         const favoriteQuery = await Favorite.joinFind({
             fields: [
                 "t2.id",
@@ -33,13 +31,7 @@ module.exports = async (ctx) => {
                     on: 't1.userId = t3.id'
                 }
             ],
-            filters: [
-                {
-                    field: 't1.userId',
-                    op: '=',
-                    value: ctx.state.user.userId
-                },
-            ],
+            filters: { "t1.userId": ctx.state.user.userId },
             pageIndex,
             pageSize
         });

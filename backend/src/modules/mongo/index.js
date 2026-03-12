@@ -182,33 +182,63 @@ class Model {
      */
     async #initTable() {
         if (!this.schema || Object.keys(this.schema).length === 0) return;
-        const cols = Object.entries(this.schema).map(([key, col]) => {
+
+        const uniqueGroups = {};
+        const cols = [];
+
+        for (const [key, col] of Object.entries(this.schema)) {
+
             // SQL 类型
             let sql = col.type;
-            if (sql == "Boolean") sql = "INTEGER";
-            else if (sql == "Date") sql = "TEXT";
+            if (sql === "Boolean") sql = "INTEGER";
+            else if (sql === "Date") sql = "TEXT";
+
             // NOT NULL
             if (col.nullable === false) sql += " NOT NULL";
+
             // PRIMARY KEY
             if (col.primaryKey) sql += " PRIMARY KEY";
+
             // AUTOINCREMENT
             if (col.autoIncrement) sql += " AUTOINCREMENT";
-            // UNIQUE
+
+            // 单字段 UNIQUE
             if (col.unique) sql += " UNIQUE";
+
             // DEFAULT
             if (col.default !== undefined) sql += ` DEFAULT ${col.default}`;
+
             // CHECK
             if (col.check) sql += ` CHECK(${col.check})`;
-            return `${key} ${sql}`.trim();
-        }).join(", ");
-        const createSQL = `CREATE TABLE IF NOT EXISTS ${this.table} (${cols})`;
+
+            cols.push(`${key} ${sql}`.trim());
+
+            // 收集组合 UNIQUE
+            if (col.uniqueGroups) {
+                for (const g of col.uniqueGroups) {
+                    if (!uniqueGroups[g]) uniqueGroups[g] = [];
+                    uniqueGroups[g].push(key);
+                }
+            }
+        }
+
+        // 组合 UNIQUE
+        for (const group of Object.values(uniqueGroups)) {
+            if (group.length > 1) {
+                cols.push(`UNIQUE(${group.join(",")})`);
+            }
+        }
+
+        const createSQL = `CREATE TABLE IF NOT EXISTS ${this.table} (${cols.join(", ")})`;
+
         await this.db.run(createSQL);
-        // 初始化 sqlite_sequence，如果有自增主键
+
+        // 初始化 sqlite_sequence（如果有自增）
         if (Object.values(this.schema).some(c => c.autoIncrement)) {
             await this.db.run(`
-            INSERT OR IGNORE INTO sqlite_sequence(name, seq)
-            VALUES('${this.table}', 0)
-        `);
+      INSERT OR IGNORE INTO sqlite_sequence(name, seq)
+      VALUES('${this.table}', 0)
+    `);
         }
     }
 
@@ -303,13 +333,26 @@ class Model {
                 res[key] = [true, "1", 1].includes(res[key]) ? 1 : 0;
             } else if (typeDef.type === "Date") {
                 if (typeDef.autoInsert && !res[key]) {
-                    res[key] = new Date().toISOString();
+                    res[key] = this.#formatDate();
                 } if (typeDef.autoUpdate) {
-                    res[key] = new Date(res[key]).toISOString();
+                    res[key] = this.#formatDate();
                 }
             }
         }
         return res;
+    }
+
+
+    #formatDate(date = new Date()) {
+        const pad = (n) => String(n).padStart(2, '0')
+        return (
+            date.getFullYear() + '-' +
+            pad(date.getMonth() + 1) + '-' +
+            pad(date.getDate()) + ' ' +
+            pad(date.getHours()) + ':' +
+            pad(date.getMinutes()) + ':' +
+            pad(date.getSeconds())
+        )
     }
 
     /**
@@ -344,6 +387,7 @@ class Model {
     #parseOrder(order) {
         const orderKeys = Object.keys(order);
         let orderSql = "";
+
         if (orderKeys.length > 0) {
             const orderParts = orderKeys.map(key => `${key} ${(order[key] || 'asc').toUpperCase()}`);
             orderSql = `ORDER BY ${orderParts.join(", ")}`;
@@ -379,13 +423,14 @@ class Model {
         return true;
     }
 
-    findOne(query, { fields = ["*"], order = { id: "asc" } } = {}) {
+    findOne(query, { fields = ["*"], order = {} } = {}) {
         const { sql, params } = this.#parseQuery(query);
         const querySql = `SELECT ${fields.join(", ")} FROM ${this.table} ${sql} ${this.#parseOrder(order)} LIMIT 1`;
         return this.db.get(querySql, params).then(row => this.#integerToBoolean(row));
     }
 
-    find(query = {}, { fields = ["*"], pageIndex = 1, pageSize = 20, order = { id: "asc" } } = {}) {
+
+    find(query = {}, { fields = ["*"], pageIndex = 1, pageSize = 20, order = {} } = {}) {
         const { sql, params } = this.#parseQuery(query);
         const offset = Math.max(0, (pageIndex - 1) * pageSize);
         let limitSql = "";
@@ -412,6 +457,8 @@ class Model {
         insertData.id = result.lastID;
         return insertData;
     }
+
+
 
     async insertMany(insertDatas) {
         if (!Array.isArray(insertDatas)) throw new Error("insertDatas must be an array");
@@ -479,10 +526,70 @@ class Model {
         return this.db.run(`DELETE FROM ${this.table} ${sql}`, params);
     }
 
+    async updateBranch(branch) {
+        if (!Array.isArray(branch) || branch.length === 0) return;
+        const keys = Object.keys(branch[0]).filter(k => k !== "id");
+        const setSql = keys.map(k => `${k}=?`).join(", ");
+        await this.runInTransaction(async () => {
+            const stmt = await this.db.prepare(`UPDATE ${this.table} SET ${setSql} WHERE id=?`);
+            for (let row of branch) {
+                row = this.#normalizeRow(row)
+                const params = keys.map(k => row[k]);
+                params.push(row.id);
+                await stmt.run(params);
+            }
+            await stmt.finalize();
+        })
+    }
+
+    async updateBranchDynamic(branch) {
+        // branch: [
+        //   { query: { id: 1 }, data: { path: "/new/1" } },
+        //   { query: { oldName: "abc" }, data: { path: "/new/abc" } }
+        // ]
+        if (!Array.isArray(branch) || branch.length === 0) return;
+        await this.runInTransaction(async () => {
+            for (const { query, data } of branch) {
+                const { sql: whereSql, params: whereParams } = this.#parseQuery(query);
+                const keys = Object.keys(data);
+                const setSql = keys.map(k => `${k}=?`).join(", ");
+                const values = Object.values(data);
+                const sql = `UPDATE ${this.table} SET ${setSql} ${whereSql}`;
+                await this.db.run(sql, [...values, ...whereParams]);
+            }
+        })
+    }
+
     clear() {
         return this.db.run(`DELETE FROM ${this.table}`);
     }
 
+
+    async upsert(data, conflictKeys = ["id"]) {
+        // 先标准化行类型
+        const row = this.#normalizeRow({ ...data });
+        const keys = Object.keys(row);
+        const placeholders = keys.map(() => "?").join(", ");
+        const values = Object.values(row);
+        const updateKeys = keys.filter(k => !conflictKeys.includes(k));
+        let sql = `
+        INSERT INTO ${this.table} (${keys.join(",")})
+        VALUES (${placeholders})
+        ON CONFLICT (${conflictKeys.join(",")})
+    `;
+        if (updateKeys.length > 0) {
+            const updateClause = updateKeys
+                .map(k => `${k} = excluded.${k}`)
+                .join(", ");
+            sql += ` DO UPDATE SET ${updateClause}`;
+        } else {
+            sql += ` DO NOTHING`;
+        }
+        const result = await this.db.run(sql, values);
+        // 可选：把 lastID 加回 data
+        if (result.lastID) row.id = result.lastID;
+        return row;
+    }
 
     updateOne(query, updateData) {
         const { sql, params } = this.#parseQuery(query);

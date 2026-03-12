@@ -1,4 +1,4 @@
-const { RecentFiles } = require("@/modules/sqlite/model");
+const { RecentFiles } = require("@/modules/mongo/model");
 const { generateFileToken } = require("@/modules/tokens")
 module.exports = async (ctx) => {
     try {
@@ -33,13 +33,7 @@ module.exports = async (ctx) => {
                     on: 't1.userId = t3.id'
                 }
             ],
-            filters: [
-                {
-                    field: 't1.userId',
-                    op: '=',
-                    value: ctx.state.user.userId
-                },
-            ],
+            filters: { "t1.userId": ctx.state.user.userId },
             pageIndex,
             pageSize
         });

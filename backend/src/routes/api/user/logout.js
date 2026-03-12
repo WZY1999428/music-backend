@@ -1,4 +1,4 @@
-const { Token } = require("@/modules/sqlite/model")
+const { Token } = require("@/modules/mongo/model")
 module.exports = async (ctx) => {
     const token = ctx.headers['authorization']?.split(' ')[1];
     try {
