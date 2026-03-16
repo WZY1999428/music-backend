@@ -8,10 +8,8 @@ const fileTokens = new Map();
 function generateFileToken(fileId, userId, expiresIn = "1h") {
   let token = null;
   const now = Date.now();
-
   try {
     if (!fileTokens.has(fileId)) throw new Error("缓存中不存在");
-
     const ca = fileTokens.get(fileId);
     const payload = jwt.verify(ca.token, process.env.JWT_SECRET);
 
@@ -89,7 +87,7 @@ async function createToken(userId, expiresIn = "1d") {
   const payload = jwt.verify(token, process.env.JWT_SECRET);
   const existing = await Token.findOne({ userId });
   if (existing) {
-    await Token.update({ userId }, { token, expiresAt: payload.exp * 1000 }); // 你的 insert 实际是 upsert
+    await Token.updateOne({ userId }, { token, expiresAt: payload.exp * 1000 }); // 你的 insert 实际是 upsert
   } else {
     await Token.insert({ userId, token, expiresAt: payload.exp * 1000 });
   }

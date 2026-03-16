@@ -5,6 +5,7 @@ const path = require("path");
 const fileDir = process.env.PUBLIC_FILE_PATCH;
 const { FileTable, Favorite, FilePathTable } = require("@/modules/mongo/model");
 const HashFile = require("./hashFile");
+const { json } = require("stream/consumers");
 const MAX_WORKERS = Math.min(require("os").cpus().length, 8);
 const hashFile = new HashFile(MAX_WORKERS);
 const BATCH_SIZE = 100; // 每批处理 100 个文件
@@ -131,13 +132,18 @@ async function getFileList({
     joins: joins = [],
     fields: fields = [],
     pageIndex: pageIndex = 1,
+    aggs: aggs = null,
     pageSize: pageSize = 20
 }) {
-    joins.unshift({
-        name: 'files',
-        type: 'LEFT JOIN',
-        on: 't2.id = t1.descendant_id'
-    });
+
+    if (!joins.some(j => j.name === 'files' && j.type === 'LEFT JOIN')) {
+        joins.unshift({
+            name: 'files',
+            type: 'LEFT JOIN',
+            on: 't2.id = t1.descendant_id'
+        });
+    }
+
     return await FilePathTable.joinFind({
         fields: [
             "t2.id",
@@ -157,6 +163,7 @@ async function getFileList({
             "t1.descendant_id",
             ...fields
         ],
+        aggs,
         joins,
         filters,
         pageIndex,

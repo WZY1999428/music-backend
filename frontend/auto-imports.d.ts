@@ -35,7 +35,6 @@ declare global {
   const getThumbUrl: typeof import('./src/utils/file.js').getThumbUrl
   const getUser: typeof import('./src/utils/storage.js').getUser
   const h: typeof import('vue').h
-  const imageViewer: typeof import('./src/utils/ImageViewer.js').imageViewer
   const inject: typeof import('vue').inject
   const isProxy: typeof import('vue').isProxy
   const isReactive: typeof import('vue').isReactive

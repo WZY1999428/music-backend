@@ -19,7 +19,6 @@ const ModelType = {
 
     // 日期类型
     Date: { type: "Date", nullable: true, autoUpdate: false, autoInsert: true },
-    DateTime: { type: "TEXT", nullable: true },
 
     // 二进制
     Blob: { type: "BLOB", nullable: true },

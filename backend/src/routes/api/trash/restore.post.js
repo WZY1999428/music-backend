@@ -12,7 +12,9 @@ module.exports = async (ctx) => {
     const notExistFiles = [];
     try {
         const files = await getFileList({
-            filters: [{ field: "t1.ancestor_id", value: fileIds, op: "in" }, { field: "t1.depth", value: 0 }, { field: "t2.status", value: 1 }]
+            filters: { $and: [{ "t1.descendant_id": { $in: fileIds } }, { "t2.status": 1 }] },
+            aggs: { groupBy: ["t1.descendant_id"], depth: { $max: "t1.depth" } },
+            fields: ["t2.rootPath"]
         });
         for (const file of files) {
             if (restoremSet.has(file.id)) continue;
@@ -25,30 +27,40 @@ module.exports = async (ctx) => {
                 continue
             }
             const parentChain = await getFileList({
-                filters: [{ field: "descendant_id", value: file.id }, { field: "t2.id", value: file.id, op: "!=" }],
+                filters: { descendant_id: file.id, "t1.depth": { $gt: 0 } },
                 joins: [{ name: 'files', type: 'LEFT JOIN', on: 't2.id = t1.ancestor_id' }]
             });
-            const ids = parentChain.map(item => item.id);
-            const removedParent = await FileTable.find({ $and: [{ id: { $in: ids }, status: { $in: [1, 3] } }] });
-            if (!removedParent.length) {
+            if (!parentChain.some(item => [1, 3].includes(item.status))) {
                 await restorePath(file);
                 await FileTable.update({ id: file.id }, { status: 0 })
-            } else {
-                await mkdirParent(file)
+            } else { 
+                await mkdirParent(file, parentChain)
             }
         }
-
-        if (notExistFiles.length) {
-            ctx.success("还原成功,以下文件不存在已删除：", notExistFiles.join(","));
-        } else {
-            ctx.success("还原成功");
-        }
+        ctx.success(notExistFiles.length ? `还原成功, 以下文件不存在已删除： ${notExistFiles.join(",")}` : '还原成功');
     } catch (error) {
+        console.error(error);
         ctx.fail("还原失败：" + error.message);
     } finally {
         fileIds.forEach(id => restoremSet.delete(id))
     }
 };
+
+//  从下往上找父节点 
+//  如果父节点 在回收站 并且子节点在回收站只有一个 恢复父节点 不然就创建新的文件夹在恢复文件
+//  如果当前文件有相同文件了 并且子文件没有相同的文件 就移动子文件到新的文件夹，
+//  存在相同子文件 那就重新命当前文件夹 文件名-恢复-恢复日期
+async function mkdirParent(file, chain) {
+     chain.sort((a, b) => a.depth - b.depth);
+     console.log(chain);
+    for (const parent of chain) {
+        if ([1, 3].includes(parent.status)) {
+ 
+        }
+    }
+
+
+}
 
 
 
@@ -72,18 +84,3 @@ async function restorePath(file) {
     })
 }
 
-
-async function mkdirParent(file) {
-    console.log(file);
-    //  从上往下找父节点 如果父节点 在回收站 就创建新的文件夹在恢复文件
-    //  如果当前文件有相同文件了那就重新命名文件  文件名-恢复-恢复日期
-    const files = await getFileList({
-        filters: { ancestor_id: file.id, depth: { $lt: file.depth } },
-        fields: ["t2.rootPath"]
-    })
-    console.log(files);
-
-
-    
-
-}

@@ -10,7 +10,9 @@ const QueryComparison = {
     $lt: "<",          // 小于：field < value
     $lte: "<=",        // 小于等于：field <= value
     $in: "IN",         // 包含在集合内：field IN (v1, v2, ...)
-    $nin: "NOT IN"     // 不在集合内：field NOT IN (v1, v2, ...)
+    $nin: "NOT IN",     // 不在集合内：field NOT IN (v1, v2, ...)
+    $max: "MAX",       // 获取最大值
+    $min: "MIN"        // 获取最小值
 };
 
 /**
@@ -30,10 +32,8 @@ const Logical = {
  * 处理模糊查询、空值判断等高级逻辑
  */
 const Evaluation = {
-    // $exists 在 SQL 中通常表现为字段是否为 NULL
     $exists: "IS NOT NULL",
     $notExists: "IS NULL",
-    // MongoDB 原生使用 $regex，这里扩展 SQL 常用的模糊匹配
     $like: "LIKE",          // 模糊匹配：field LIKE '%value%'
     $lLike: "LIKE",          // 模糊匹配：field LIKE 'value%'
     $rLike: "LIKE",          // 模糊匹配：field LIKE '%value'
@@ -43,6 +43,27 @@ const Evaluation = {
 };
 
 
+const AggregateFunctions = {
+    $sum: "SUM",         // 求和
+    $avg: "AVG",         // 平均值
+    $max: "MAX",         // 最大值
+    $min: "MIN",         // 最小值
+    $count: "COUNT"      // 计数
+}
+
+// GROUP BY  HAVING   EXISTS    ANY   ALL 
+
+const Aggregate = {
+    $group: "GROUP BY",  // 分组
+    $having: "HAVING",   // 筛选
+}
+
+
+const SubQueryOperators = {
+    $any: "ANY",       // 任意
+    $all: "ALL"        // 所有
+}
+
 // 排序
 const SortOrder = {
     asc: "ASC",
@@ -50,7 +71,10 @@ const SortOrder = {
 };
 
 module.exports = {
+    SubQueryOperators,
     QueryComparison,
+    Aggregate,
+    AggregateFunctions,
     Logical,
     Evaluation,
     SortOrder

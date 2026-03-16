@@ -1,5 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
-const { QueryComparison, Logical, Evaluation } = require("./operators")
+const { QueryComparison, Logical, Evaluation, AggregateFunctions } = require("./operators")
+const { parseQuery, parseOrder, parseAggregateFunctions } = require("./parse")
+
+
 const ModelType = require("./modelType");
 class Database {
     // sqlite3.Database
@@ -242,83 +245,6 @@ class Model {
         }
     }
 
-    // 解析查询 为 SQL
-    #parseQuery(query) {
-        const params = [];
-        const parse = (obj) => {
-            const clauses = [];
-            for (const key in obj) {
-                const value = obj[key];
-                // ===== 逻辑操作 =====
-                if (Logical[key]) {
-                    if (key === "$and" || key === "$or") {
-                        if (!Array.isArray(value)) {
-                            throw new Error(`${key} value must be an array`);
-                        }
-                        const parts = value.map(v => `(${parse(v)})`);
-                        clauses.push(parts.join(` ${Logical[key]} `));
-
-                    }
-                    if (key === "$not") {
-                        clauses.push(`NOT (${parse(value)})`);
-                    }
-                    if (key === "$nor") {
-                        if (!Array.isArray(value)) {
-                            throw new Error(`$nor value must be an array`);
-                        }
-                        const parts = value.map(v => `(${parse(v)})`);
-                        clauses.push(`NOT (${parts.join(" OR ")})`);
-                    }
-                    continue;
-                }
-                // ===== 字段查询 =====
-                // 简写： {name:"tom"}
-                if (typeof value !== "object" || value === null || Array.isArray(value)) {
-                    clauses.push(`${key} = ?`);
-                    params.push(value);
-                    continue;
-                }
-                // ===== 多操作符处理 =====
-                for (const op in value) {
-                    const val = value[op];
-                    // ---------- 比较 ----------
-                    if (QueryComparison[op]) {
-                        const operator = QueryComparison[op];
-                        if (op === "$in" || op === "$nin") {
-                            const placeholders = val.map(() => "?").join(",");
-                            clauses.push(`${key} ${operator} (${placeholders})`);
-                            params.push(...val);
-                        } else {
-                            clauses.push(`${key} ${operator} ?`);
-                            params.push(val);
-                        }
-                        continue;
-                    }
-                    if (Evaluation[op]) {
-                        if (op === "$exists") {
-                            clauses.push(`${key} ${val ? "IS NOT NULL" : "IS NULL"}`);
-                        } else {
-                            let pattern = val;
-                            switch (op) {
-                                case "$like": pattern = `%${val}%`; break;
-                                case "$lLike": pattern = `${val}%`; break;
-                                case "$rLike": pattern = `%${val}`; break;
-                                case "$nLike": pattern = `%${val}%`; break;
-                                case "$nlLike": pattern = `${val}%`; break;
-                                case "$nrLike": pattern = `%${val}`; break;
-                            }
-                            clauses.push(`${key} ${Evaluation[op]} ?`);
-                            params.push(pattern);
-                        }
-                        continue;
-                    }
-                }
-            }
-            return clauses.join(" AND ");
-        };
-        const sql = parse(query);
-        return { sql: sql ? `WHERE ${sql}` : "", params };
-    }
 
 
     /**
@@ -372,6 +298,8 @@ class Model {
         }
         return data;
     }
+
+
     // 将查询出来的 0/1 字段转回 boolean    
     #convertRowBoolean(row, booleanFields) {
         const newRow = { ...row };
@@ -383,17 +311,6 @@ class Model {
         return newRow;
     }
 
-    // 根据 order 对象生成 ORDER BY 语句
-    #parseOrder(order) {
-        const orderKeys = Object.keys(order);
-        let orderSql = "";
-
-        if (orderKeys.length > 0) {
-            const orderParts = orderKeys.map(key => `${key} ${(order[key] || 'asc').toUpperCase()}`);
-            orderSql = `ORDER BY ${orderParts.join(", ")}`;
-        }
-        return orderSql;
-    }
 
 
     async addColumn(fieldName, fieldDef) {
@@ -423,22 +340,80 @@ class Model {
         return true;
     }
 
-    findOne(query, { fields = ["*"], order = {} } = {}) {
-        const { sql, params } = this.#parseQuery(query);
-        const querySql = `SELECT ${fields.join(", ")} FROM ${this.table} ${sql} ${this.#parseOrder(order)} LIMIT 1`;
-        return this.db.get(querySql, params).then(row => this.#integerToBoolean(row));
+    async findOne(query, { fields = ["*"], order = {}, aggs = null } = {}) {
+
+        const params = [];
+        const { sql: whereSql, params: whereParams } = parseQuery(query);
+        params.push(...whereParams);
+
+        let selectSql = "";
+        let groupBySql = "";
+
+        if (aggs && Object.keys(aggs).length > 0) {
+
+            const { select, groupBy } = parseAggregateFunctions(aggs);
+
+            selectSql = select;
+            groupBySql = groupBy;
+
+        } else {
+
+            selectSql = fields.join(", ");
+
+        }
+
+        const orderSql = parseOrder(order);
+
+        const limitSql = aggs ? "" : "LIMIT 1";
+
+        const querySql = `
+        SELECT ${selectSql}
+        FROM ${this.table}
+        ${whereSql}
+        ${groupBySql}
+        ${orderSql}
+        ${limitSql}
+    `;
+
+        const row = await this.db.get(querySql, params);
+
+        return this.#integerToBoolean(row);
     }
 
+    async find(
+        query = {},
+        { fields = ["*"], pageIndex = 1, pageSize = 20, order = {}, aggs = null } = {}
+    ) {
+        const params = [];
+        const { sql: whereSql, params: whereParams } = parseQuery(query);
+        params.push(...whereParams);
 
-    find(query = {}, { fields = ["*"], pageIndex = 1, pageSize = 20, order = {} } = {}) {
-        const { sql, params } = this.#parseQuery(query);
-        const offset = Math.max(0, (pageIndex - 1) * pageSize);
+        let selectSql = "";
+        let groupBySql = "";
+        if (aggs && Object.keys(aggs).length > 0) {
+            const { select, groupBy } = parseAggregateFunctions(aggs);
+            selectSql = select;
+            groupBySql = groupBy;
+        } else {
+            // 普通字段查询
+            selectSql = fields.join(", ");
+        }
+
+        // 排序
+        const orderSql = parseOrder(order);
+
+        // 分页
         let limitSql = "";
-        if (pageSize > 0) {
+        if (!aggs && pageSize > 0) { // 聚合通常不分页
+            const offset = Math.max(0, (pageIndex - 1) * pageSize);
             limitSql = `LIMIT ${offset}, ${pageSize}`;
         }
-        const querySql = ` SELECT ${fields.join(", ")} FROM ${this.table}  ${sql}  ${this.#parseOrder(order)}   ${limitSql}`;
-        return this.db.all(querySql, params).then(rows => this.#integerToBoolean(rows));
+
+        const querySql = `SELECT ${selectSql} FROM ${this.table} ${whereSql} ${orderSql} ${groupBySql} ${limitSql}`;
+
+        const rows = await this.db.all(querySql, params);
+
+        return this.#integerToBoolean(rows);
     }
 
 
@@ -503,9 +478,34 @@ class Model {
         }
     }
 
+    /**
+   * @typedef {Object} query
+   * @property {any} [$eq] 等于
+   * @property {any} [$ne] 不等于
+   * @property {any} [$gt] 大于
+   * @property {any} [$gte] 大于等于
+   * @property {any} [$lt] 小于
+   * @property {any} [$lte] 小于等于
+   * @property {any[]} [$in] 包含在数组中
+   * @property {any[]} [$nin] 不包含在数组中
+   * @property {string} [$like] 模糊匹配 (%val%)
+   * @property {boolean | Object} [$max] 最大值子查询
+   * @property {boolean | Object} [$min] 最小值子查询
+   */
+    /**
+     * @typedef {Object.<string, any | QueryOperators>} Filters
+     * 说明：键是字段名，值可以是具体的值，也可以是包含操作符的对象
+     */
 
+    /**
+     * @typedef {Object} query
+     * @property {Filters} filters 查询条件
+     * @property {string[]} [fields] 返回字段
+     * @property {number} [limit] 限制行数
+     * @property {number} [offset] 偏移量
+     */
     deleteOne(query) {
-        const { sql, params } = this.#parseQuery(query);
+        const { sql, params } = parseQuery(query);
         if (!sql) {
             throw new Error("deleteMany requires query condition");
         }
@@ -517,9 +517,30 @@ class Model {
             params
         );
     }
+    
 
+        /**
+   * @typedef {Object} query
+   * @property {any} [$eq] 等于
+   * @property {any} [$ne] 不等于
+   * @property {any} [$gt] 大于
+   * @property {any} [$gte] 大于等于
+   * @property {any} [$lt] 小于
+   * @property {any} [$lte] 小于等于
+   * @property {any[]} [$in] 包含在数组中
+   * @property {any[]} [$nin] 不包含在数组中
+   * @property {string} [$like] 模糊匹配 (%val%)
+   * @property {boolean | Object} [$max] 最大值子查询
+   * @property {boolean | Object} [$min] 最小值子查询
+    /**
+     * @typedef {Object} query
+     * @property {Filters} filters 查询条件
+     * @property {string[]} [fields] 返回字段
+     * @property {number} [limit] 限制行数
+     * @property {number} [offset] 偏移量
+     */
     deleteMany(query) {
-        const { sql, params } = this.#parseQuery(query);
+        const { sql, params } = parseQuery(query);
         if (!sql) {
             throw new Error("deleteMany requires query condition");
         }
@@ -550,7 +571,7 @@ class Model {
         if (!Array.isArray(branch) || branch.length === 0) return;
         await this.runInTransaction(async () => {
             for (const { query, data } of branch) {
-                const { sql: whereSql, params: whereParams } = this.#parseQuery(query);
+                const { sql: whereSql, params: whereParams } = parseQuery(query);
                 const keys = Object.keys(data);
                 const setSql = keys.map(k => `${k}=?`).join(", ");
                 const values = Object.values(data);
@@ -592,7 +613,7 @@ class Model {
     }
 
     updateOne(query, updateData) {
-        const { sql, params } = this.#parseQuery(query);
+        const { sql, params } = parseQuery(query);
         // 不允许更新自增字段
         updateData = this.#normalizeRow(updateData);
         Object.entries(this.schema)
@@ -617,7 +638,7 @@ class Model {
     }
 
     updateMany(query, updateData) {
-        const { sql, params } = this.#parseQuery(query);
+        const { sql, params } = parseQuery(query);
         // 不允许更新自增字段
         Object.entries(this.schema)
             .filter(([k, v]) => v.autoIncrement)
@@ -637,7 +658,7 @@ class Model {
     }
 
     count(query = {}) {
-        const { sql, params } = this.#parseQuery(query);
+        const { sql, params } = parseQuery(query);
         return this.db.get(
             `SELECT COUNT(*) AS count FROM ${this.table} ${sql}`,
             params
@@ -651,13 +672,17 @@ class Model {
         filters = {},         // Mongo 风格 query 对象
         order = {},           // Mongo 风格 order 对象
         pageIndex = 1,
-        pageSize = 20
+        pageSize = 20,
+        aggs = null
     } = {}) {
 
-        // 解析 filters 成 SQL 条件
-        const { sql: whereSql, params: whereValues } = this.#parseQuery(filters);
+        const params = [];
 
-        // 构建 join 语句
+        // WHERE
+        const { sql: whereSql, params: whereParams } = parseQuery(filters);
+        params.push(...whereParams);
+
+        // JOIN
         let joinSQL = `FROM ${this.table} AS t1`;
         joins.forEach((j, index) => {
             const alias = `t${index + 2}`;
@@ -665,21 +690,48 @@ class Model {
             joinSQL += ` ${type} ${j.name} AS ${alias} ON ${j.on}`;
         });
 
-        // SELECT 主体
-        let sql = `SELECT ${fields.join(', ')} ${joinSQL} ${whereSql}`;
-        sql += this.#parseOrder(order);
-        // 分页处理
-        if (pageSize > 0) {
-            const offset = (pageIndex - 1) * pageSize;
-            sql += ' LIMIT ? OFFSET ?';
-            whereValues.push(pageSize, offset);
+        // SELECT
+        let selectSql = "";
+        let groupBySql = "";
+
+        if (aggs && Object.keys(aggs).length > 0) {
+            const { select, groupBy } = parseAggregateFunctions(aggs);
+            selectSql = `${select}`;
+            groupBySql = groupBy;
+
+        }
+        selectSql = fields.join(", ");
+
+        // ORDER
+        const orderSql = parseOrder(order);
+
+        // LIMIT
+        let limitSql = "";
+        if (!aggs && pageSize > 0) {
+
+            const offset = Math.max(0, (pageIndex - 1) * pageSize);
+            limitSql = ` LIMIT ? OFFSET ?`;
+
+            params.push(pageSize, offset);
         }
 
-        return this.db.all(sql, whereValues).then(rows => this.#integerToBoolean(rows))
+        // SQL顺序
+        const sql = `
+        SELECT ${selectSql}
+        ${joinSQL}
+        ${whereSql}
+        ${groupBySql}
+        ${orderSql}
+        ${limitSql}
+    `;
+
+
+
+        const rows = await this.db.all(sql, params);
+
+        return this.#integerToBoolean(rows);
     }
-
 }
-
 
 class MongoSqlite {
     #db = null;
