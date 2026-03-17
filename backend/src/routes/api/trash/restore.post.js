@@ -32,8 +32,8 @@ module.exports = async (ctx) => {
             });
             if (!parentChain.some(item => [1, 3].includes(item.status))) {
                 await restorePath(file);
-                await FileTable.update({ id: file.id }, { status: 0 })
-            } else { 
+                await FileTable.updateOne({ id: file.id }, { status: 0 })
+            } else {
                 await mkdirParent(file, parentChain)
             }
         }
@@ -51,22 +51,57 @@ module.exports = async (ctx) => {
 //  如果当前文件有相同文件了 并且子文件没有相同的文件 就移动子文件到新的文件夹，
 //  存在相同子文件 那就重新命当前文件夹 文件名-恢复-恢复日期
 async function mkdirParent(file, chain) {
-     chain.sort((a, b) => a.depth - b.depth);
-     console.log(chain);
-    for (const parent of chain) {
-        if ([1, 3].includes(parent.status)) {
- 
+    chain.sort((a, b) => a.depth - b.depth);
+    let lastFile = file;
+    for (const current of chain) {
+        if ([3, 1].includes(current.status)) {
+            const children = await FileTable.find({ parentId: current.id, status: { $in: [1, 3] } });
+            // 有多个子文件在回收站 自己是 站位父节点或者在回收站的父节点
+            if (children.length > 1) {
+                await mkdir(current)
+            } else {
+                // 只有一个子文件在回收站还原自己
+                current.status = 0;
+                lastFile = current
+            }
+        } else {
+            lastFile = current;
         }
     }
+    async function mkdir(currentFile) {
+        const newPath = path.join(current.path, `../${currentFile.name}`);
+        const exeist =await FileTable.findOne({ path: newPath })
+        let fullPath = path.join(current.rootPath, newPath)
+        // 如果数据库有同名父节点 
+        if (exeist) {
+            //  不存在文件夹创建文件夹
+            if (! await fs.pathExists(fullPath)) await fs.ensureDir(fullPath);
+            // 如果数据库存在的父节点 存在相同的子文件
+            // 那就重名命名当前父节点名称
+            if (await FileTable.findOne({ name: lastFile.name, parentId: exeist.id })) {
+                const newName = `恢复-${Date.now()}-${lastFile.name}`;
+                fullPath = path.join(fullPath, `../${newName}`)
+            } else {
+                lastFile.parentId = exeist.id
+                lastFile = exeist
+                return
+            }
+        }
+        await fs.ensureDir(fullPath);
+        const record = await FileTable.insert(buildFileRecord(fullPath, current.parentId))
+        lastFile.parentId = record.id;
+        lastFile = record
+    }
 
+    console.log(chain);
+    console.log(file);
 
 }
-
-
+ 
 
 async function restorePath(file) {
     const oldPath = file.path
-    const newPath = path.join(path.dirname(file.path), file.name);
+    const newPath = path.join(file.path, `../${file.name}`);
     const oldFullPath = path.join(file.rootPath, file.path);
     const newFullPath = path.join(file.rootPath, newPath);
     await fs.move(oldFullPath, newFullPath);
