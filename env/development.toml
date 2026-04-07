@@ -1,0 +1,19 @@
+# Valkey 数据库配置
+[valkey]
+host = "192.168.0.105"
+port = 6379         
+username = "hkta"
+password = "a7454796209"
+db = 0
+# Mysql 配置
+[mysql]
+host = "192.168.0.105"
+port = 3306
+username = "root"
+password = "a7454796209"
+# Server 配置
+[server]
+port = 3000
+# JWT 配置
+[jwt]
+expire = 86400
