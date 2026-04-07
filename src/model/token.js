@@ -1,4 +1,4 @@
-const valkey = require("#/utils/valkey");
+const valkey = require("@/utils/valkey");
 module.exports = async function generateToken(data) {
     const rawUuid = crypto.randomUUID();
     const token = rawUuid.replace(/-/g, '');

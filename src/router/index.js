@@ -1,4 +1,4 @@
-const generateToken = require("#/model/token");
+const generateToken = require("@/model/token");
 
 module.exports = async (ctx) => {
     const token = await generateToken({ name: "test", userId: 123 });
