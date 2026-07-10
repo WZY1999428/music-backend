@@ -4,11 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node --watch index.js",
-    "dev": "cross-env NODE_ENV=development node --watch index.js"
-  },
-  "_moduleAliases": {
-    "@": "src/"
+    "build": "cross-env NODE_ENV=production npx babel src --out-dir .output --copy-files",
+    "start": "cross-env NODE_ENV=production node .output/index.js",
+    "dev": "cross-env NODE_ENV=development node --watch -r @babel/register ./src/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -16,7 +14,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "@koa/multer": "^4.0.0",
     "@koa/router": "^15.4.0",
@@ -24,15 +21,22 @@
     "iovalkey": "^0.3.3",
     "koa": "^3.2.0",
     "koa-bodyparser": "^4.4.1",
-    "multer": "^2.1.1",
     "module-alias": "^2.3.4",
+    "multer": "^2.1.1",
     "mysql-odm": "git@github.com:WZY1999428/odm-to-sql.git",
     "path-to-regexp": "^8.4.2",
     "svg-captcha": "^1.4.0",
     "toml": "^4.1.1"
   },
   "devDependencies": {
+    "@babel/cli": "^8.0.4",
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/register": "^8.0.1",
+    "@babel/template": "^8.0.0",
+    "@babel/types": "^8.0.4",
     "@types/fs-extra": "^11.0.4",
+    "babel-plugin-module-resolver": "^5.0.3",
     "cross-env": "^10.1.0"
   }
 }

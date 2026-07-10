@@ -4,22 +4,24 @@ const fs = require("fs-extra");
 const { pathToRegexp } = require("path-to-regexp"); // 注意：较新版本需解构
 
 // 路由文件存放的根目录 (src/router)
-const routerRootPath = path.join(__dirname, "../router");
-
+const routerRootPath = path.resolve(__dirname,"../router");
 // 定义支持的 HTTP 标准方法集合，用于校验文件名
 const routeMethods = new Set(["get", "post", "put", "delete", "patch", "options", "head", "all"]);
-
 // 存储需要鉴权的路由正则表达式集合
-const authRouter = new Set();
-
+const routerWhiteList = new Set();
+let isExecuted = false;
 /**
  * 核心函数：递归遍历路由目录并自动注册到 Koa-Router
  * @param {Object} router Koa-Router 实例
  */
 function registerRoutes(router) {
+    if (isExecuted) {
+        console.warn("[Router Warn] registerRoutes 已经执行过，跳过重复执行");
+        return;
+    }
+    isExecuted = true;
     // 使用队列进行广度优先遍历 (BFS) 扫描目录
     const routeDirQueue = [routerRootPath];
-
     while (routeDirQueue.length) {
         const dir = routeDirQueue.shift();
         const files = fs.readdirSync(dir);
@@ -43,7 +45,7 @@ function registerRoutes(router) {
 
             // 3. 处理路径层级：将系统路径分隔符替换为 URL 的正斜杠 /
             let routePath = `/${parse.dir.replaceAll(path.sep, "/")}`;
-            
+
             // 4. 解析文件名约定。例如：user.post.js -> name 为 ["user", "post"]
             const name = parse.name.split(".");
             if (name.length > 2) {
@@ -52,7 +54,7 @@ function registerRoutes(router) {
 
             // 5. 处理路径名称：如果是 index 则置为空字符串（表示根路径）
             const routeName = name[0]?.replace("index", "");
-            
+
             // 6. 解析动态参数：处理 [id] 这种格式为 :id
             const params = parseParam(routeName);
             if (params.length) {
@@ -78,7 +80,7 @@ function registerRoutes(router) {
             // 情况 A: 直接导出一个函数 (ctx, next) => { ... }
             if (typeof routeAction === "function") {
                 router[method](routePath, routeAction);
-            } 
+            }
             // 情况 B: 导出一个对象 { handler, middleware, auth }
             else if (routeAction != null && !Array.isArray(routeAction) && typeof routeAction === "object") {
                 if (!routeAction.handler) {
@@ -86,16 +88,16 @@ function registerRoutes(router) {
                 }
 
                 // 合并中间件：支持单个中间件或中间件数组
-                const middlewares = Array.isArray(routeAction.middleware) 
-                    ? routeAction.middleware 
+                const middlewares = Array.isArray(routeAction.middleware)
+                    ? routeAction.middleware
                     : (routeAction.middleware ? [routeAction.middleware] : []);
 
                 // 注册路由：router.get('/path', mw1, mw2, handler)
                 router[method](routePath, ...middlewares, routeAction.handler);
 
-                // 9. 权限收集：如果配置了 auth: true，将路径转换为正则存入 authRouter
-                if (routeAction.auth) {
-                    authRouter.add(pathToRegexp(routePath));
+                // 9. 权限收集：如果配置了 auth: false，将路径转换为正则存入 routerWhiteList 不需要权限验证
+                if (!routeAction.auth) {
+                    routerWhiteList.add(pathToRegexp(routePath));
                 }
             } else {
                 console.warn(`[Router Error] 文件 "${file}" 导出格式不正确`);
@@ -119,4 +121,4 @@ function parseParam(routeName) {
     return params;
 }
 
-module.exports = { registerRoutes, authRouter };
+module.exports = { registerRoutes, routerWhiteList };

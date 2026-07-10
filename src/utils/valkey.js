@@ -5,7 +5,7 @@ const { VALKEY_PORT, VALKEY_HOST, VALKEY_USERNAME, VALKEY_PASSWORD, VALKEY_DB } 
 const valkey = new Valkey({
     port: Number(VALKEY_PORT),
     host: VALKEY_HOST,
-    username: VALKEY_USERNAME,
+    // username: VALKEY_USERNAME,
     password: VALKEY_PASSWORD,
     db: Number(VALKEY_DB),
 });
@@ -14,8 +14,6 @@ const valkey = new Valkey({
 valkey.on('error', (err) => console.error('Valkey Error:', err));
 
 valkey.on('connect', () => console.log('Valkey connected'));
-
-
 
 valkey.setObject = async (key, value, ...args) => {
     if (typeof value === "object" && value !== null) {

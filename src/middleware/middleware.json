@@ -1,0 +1,9 @@
+{
+    "order": [
+        "response.js",
+        "auth.js"
+    ],
+    "ignore": [
+        "test.js"
+    ]
+}
