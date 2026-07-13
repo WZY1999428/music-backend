@@ -7,7 +7,6 @@ const { registerRoutes } = require("@/bootstrap/registerRoutes");
 const registerMiddleware = require("./bootstrap/registerMiddleware");
 const KoaRouter = require("@koa/router");
 const { MySqlODM } = require("mysql-odm");
-
 (async () => {
     const odm = new MySqlODM();
     await odm.use({
