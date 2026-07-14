@@ -26,15 +26,17 @@ module.exports = () => {
             ctx.body = "Unauthorized";
         };
 
-        await next();
-
-        if (ctx.status === 404 && !ctx.body) {
-            ctx.notFound();
-        } else if (ctx.status == 403) {
-            ctx.body = htmlTemplate('403');
+        try {
+            await next();
+            if (ctx.status === 404 && !ctx.body) {
+                ctx.notFound();
+            } else if (ctx.status == 403) {
+                ctx.body = htmlTemplate('403');
+            }
+        } catch (error) {
+            ctx.fail(error.message)
         }
 
-        
     }
 }
 

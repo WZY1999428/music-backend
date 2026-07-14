@@ -4,6 +4,5 @@
         "auth.js"
     ],
     "ignore": [
-        "test.js"
     ]
 }

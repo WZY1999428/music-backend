@@ -6,19 +6,6 @@ const valkey = require("@/utils/valkey");
 const { registerRoutes } = require("@/bootstrap/registerRoutes");
 const registerMiddleware = require("./bootstrap/registerMiddleware");
 const KoaRouter = require("@koa/router");
-const { MySqlODM } = require("mysql-odm");
-
-(async () => {
-    const odm = new MySqlODM();
-    await odm.use({
-        host: "localhost",
-        user: "root",
-        password: "123456789",
-        database: "koa-serve"
-    }, "connection");
-    const userSchema = require("@/schema");
-    await odm.createTable(userSchema, "user");
-})
 
 const app = new Koa();
 const router = new KoaRouter();
