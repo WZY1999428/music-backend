@@ -7,10 +7,11 @@ password = "a7454796209"
 db = 0
 # Mysql 配置
 [mysql]
-host = "192.168.0.105"
+host = "localhost"
 port = 3306
 username = "root"
-password = "a7454796209"
+password = "123456789"
+database = "koa-serve"
 # Server 配置
 [server]
 port = 3000

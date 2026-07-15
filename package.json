@@ -15,13 +15,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@koa/bodyparser": "^6.1.0",
     "@koa/multer": "^4.0.0",
     "@koa/router": "^15.4.0",
     "dayjs": "^1.11.21",
     "fs-extra": "^11.3.4",
     "iovalkey": "^0.3.3",
     "koa": "^3.2.0",
-    "koa-bodyparser": "^4.4.1",
     "module-alias": "^2.3.4",
     "multer": "^2.1.1",
     "mysql-odm": "git@github.com:WZY1999428/odm-to-sql.git",
@@ -37,6 +37,8 @@
     "@babel/template": "^8.0.0",
     "@babel/types": "^8.0.4",
     "@types/fs-extra": "^11.0.4",
+    "@types/koa": "^3.0.3",
+    "@types/koa-bodyparser": "^4.3.13",
     "babel-plugin-module-resolver": "^5.0.3",
     "cross-env": "^10.1.0"
   }

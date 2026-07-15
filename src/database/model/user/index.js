@@ -1,12 +1,9 @@
-const { odm } = require("./init")
+const { odm } = require("../..")
 const { Schema } = require("mysql-odm/schema");
-const dayjs = require("dayjs")
 const hooks = {
     beforeInsert(data) {
-        data.createdAt = dayjs().format("YYYY-MM-DD HH:mm:ss")
     },
     beforeUpdate(_, data) {
-        data.updatedAt = dayjs().format("YYYY-MM-DD HH:mm:ss")
     }
 };
 
@@ -16,8 +13,8 @@ const userSchema = new Schema({
     password: { type: 'varchar', length: 255, nullable: false },
     email: { type: 'varchar', length: 255, nullable: false },
     rule: { type: 'varchar', length: 255, nullable: false },
-    createdAt: { type: 'varchar' },
-    updatedAt: { type: 'varchar' },
+    createdAt: { type: 'varchar', default: 'CURRENT_TIMESTAMP' },
+    updatedAt: { type: 'varchar', default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
 const userModel = odm.model('user', userSchema);

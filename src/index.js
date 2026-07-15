@@ -3,7 +3,7 @@
 require('module-alias/register');
 const registerTomlEnv = require("@/bootstrap/registerTomlEnv");
 registerTomlEnv()
-const { initDb } = require("@/schema/init");
+const { initDb } = require("@/database");
 initDb().then(res => {
     const app = require("./app")
     app.listen(process.env.SERVER_PORT, () => {
