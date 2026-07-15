@@ -2,10 +2,10 @@ import * as t from "@babel/types";
 import template from "@babel/template";
 import fs from "fs";
 import path from "path";
-
 let isFileGenerated = false;
-
+const generatedValidatorsPath = path.resolve("babel-plugins", "validate");
 export default async function (api) {
+  const isDev = process.env.NODE_ENV === "development";
   api.assertVersion(8);
   const validators = await import("./generated-validators.cjs")
   const funcs = Object.keys(validators.default).map(f => `\$${f}`)
@@ -14,17 +14,13 @@ export default async function (api) {
       // 2. 扫描到每一个文件的根节点（Program）时
       Program: {
         enter(_, state) {
-          if (!isFileGenerated) {
-            // 导入移动校验js模块
-            const isDev = process.env.NODE_ENV === "development";
-            // 拿到编译输出的目标目录（比如 dist）
-            const outDir = state.opts.outDir || path.resolve(process.cwd(), isDev ? 'src' : ".output");
+          if (!isFileGenerated && isDev) {
+            // 开发模式下移动类型声明文件
+            const outDir = state.opts.outDir || path.resolve(process.cwd(), ".output", "types");
             if (!fs.existsSync(outDir)) {
               fs.mkdirSync(outDir, { recursive: true });
             }
-            // 强行在 模板 目录下写入一个纯净的全局校验文件
-            const targetPath = path.join(outDir, "generated-validators.js");
-            fs.copyFileSync(path.resolve("babel-plugins", "validate", "generated-validators.cjs"), targetPath);
+            fs.copyFileSync(path.resolve(generatedValidatorsPath, "generated-validators.d.ts"), path.resolve(outDir, "generated-validators.d.ts"));
             isFileGenerated = true;
           }
         },
@@ -69,11 +65,9 @@ export default async function (api) {
             // 计算当前处理的文件和我们生成的工具文件之间的“相对路径”
             // 比如你在 dist/routes/user.js，工具在 dist/generated-validators.js
             // 那就需要计算出 '../generated-validators.js'
-            const currentFileDest = state.file.opts.filename.replace("src", "dist"); // 估算输出路径
+            const currentFileDest = state.file.opts.filename.replace("src", ".output"); // 估算输出路径
             const currentDir = path.dirname(currentFileDest);
-            const outDir = state.opts.outDir || path.resolve(process.cwd(), "dist");
-            const targetPath = path.join(outDir, "generated-validators.js");
-
+            const targetPath = path.join(generatedValidatorsPath, "generated-validators.cjs");
             let relativePath = path.relative(currentDir, targetPath).replace(/\\/g, "/");
             if (!relativePath.startsWith(".")) relativePath = "./" + relativePath;
             // 用 template 优雅地在顶部生成：const { validateEmail, ... } = require('...');
