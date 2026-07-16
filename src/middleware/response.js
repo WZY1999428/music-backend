@@ -10,32 +10,39 @@ module.exports = () => {
             };
         };
 
-        ctx.fail = (message) => {
-            ctx.body = {
-                code: 1,
-                message
-            };
-        };
+        // ctx.fail = (message) => {
+        //     ctx.body = {
+        //         code: 1,
+        //         message
+        //     };
+        // };
 
-        ctx.notFound = () => {
-            ctx.status = 404;
-            ctx.body = htmlTemplate('404');
-        };
+        // ctx.notFound = () => {
+        //     ctx.status = 404;
+        //     ctx.body = htmlTemplate('404');
+        // };
 
-        ctx.unauthorized = () => {
-            ctx.status = 401;
-            ctx.body = "Unauthorized";
-        };
+        // ctx.unauthorized = () => {
+        //     ctx.status = 401;
+        //     ctx.body = "Unauthorized";
+        // };
 
         try {
             await next();
             if (ctx.status === 404 && !ctx.body) {
                 ctx.notFound();
-            } else if (ctx.status == 403) {
+            } else if (ctx.status === 403) {
                 ctx.body = htmlTemplate('403');
             }
         } catch (error) {
-            ctx.fail(error.message)
+            if (error.name == "AppError") {
+                ctx.body = {
+                    code: 1,
+                    message: error.message
+                };
+                ctx.status = error.status
+            }
+
         }
 
     }

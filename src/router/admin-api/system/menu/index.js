@@ -1,5 +1,5 @@
-const routeModel = require("@/database/system/menu.js")
-
+const routeModel = require("@/database/model/system/menu")
+/** @type {Controller} */
 module.exports = async (ctx) => {
     const { pageIndex = 1, pageSize = 20, name, path } = ctx.request.query
     const result = await routeModel.findMany({
@@ -9,7 +9,6 @@ module.exports = async (ctx) => {
         limit: pageSize,
         offset: (pageIndex - 1) * pageSize
     })
-
     ctx.success(result)
 
 }

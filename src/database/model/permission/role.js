@@ -19,8 +19,8 @@ const roleSchema = new Schema({
     routeIds: { type: DataType.VarChar, length: 255, nullable: false },
     sort: { type: DataType.Int, default: 0, nullable: false },
     enabled: { type: DataType.Int, default: 1 },
-    createdAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
 const roleModel = odm.model('roles', roleSchema);
@@ -30,7 +30,7 @@ const roleMenuSchema = new Schema({
     id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
     roleId: { type: DataType.VarChar, length: 255, nullable: false },
     routeId: { type: DataType.Int, default: 0, nullable: false },
-    createdAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 });
 
 const roleMenuModel = odm.model('role_menus', roleMenuSchema);

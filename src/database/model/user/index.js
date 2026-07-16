@@ -1,5 +1,5 @@
 const { odm } = require("../..")
-const { Schema } = require("mysql-odm/schema");
+const { Schema,DataType } = require("mysql-odm/schema");
 const hooks = {
     beforeInsert(data) {
     },
@@ -8,13 +8,13 @@ const hooks = {
 };
 
 const userSchema = new Schema({
-    id: { type: 'int', primaryKey: true, autoIncrement: true },
-    username: { type: 'varchar', length: 255, nullable: false },
-    password: { type: 'varchar', length: 255, nullable: false },
-    email: { type: 'varchar', length: 255, nullable: false },
-    rule: { type: 'varchar', length: 255, nullable: false },
-    createdAt: { type: 'varchar', default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: 'varchar', default: 'CURRENT_TIMESTAMP' },
+    id: { type:  DataType.BigInt, primaryKey: true, autoIncrement: true },
+    username: { type:  DataType.VarChar, length: 255, nullable: false },
+    password: { type: DataType.VarChar, length: 255, nullable: false },
+    email: { type: DataType.VarChar, length: 255, nullable: false },
+    rule: { type: DataType.VarChar, length: 255, nullable: false },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
 const userModel = odm.model('user', userSchema);

@@ -1,5 +1,6 @@
 const { odm } = require("@/database")
 const { convertIntFieldsToBoolean, convertBooleanFieldsToInt } = require("@/database/utils")
+
 const { Schema, DataType } = require("mysql-odm/schema");
 const hooks = {
     beforeInsert(data) {
@@ -23,10 +24,10 @@ const routeSchema = new Schema({
     sort: { type: DataType.Int, default: 0, nullable: false },
     isLink: { type: DataType.Int, default: 1 },
     enabled: { type: DataType.Int, default: 1 },
-    createdAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
 
-const routeModel = odm.model('routes', routeSchema);
+const routeModel = odm.model('menus', routeSchema);
 module.exports = routeModel;

@@ -20,8 +20,8 @@ const dictTypeSchema = new Schema({
     code: { type: DataType.VarChar, nullable: false },
     sort: { type: DataType.Int, default: 1 },
     enabled: { type: DataType.Int, default: 1 },
-    createdAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
 
@@ -32,8 +32,8 @@ const dictItemSchema = new Schema({
     value: { type: DataType.VarChar, length: 50, nullable: false },
     sort: { type: DataType.Int, default: 1 },
     enabled: { type: DataType.Int, default: 1 },
-    createdAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
 

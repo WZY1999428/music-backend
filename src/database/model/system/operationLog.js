@@ -9,7 +9,7 @@ const operationLogSchema = new Schema({
     method: { type: DataType.VarChar, length: 30, nullable: false },
     path: { type: DataType.VarChar, length: 255, nullable: false },
     action: { type: DataType.VarChar, length: 255, nullable: false },
-    createdAt: { type: DataType.Date, default: 'CURRENT_TIMESTAMP' },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 });
 const operationLogModel = odm.model('operation_logs', operationLogSchema);
 module.exports = operationLogModel;
