@@ -7,7 +7,7 @@
  * convertIntFieldsToBoolean({ isActive: 1, name: 'John' }, ['isActive'])
  * // 返回 { isActive: true, name: 'John' }
  */
-function convertIntFieldsToBoolean(data, keys = []) {
+export function convertIntFieldsToBoolean(data, keys = []) {
     if (!data) return data;
 
     const normalize = item => {
@@ -30,7 +30,7 @@ function convertIntFieldsToBoolean(data, keys = []) {
  * convertBooleanFieldsToInt({ isActive: true, name: 'John' }, ['isActive'])
  * // 返回 { isActive: 1, name: 'John' }
  */
-function convertBooleanFieldsToInt(data, keys = []) {
+export function convertBooleanFieldsToInt(data, keys = []) {
     if (!data) return data;
 
     const normalize = item => {
@@ -45,7 +45,3 @@ function convertBooleanFieldsToInt(data, keys = []) {
 }
 
 
-module.exports = {
-    convertIntFieldsToBoolean,
-    convertBooleanFieldsToInt
-};

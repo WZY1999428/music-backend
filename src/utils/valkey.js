@@ -1,14 +1,12 @@
-const Valkey = require("iovalkey");
+import Valkey from "iovalkey";
+import AppError from "./error.js";
 
 const { VALKEY_PORT, VALKEY_HOST, VALKEY_PASSWORD, VALKEY_DB } = process.env;
-
 
 class EnhancedValkey extends Valkey {
     constructor(options) {
         super(options);
     }
-
-
 
     #incrementCount = async (countKey, ttl = 300) => {
         const count = await this.incr(countKey);
@@ -38,21 +36,21 @@ class EnhancedValkey extends Valkey {
         if (mobilCodeCount >= 5) {
             // 失败次数达到5次，删除验证码
             await this.del(codeKey)
-            throw new Error("验证码错误次数过多，请稍后再试")
+            throw new AppError("验证码错误次数过多，请稍后再试")
         }
-        throw new Error("验证码错误")
+        throw new AppError("验证码错误")
     };
 
     #setVerificationCode = async (name, key, value) => {
         const hourKey = `${name}:send:hour:${key}`
         // 限制每小时 只能发送5次 除非 验证成功清空时间
         if ((await this.#incrementCount(hourKey, 3600)) > 5) {
-            throw new Error("手机验证码发送过于频繁，请1小时后再试");
+            throw new AppError("手机验证码发送过于频繁，请1小时后再试");
         }
         const dayKey = `${name}:send:day:${getDate()}:${key}`
         // 限制每天发送30次 直到凌晨重置 
         if ((await this.#incrementCount(dayKey, getSecondsLeftToday())) > 30) {
-            throw new Error("今日验证码发送次数已达上限");
+            throw new AppError("今日验证码发送次数已达上限");
         }
 
         await this.set(`${name}:code:${key}`, value, "EX", 300);
@@ -88,7 +86,7 @@ class EnhancedValkey extends Valkey {
     setEmailCode = async (email, value) => await this.#setVerificationCode("email", email, value)
 
     assertLoginAttemptLimit = async (key, ttl = 300) => {
-        if ((await this.#incrementCount(`assertLoginAttemptLimit:${key}`, ttl)) > 5) throw new Error("登录尝试过于频繁，请稍后再试");
+        if ((await this.#incrementCount(`assertLoginAttemptLimit:${key}`, ttl)) > 5) throw new AppError(key + ":登录尝试过于频繁，请稍后再试");
     };
     resettLoginAttemptLimit = async (key) => await this.del(`assertLoginAttemptLimit:${key}`);
 
@@ -130,4 +128,4 @@ valkey.on('connect', () => console.log('Valkey connected'));
 
 
 
-module.exports = valkey;
+export default valkey;

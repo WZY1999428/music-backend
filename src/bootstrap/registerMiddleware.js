@@ -1,7 +1,8 @@
-const path = require("path");
-const fs = require("fs-extra");
-const middlewareRootPath = path.join(__dirname,"../middleware");
-console.log(middlewareRootPath )
+import path from "path";
+import fs from "fs-extra";
+import { pathToFileURL } from "url";
+
+const middlewareRootPath = path.resolve("./src/middleware");
 // 从 middleware.json 中读取中间件执行顺序和忽略列表
 const middlewareConfig = JSON.parse(fs.readFileSync(path.join(middlewareRootPath, "middleware.json"), "utf-8"));
 const middlewareOrder = new Set(middlewareConfig.order);
@@ -31,20 +32,20 @@ function readFiles(middlewareRootPath) {
 const middlewareFiles = readFiles(middlewareRootPath)
 
 
-module.exports = (app) => {
+export default async (app) => {
     // 按照顺序注册中间件
     for (const middleware of middlewareOrder) {
-        if (!middlewareIgnore.has(middleware)) registerMiddleware(middleware, app);
+        if (!middlewareIgnore.has(middleware)) await registerMiddleware(middleware, app);
     }
     for (const file of middlewareFiles) {
-        if (!middlewareOrder.has(file)) registerMiddleware(file, app);
+        if (!middlewareOrder.has(file)) await registerMiddleware(file, app);
     }
 
 }
 
 
-function registerMiddleware(file, app) {
+async function registerMiddleware(file, app) {
     const middlewarePath = path.join(middlewareRootPath, file);
-    const middlewareFunc = require(middlewarePath);
-    app.use(middlewareFunc());
+    const middlewareFunc = await import(pathToFileURL(middlewarePath));
+    app.use(await middlewareFunc.default());
 }

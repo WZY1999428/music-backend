@@ -1,5 +1,5 @@
-const { odm } = require("@/database")
-const { Schema, DataType } = require("mysql-odm/schema");
+import { odm } from "@/database"
+import { Schema, DataType } from "mysql-odm/schema"
 
 const operationLogSchema = new Schema({
     id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
@@ -12,4 +12,4 @@ const operationLogSchema = new Schema({
     createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 });
 const operationLogModel = odm.model('operation_logs', operationLogSchema);
-module.exports = operationLogModel;
+export default operationLogModel;

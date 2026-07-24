@@ -2,15 +2,16 @@
   "name": "koa-serve",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "build": "cross-env NODE_ENV=production npx babel src --out-dir .output --copy-files",
+    "build": "cross-env NODE_ENV=production npx swc src --out-dir .output --copy-files",
     "start": "cross-env NODE_ENV=production node .output/index.js",
-    "dev": "cross-env NODE_ENV=development node --watch -r @babel/register ./src/index.js"
+    "dev": "cross-env NODE_ENV=development SWCRC=true node --watch --import @swc-node/register/esm-register ./src/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -22,7 +23,6 @@
     "fs-extra": "^11.3.4",
     "iovalkey": "^0.3.3",
     "koa": "^3.2.0",
-    "module-alias": "^2.3.4",
     "multer": "^2.1.1",
     "mysql-odm": "git@github.com:WZY1999428/odm-to-sql.git",
     "path-to-regexp": "^8.4.2",
@@ -30,16 +30,13 @@
     "toml": "^4.1.1"
   },
   "devDependencies": {
-    "@babel/cli": "^8.0.4",
-    "@babel/core": "^8.0.1",
-    "@babel/preset-env": "^8.0.2",
-    "@babel/register": "^8.0.1",
-    "@babel/template": "^8.0.0",
-    "@babel/types": "^8.0.4",
+    "@swc-node/register": "^1.12.1",
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.15.46",
     "@types/fs-extra": "^11.0.4",
     "@types/koa": "^3.0.3",
     "@types/koa-bodyparser": "^4.3.13",
-    "babel-plugin-module-resolver": "^5.0.3",
-    "cross-env": "^10.1.0"
+    "cross-env": "^10.1.0",
+    "swc-plugin-pre-paths": "^7.2.0"
   }
 }

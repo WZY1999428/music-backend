@@ -1,7 +1,7 @@
-const { odm } = require("@/database")
-const { convertIntFieldsToBoolean, convertBooleanFieldsToInt } = require("@/database/utils")
+import { odm } from "database/index.js"
+import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "database/utils.js"
+import { Schema, DataType } from "mysql-odm/schema";
 
-const { Schema, DataType } = require("mysql-odm/schema");
 const hooks = {
     beforeInsert(data) {
         convertIntFieldsToBoolean(data, ['isLink', 'enabled'])
@@ -30,4 +30,4 @@ const routeSchema = new Schema({
 
 
 const routeModel = odm.model('menus', routeSchema);
-module.exports = routeModel;
+export default routeModel;

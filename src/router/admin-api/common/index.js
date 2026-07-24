@@ -1,3 +1,4 @@
-module.exports = (ctx) => {
-      
+/** @type {Controller } */
+export default () => {
+       
 }

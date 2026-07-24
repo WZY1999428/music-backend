@@ -1,6 +1,6 @@
-const { odm } = require("@/database")
-const { convertIntFieldsToBoolean, convertBooleanFieldsToInt } = require("@/database/utils")
-const { Schema, DataType } = require("mysql-odm/schema");
+import { odm } from "database/index.js"
+import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "database/utils.js"
+const { Schema, DataType } = await import("mysql-odm/schema");
 const hooks = {
     beforeInsert(data) {
         convertIntFieldsToBoolean(data, ['enabled'])

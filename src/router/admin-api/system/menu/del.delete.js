@@ -1,5 +1,4 @@
-
-module.exports = async (ctx) => {
+export default (ctx) => {
 
     ctx.success(result)
 

@@ -1,0 +1,22 @@
+{
+    "jsc": {
+        "experimental": {
+            "plugins": [
+                [
+                    "swc-plugin-pre-paths",
+                    {
+                        "baseUrl": ".",
+                        "paths": {
+                            "utils/*": ["./src/utils/*"],
+                            "bootstrap/*": ["./src/bootstrap/*"],
+                            "database/*": ["./src/database/*"],
+                            "middleware/*": ["./src/middleware/*"],
+                            "router/*": ["./src/router/*"],
+                            "models/*": ["./src/models/*"]
+                        }
+                    }
+                ]
+            ]
+        }
+    }
+}

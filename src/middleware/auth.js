@@ -1,6 +1,6 @@
-const { routerWhiteList } = require("../bootstrap/registerRoutes.js");
-const valkey = require("../utils/valkey.js");
-module.exports = () => {
+import { routerWhiteList } from "bootstrap/registerRoutes.js";
+import valkey from "utils/valkey.js";
+export default () => {
     const whiteMatchers = Array.from(routerWhiteList.values());
     return async (ctx, next) => {
         const isWhite = whiteMatchers.some(item => item.regexp.test(ctx.path))

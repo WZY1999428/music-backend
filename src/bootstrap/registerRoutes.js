@@ -1,20 +1,22 @@
 // 导入必需的模块
-const path = require("path");
-const fs = require("fs-extra");
-const { pathToRegexp } = require("path-to-regexp"); // 注意：较新版本需解构
+import path from "path";
+import { pathToFileURL } from "url";
+
+import fs from "fs-extra";
+import { pathToRegexp } from "path-to-regexp"; // 注意：较新版本需解构
 
 // 路由文件存放的根目录 (src/router)
-const routerRootPath = path.resolve(__dirname,"../router");
+const routerRootPath = path.resolve(process.cwd(), "./src/router");
 // 定义支持的 HTTP 标准方法集合，用于校验文件名
 const routeMethods = new Set(["get", "post", "put", "delete", "patch", "options", "head", "all"]);
 // 存储需要鉴权的路由正则表达式集合
-const routerWhiteList = new Set();
+export const routerWhiteList = new Set();
 let isExecuted = false;
 /**
  * 核心函数：递归遍历路由目录并自动注册到 Koa-Router
  * @param {Object} router Koa-Router 实例
  */
-function registerRoutes(router) {
+export async function registerRoutes(router) {
     if (isExecuted) {
         console.warn("[Router Warn] registerRoutes 已经执行过，跳过重复执行");
         return;
@@ -28,6 +30,7 @@ function registerRoutes(router) {
 
         for (const file of files) {
             const filePath = path.join(dir, file);
+
             const stat = fs.statSync(filePath);
 
             // 1. 如果是目录，加入队列继续下一轮扫描
@@ -74,7 +77,7 @@ function registerRoutes(router) {
             }
 
             // 8. 动态导入路由处理模块
-            const handler = require(filePath);
+            const handler = await import(pathToFileURL(filePath));
             const routeAction = handler.default || handler;
 
             // 情况 A: 直接导出一个函数 (ctx, next) => { ... }
@@ -94,9 +97,8 @@ function registerRoutes(router) {
 
                 // 注册路由：router.get('/path', mw1, mw2, handler)
                 router[method](routePath, ...middlewares, routeAction.handler);
-
                 // 9. 权限收集：如果配置了 auth: false，将路径转换为正则存入 routerWhiteList 不需要权限验证
-                if (!routeAction.auth) {
+                if (routeAction.auth === false) {
                     routerWhiteList.add(pathToRegexp(routePath));
                 }
             } else {
@@ -120,5 +122,3 @@ function parseParam(routeName) {
     }
     return params;
 }
-
-module.exports = { registerRoutes, routerWhiteList };

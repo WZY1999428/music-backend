@@ -1,9 +1,9 @@
-const toml = require("toml");
-const fs = require("fs-extra");
-const path = require("path");
+import toml from "toml";
+import fs from "fs-extra";
+import path from "path";
 const nodeEnv = process.env.NODE_ENV || 'development';
 const tomlFile = path.resolve(`./env/${nodeEnv === "development" ? "development.toml" : "production.toml"}`);
-function registerTomlEnv() {
+export default function registerTomlEnv() {
     const obj = toml.parse(fs.readFileSync(tomlFile, "utf-8"));
     const parse = (obj, prefix = '') => {
         for (const key in obj) {
@@ -17,5 +17,3 @@ function registerTomlEnv() {
     }
     parse(obj);
 }
-
-module.exports = registerTomlEnv;

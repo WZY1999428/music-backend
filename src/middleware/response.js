@@ -1,4 +1,4 @@
-module.exports = () => {
+export default () => {
     return async (ctx, next) => {
         ctx.path = ctx.path.replace(/\/+/g, "/");
 
@@ -10,22 +10,22 @@ module.exports = () => {
             };
         };
 
-        // ctx.fail = (message) => {
-        //     ctx.body = {
-        //         code: 1,
-        //         message
-        //     };
-        // };
+        ctx.fail = (message) => {
+            ctx.body = {
+                code: 1,
+                message
+            };
+        };
 
-        // ctx.notFound = () => {
-        //     ctx.status = 404;
-        //     ctx.body = htmlTemplate('404');
-        // };
+        ctx.notFound = () => {
+            ctx.status = 404;
+            ctx.body = htmlTemplate('404');
+        };
 
-        // ctx.unauthorized = () => {
-        //     ctx.status = 401;
-        //     ctx.body = "Unauthorized";
-        // };
+        ctx.unauthorized = () => {
+            ctx.status = 401;
+            ctx.body = "Unauthorized";
+        };
 
         try {
             await next();
@@ -35,6 +35,7 @@ module.exports = () => {
                 ctx.body = htmlTemplate('403');
             }
         } catch (error) {
+            console.log(error.name)
             if (error.name == "AppError") {
                 ctx.body = {
                     code: 1,

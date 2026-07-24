@@ -5,6 +5,7 @@ import path from "path";
 let isFileGenerated = false;
 const generatedValidatorsPath = path.resolve("babel-plugins", "validate");
 export default async function (api) {
+
   const isDev = process.env.NODE_ENV === "development";
   api.assertVersion(8);
   const validators = await import("./generated-validators.cjs")

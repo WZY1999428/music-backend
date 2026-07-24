@@ -1,9 +1,7 @@
-const MySqlODM = require("mysql-odm");
-
-const odm = new MySqlODM();
+import MySqlODM from "mysql-odm"
+export const odm = new MySqlODM.default();
 const { MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE } = process.env;
-
-async function initDb() {
+export async function initDb() {
     await odm.use({
         host: MYSQL_HOST,
         port: parseInt(MYSQL_PORT),
@@ -13,4 +11,3 @@ async function initDb() {
     }, "connection");
 }
 
-module.exports = { initDb, odm };
