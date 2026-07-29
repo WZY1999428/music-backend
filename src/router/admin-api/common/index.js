@@ -1,4 +1,4 @@
 /** @type {Controller } */
-export default () => {
+export default (ctx) => {
        
 }

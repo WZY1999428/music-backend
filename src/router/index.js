@@ -1,5 +1,6 @@
 import generateToken from "utils/token.js";
 
+/** @type {Controller} */
 export default async (ctx) => {
     const token = await generateToken({ name: "test", userId: 123 });
     const { user } = ctx.request.query

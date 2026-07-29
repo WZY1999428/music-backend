@@ -39,6 +39,8 @@ export async function registerRoutes(router) {
                 continue;
             }
 
+            processFile(filePath)
+            
             // 2. 获取相对路径并分析文件名
             const relativePath = path.relative(routerRootPath, filePath);
             const parse = path.parse(relativePath);
@@ -105,6 +107,42 @@ export async function registerRoutes(router) {
                 console.warn(`[Router Error] 文件 "${file}" 导出格式不正确`);
             }
         }
+    }
+}
+
+
+
+//  定义你的 Controller JSDoc 模板
+const JSDOC_TEMPLATE = '/** @type {Controller} */\n';
+// 注入 koa ctx 提示内容
+function processFile(filePath) {
+    let content = fs.readFileSync(filePath, 'utf-8');
+    let originalContent = content;
+
+    // ---------------------------------------------------------
+    // 情况 1：匹配 export default (async) (ctx...) => {
+    // 支持同步函数 (ctx) => 和 异步函数 async (ctx) =>
+    // ---------------------------------------------------------
+    const pattern1 = /(?<!\/\*\*[\s\S]*?\*\/\s*)(^[ \t]*export\s+default\s+(?:async\s+)?\(\s*ctx[^)]*\)\s*=>)/gm;
+    content = content.replace(pattern1, (match, p1) => {
+        return `${JSDOC_TEMPLATE}${p1}`;
+    });
+
+    // ---------------------------------------------------------
+    // 情况 2：匹配 handler: (async) (ctx...) => {
+    // 自动保留 handler 原有的缩进空格
+    // ---------------------------------------------------------
+    const pattern2 = /(?<!\/\*\*[\s\S]*?\*\/\s*)(^[ \t]*handler\s*:\s*(?:async\s+)?\(\s*ctx[^)]*\)\s*=>)/gm;
+    content = content.replace(pattern2, (match, p1) => {
+        // 获取 p1 前面的缩进空白字符（如果有）
+        const indent = p1.match(/^[ \t]*/)[0] || '';
+        return `${indent}${JSDOC_TEMPLATE}${p1}`;
+    });
+
+    // 如果内容被修改了，重新写入文件
+    if (content !== originalContent) {
+        fs.writeFileSync(filePath, content, 'utf-8');
+        console.log(`[JSDoc Injected] 已为文件注入提示: ${filePath}`);
     }
 }
 
