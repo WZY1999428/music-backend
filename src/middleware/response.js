@@ -35,13 +35,15 @@ export default () => {
                 ctx.body = htmlTemplate('403');
             }
         } catch (error) {
-            console.log(error.name)
+            console.log(error)
             if (error.name == "AppError") {
                 ctx.body = {
                     code: 1,
                     message: error.message
                 };
                 ctx.status = error.status
+            } else {
+                ctx.fail(`服务异常：${error.message}`)
             }
 
         }

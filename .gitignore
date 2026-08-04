@@ -6,7 +6,7 @@
 **/package-lock.json
 native-code/target
 **/**.node
-
+**/.swc
 # 忽略所有 dist 输出目录
 **/dist/
 /.output

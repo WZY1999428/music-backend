@@ -1,11 +1,11 @@
 /**
- * 验证值是否有效
- *
- * 判断值是否不是 null、undefined 或空字符串。
- *
- * @param {string | number | boolean | null | undefined} value 待验证的值
- * @returns {boolean} 是否为有效值
- */
+* 验证值是否有效
+*
+* 判断值是否不是 null、undefined 或空字符串。
+*
+* @param {string | number | boolean | null | undefined} value 待验证的值
+* @returns {boolean} 是否为有效值
+*/
 exports.validate = function (value) {
     return (value === null || value === undefined || value === '') === false;
 };
@@ -20,7 +20,7 @@ exports.validate = function (value) {
  * @returns {boolean} 是否为合法邮箱格式
  */
 exports.validateEmail = function (value) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ;
 };
 
 
