@@ -1,6 +1,3 @@
-
-
-
 import registerTomlEnv from "bootstrap/registerTomlEnv.js";
 registerTomlEnv()
 const { initDb } = await import("./database/index.js");

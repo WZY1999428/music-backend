@@ -1,9 +1,13 @@
 {
+    "exclude": [
+        ".*\\.d\\.ts$",
+        ".*\\.map$"
+    ],
     "jsc": {
         "experimental": {
             "plugins": [
                 [
-                    "D:/project/template/swc-plugins/swc-plugin-validate/swc_plugin_validate.wasm",
+                    "D:\\project\\template\\swc-plugins\\swc-plugin-validate\\swc_plugin_validate.wasm",
                     {}
                 ],
                 [
@@ -33,6 +37,7 @@
                     }
                 ]
             ]
-        }
+        },
+        "target": "es2020"
     }
 }

@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build": "cross-env NODE_ENV=production npx swc src --out-dir .output --copy-files",
-    "start": "cross-env NODE_ENV=production node .output/index.js",
+    "start": "cross-env NODE_ENV=production node ./.output/src/index.js",
     "dev": "cross-env NODE_ENV=development SWCRC=true node --watch --import @swc-node/register/esm-register ./src/index.js"
   },
   "engines": {
@@ -30,9 +30,9 @@
     "toml": "^4.1.1"
   },
   "devDependencies": {
-    "@swc-node/register": "^1.12.1",
+    "@swc-node/register": "1.12.0",
     "@swc/cli": "^0.8.1",
-    "@swc/core": "^1.15.46",
+    "@swc/core": "^1.15.47",
     "@types/fs-extra": "^11.0.4",
     "@types/koa": "^3.0.3",
     "@types/koa-bodyparser": "^4.3.13",
