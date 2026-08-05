@@ -1,4 +1,5 @@
 import routeModel from "database/model/system/menu.js"
+
 /** @type {Controller} */
 export default async (ctx) => {
     const { pageIndex = 1, pageSize = 20, name, path } = ctx.request.query

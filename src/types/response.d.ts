@@ -1,5 +1,5 @@
 import { Context } from 'koa';
-import Valkey from "iovalkey"
+import Valkey from "iovalkey";
 
 
 declare class EnhancedValkey extends Valkey {

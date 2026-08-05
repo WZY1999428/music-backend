@@ -1,38 +1,16 @@
 {
+    "exclude": [
+        ".*\\.d\\.ts$"
+    ],
     "jsc": {
         "experimental": {
             "plugins": [
                 [
                     "D:/project/template/swc-plugins/swc-plugin-validate/swc_plugin_validate.wasm",
                     {}
-                ],
-                [
-                    "swc-plugin-pre-paths",
-                    {
-                        "baseUrl": ".",
-                        "paths": {
-                            "utils/*": [
-                                "./src/utils/*"
-                            ],
-                            "bootstrap/*": [
-                                "./src/bootstrap/*"
-                            ],
-                            "database/*": [
-                                "./src/database/*"
-                            ],
-                            "middleware/*": [
-                                "./src/middleware/*"
-                            ],
-                            "router/*": [
-                                "./src/router/*"
-                            ],
-                            "models/*": [
-                                "./src/models/*"
-                            ]
-                        }
-                    }
                 ]
             ]
-        }
+        },
+        "target": "es2020"
     }
 }
