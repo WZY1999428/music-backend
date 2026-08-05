@@ -35,7 +35,6 @@ export default () => {
                 ctx.body = htmlTemplate('403');
             }
         } catch (error) {
-            console.log(error)
             if (error.name == "AppError") {
                 ctx.body = {
                     code: 1,

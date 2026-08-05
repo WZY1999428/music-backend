@@ -6,7 +6,7 @@
 * @param {string | number | boolean | null | undefined} value 待验证的值
 * @returns {boolean} 是否为有效值
 */
-exports.validate = function (value) {
+export const validate = function (value) {
     return (value === null || value === undefined || value === '') === false;
 };
 
@@ -19,12 +19,12 @@ exports.validate = function (value) {
  * @param {string} value 邮箱地址
  * @returns {boolean} 是否为合法邮箱格式
  */
-exports.validateEmail = function (value) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ;
+export const validateEmail = function (value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 };
 
 
-/**
+/** 
  * 验证中国大陆手机号码格式
  *
  * 格式要求：
@@ -35,7 +35,7 @@ exports.validateEmail = function (value) {
  * @param {string} value 手机号码
  * @returns {boolean} 是否为合法手机号
  */
-exports.validatePhone = function (value) {
+export const validatePhone = function (value) {
     return /^1[3-9]\d{9}$/.test(value);
 };
 
@@ -49,7 +49,7 @@ exports.validatePhone = function (value) {
  * @param {T[]} value 待验证的数组
  * @returns {boolean} 是否为非空数组
  */
-exports.validateArray = function (value) {
+export const validateArray = function (value) {
     return Array.isArray(value) && value.length > 0;
 };
 
@@ -64,6 +64,6 @@ exports.validateArray = function (value) {
  * @param {string} value 身份证号码
  * @returns {boolean} 是否为合法身份证格式
  */
-exports.validateIdCard = function (value) {
+export const validateIdCard = function (value) {
     return /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])\d{2}[0-9Xx]$/.test(value);
 };

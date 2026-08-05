@@ -1,0 +1,22 @@
+{
+    "name": "swc-plugin-validate",
+    "version": "0.1.0",
+    "description": "",
+    "author": "",
+    "type": "module",
+    "license": "ISC",
+    "keywords": [
+        "swc-plugin"
+    ],
+    "main": "swc_plugin_validate.wasm",
+    "exports": {
+        "./validate": {
+            "import": "./validate.js"
+        }
+    },
+    "scripts": {
+        "build": "cargo build --target wasm32-wasi --release"
+    },
+    "files": [],
+    "preferUnplugged": true
+}
