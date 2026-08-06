@@ -1,7 +1,7 @@
 {
     "exclude": [
         ".*\\.d\\.ts$",
-        ".*\\.map$" 
+        ".*\\.map$"
     ],
     "jsc": {
         "parser": {
@@ -10,7 +10,7 @@
         "experimental": {
             "plugins": [
                 [
-                    "D:\\project\\swc-plugin-validate\\target\\wasm32-wasip1\\release\\swc_plugin_validate.wasm",
+                    "swc-plugin-validate",
                     {}
                 ],
                 [

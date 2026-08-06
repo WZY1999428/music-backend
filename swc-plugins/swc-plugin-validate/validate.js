@@ -12,6 +12,26 @@ export const validate = function (value) {
 
 
 /**
+ * 验证两个值是否相等
+ * @param {*} value 
+ * @param {*} target 
+ * @returns 
+ */
+export const validateEq = function (value, target) {
+    return value === target;
+};
+
+/**
+ * 验证两个值是否不等
+ * @param {*} value 
+ * @param {*} target 
+ * @returns 
+ */
+export const validateNeq = function (value, target) {
+    return value !== target;
+}
+
+/**
  * 验证邮箱格式
  *
  * 校验是否符合常见邮箱格式。

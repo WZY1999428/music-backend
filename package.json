@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build": "cross-env NODE_ENV=production npx swc src --out-dir .output --copy-files",
-    "start": "cross-env NODE_ENV=production node ./.output/src/index.js",
+    "start": "cross-env NODE_ENV=production node .output/src/index.js",
     "dev": "cross-env NODE_ENV=development SWCRC=true node --watch --import @swc-node/register/esm-register ./src/index.js"
   },
   "engines": {

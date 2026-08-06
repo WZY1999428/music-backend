@@ -2,18 +2,19 @@
 [valkey]
 host = "www.hkta.cc"
 port = 6379         
-username = "valkey"
 password = "a7454796209"
 db = 0
 # Mysql 配置
 [mysql]
-host = "www.hkta.cc"
+host = "localhost"
 port = 3306
 username = "root"
-password = "a7454796209"
+password = "123456789"
+database = "koa-serve"
 # Server 配置
 [server]
-port = 8848
+port = 3000
 # JWT 配置
 [jwt]
 expire = 86400
+ 

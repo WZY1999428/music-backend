@@ -7,6 +7,25 @@ declare global {
     function $validate(
         value: string | number | boolean | null | undefined
     ): boolean;
+    /**
+     * 判断两个值是否不相等
+     * @param value 
+     * @param target 
+     */
+    function $validateNeq(
+        value: any,
+        target: any
+    ): boolean;
+
+    /**
+     * 判断两个值是否相等
+     * @param value 
+     * @param target 
+     */
+    function $validateEq(
+        value: any,
+        target: any
+    ): boolean;
 
 
     /**
@@ -41,4 +60,4 @@ declare global {
     ): boolean;
 }
 
-export {};
+export { };

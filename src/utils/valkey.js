@@ -86,7 +86,7 @@ class EnhancedValkey extends Valkey {
     setEmailCode = async (email, value) => await this.#setVerificationCode("email", email, value)
 
     assertLoginAttemptLimit = async (key, ttl = 300) => {
-        if ((await this.#incrementCount(`assertLoginAttemptLimit:${key}`, ttl)) > 5) throw new AppError(key + ":登录尝试过于频繁，请稍后再试");
+        if ((await this.#incrementCount(`assertLoginAttemptLimit:${key}`, ttl)) > 5) throw new AppError(key + "账号:登录尝试过于频繁，请稍后再试");
     };
     resettLoginAttemptLimit = async (key) => await this.del(`assertLoginAttemptLimit:${key}`);
 

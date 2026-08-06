@@ -12,7 +12,6 @@ import KoaRouter from "@koa/router";
 const app = new Koa();
 const router = new KoaRouter();
 
-
 await registerRoutes(router);
 await registerMiddleware(app);
 app.context.valkey = valkey;
