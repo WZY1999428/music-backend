@@ -1,5 +1,5 @@
-import { odm } from "database/index.js"
-import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "database/utils.js"
+import { odm } from "@/database/index.js"
+import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "@/database/utils.js"
 const { Schema, DataType } = await import("mysql-odm/schema");
 const hooks = {
     beforeInsert(data) {

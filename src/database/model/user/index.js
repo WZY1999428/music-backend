@@ -1,4 +1,4 @@
-import { odm } from "database/index.js"
+import { odm } from "@/database/index.js"
 import { Schema, DataType } from "mysql-odm/schema"
 const hooks = {
     beforeInsert(data) {

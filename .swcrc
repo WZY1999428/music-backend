@@ -14,28 +14,10 @@
                     {}
                 ],
                 [
-                    "swc-plugin-pre-paths",
+                    "D:/project/swc-plugins/target/wasm32-wasip1/release/swc_plugin_path_resolver.wasm",
                     {
-                        "baseUrl": ".",
-                        "paths": {
-                            "utils/*": [
-                                "./src/utils/*"
-                            ],
-                            "bootstrap/*": [
-                                "./src/bootstrap/*"
-                            ],
-                            "database/*": [
-                                "./src/database/*"
-                            ],
-                            "middleware/*": [
-                                "./src/middleware/*"
-                            ],
-                            "router/*": [
-                                "./src/router/*"
-                            ],
-                            "models/*": [
-                                "./src/models/*"
-                            ]
+                        "alias": {
+                            "@/": "./src/"
                         }
                     }
                 ]

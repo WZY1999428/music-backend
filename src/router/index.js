@@ -1,4 +1,4 @@
-import generateToken from "utils/token.js";
+import generateToken from "@/utils/token.js";
 
 /** @type {Controller} */
 export default async (ctx) => {

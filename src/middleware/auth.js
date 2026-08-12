@@ -1,5 +1,5 @@
-import { routerWhiteList } from "bootstrap/registerRoutes.js";
-import valkey from "utils/valkey.js";
+import { routerWhiteList } from "@/bootstrap/registerRoutes.js";
+import valkey from "@/utils/valkey.js";
 export default () => {
     const whiteMatchers = Array.from(routerWhiteList.values());
     return async (ctx, next) => {

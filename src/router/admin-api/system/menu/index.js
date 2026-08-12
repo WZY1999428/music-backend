@@ -1,4 +1,4 @@
-import routeModel from "database/model/system/menu.js"
+import routeModel from "@/database/model/system/menu.js"
 
 /** @type {Controller} */
 export default async (ctx) => {

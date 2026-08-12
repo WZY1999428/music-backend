@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import { pathToRegexp } from "path-to-regexp"; // 注意：较新版本需解构
 
 // 路由文件存放的根目录 (src/router)
-const routerRootPath = path.resolve(process.cwd(), "./src/router");
+const routerRootPath = path.resolve(process.cwd(), `${process.env.OUTPUT_PATH}/router`);
 // 定义支持的 HTTP 标准方法集合，用于校验文件名
 const routeMethods = new Set(["get", "post", "put", "delete", "patch", "options", "head", "all"]);
 // 存储需要鉴权的路由正则表达式集合

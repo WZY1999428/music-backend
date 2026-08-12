@@ -1,5 +1,5 @@
-import userModel from "database/model/user/index.js"
-import generateToken from "utils/token.js"
+import userModel from "@/database/model/user/index.js"
+import generateToken from "@/utils/token.js"
 export default {
     /** @type {Controller} */
     handler: async (ctx) => {
@@ -14,4 +14,4 @@ export default {
         ctx.success(generateToken({ username, id: user.id, role: user.role }), "登录成功")
     },
     auth: false
-}  
+}   

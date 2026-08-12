@@ -1,24 +1,9 @@
 {
   "compilerOptions": {
     "paths": {
-      "utils/*": [
-        "./src/utils/*"
+      "@/*": [
+        "./src/*"
       ],
-      "bootstrap/*": [
-        "./src/bootstrap/*"
-      ],
-      "database/*": [
-        "./src/database/*"
-      ],
-      "middleware/*": [
-        "./src/middleware/*"
-      ],
-      "router/*": [
-        "./src/router/*"
-      ],
-      "models/*": [
-        "./src/models/*"
-      ]
     }
   },
   "exclude": [

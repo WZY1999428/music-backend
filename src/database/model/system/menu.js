@@ -1,5 +1,5 @@
-import { odm } from "database/index.js"
-import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "database/utils.js"
+import { odm } from "@/database/index.js"
+import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "@/database/utils.js"
 import { Schema, DataType } from "mysql-odm/schema";
 
 const hooks = {

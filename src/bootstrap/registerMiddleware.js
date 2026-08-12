@@ -2,7 +2,8 @@ import path from "path";
 import fs from "fs-extra";
 import { pathToFileURL } from "url";
 
-const middlewareRootPath = path.resolve("./src/middleware");
+const middlewareRootPath = path.resolve(`${process.env.OUTPUT_PATH}/middleware`);
+
 // 从 middleware.json 中读取中间件执行顺序和忽略列表
 const middlewareConfig = JSON.parse(fs.readFileSync(path.join(middlewareRootPath, "middleware.json"), "utf-8"));
 const middlewareOrder = new Set(middlewareConfig.order);
