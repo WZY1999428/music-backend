@@ -9,7 +9,7 @@ db = 0
 host = "localhost"
 port = 3306
 username = "root"
-password = "a7454796209"
+password = "123456789"
 database = "koa-serve"
 # Server 配置
 [server]

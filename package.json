@@ -5,7 +5,8 @@
   "main": ".output/index.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production node .output/index.js",
-    "dev": "cross-env NODE_ENV=development  node --watch-path=./src  --watch swc/dev.js"
+    "build": "cross-env NODE_ENV=development node swc/build.js",
+    "dev": "cross-env NODE_ENV=development node --watch-path=./src --watch swc/dev.js"
   },
   "engines": {
     "node": ">=18.0.0"

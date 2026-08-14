@@ -1,6 +1,5 @@
 
-import { build } from "./compiler.mjs";
-import { pathToFileURL } from "url";
+import { devRun } from "./compiler.mjs";
 import path from "path";
 
 const swcPluginsPath = path.resolve(
@@ -22,7 +21,7 @@ function plugin(name, options = {}) {
 
 
 
-const jsMap = await build({
+const jsMap = await devRun({
     root: "./src",
     output: "src",
     mode: "development",
@@ -36,5 +35,7 @@ const jsMap = await build({
     ],
 });
 
-console.log(jsMap)
+console.log(jsMap);
+
+
 

@@ -3,8 +3,8 @@ import fs from "fs/promises";
 import path from "path";
 
 const BATCH_COUNT = 10;
-let buildMode = null;
 const jsMap = new Map();
+
 export async function build({
     root = "./src",
     output = "./.output",
@@ -12,22 +12,39 @@ export async function build({
     plugins = [],
     batchCount = BATCH_COUNT,
 } = {}) {
-    buildMode = mode;
     const rootPath = path.resolve(process.cwd(), root);
     const outputPath = path.resolve(process.cwd(), output);
-
     const files = await collectFiles(rootPath, outputPath);
-
-    if (mode == "production") await prepareOutput(files, outputPath);
-
+    await prepareOutput(files, outputPath);
     await transformJsFiles(
         files.js,
         plugins,
-        batchCount
+        batchCount,
+        false
     );
-
     if (mode == "development") return jsMap;
 }
+
+export async function devRun({
+    root = "./src",
+    output = "./.output",
+    plugins = [],
+    batchCount = BATCH_COUNT,
+} = {}) {
+    const rootPath = path.resolve(process.cwd(), root);
+    const outputPath = path.resolve(process.cwd(), output);
+    const files = await collectFiles(rootPath, outputPath);
+    await transformJsFiles(
+        files.js,
+        plugins,
+        batchCount,
+        true
+    );
+    return jsMap;
+}
+
+
+
 
 async function collectFiles(rootPath, outputPath) {
     const jsFiles = [];
@@ -102,7 +119,8 @@ async function prepareOutput(files, outputPath) {
 async function transformJsFiles(
     files,
     plugins,
-    batchCount
+    batchCount,
+    devRun = false
 ) {
     const swcPlugins = plugins.map(plugin => [
         plugin.path,
@@ -112,12 +130,12 @@ async function transformJsFiles(
     for (let i = 0; i < files.length; i += batchCount) {
         const batch = files.slice(i, i + batchCount);
         await Promise.all(
-            batch.map(file => transform(file, swcPlugins))
+            batch.map(file => transform(file, swcPlugins, devRun))
         );
     }
 }
 
-async function transform(file, plugins) {
+async function transform(file, plugins, devRun) {
     const code = await fs.readFile(
         file.input,
         "utf8"
@@ -139,7 +157,7 @@ async function transform(file, plugins) {
         },
     });
 
-    if (buildMode == "development") jsMap.set(file.output, result.code);
+    if (devRun) jsMap.set(file.output, result.code);
     else {
         await fs.mkdir(path.dirname(file.output), { recursive: true });
         await fs.writeFile(file.output, result.code)
