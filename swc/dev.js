@@ -1,5 +1,6 @@
 
-import { devRun } from "./compiler.mjs";
+import { devRun, plugin } from "./compiler.mjs";
+import VmRuntime from "./vmruntime/index.js";
 import path from "path";
 
 const swcPluginsPath = path.resolve(
@@ -7,35 +8,25 @@ const swcPluginsPath = path.resolve(
     "./swc-plugins"
 );
 
-function plugin(name, options = {}) {
-    const pluginName = name.replaceAll("-", "_");
-    return {
-        path: path.join(
-            swcPluginsPath,
-            name,
-            `${pluginName}.wasm`
-        ),
-        options,
-    };
-}
-
-
-
 const jsMap = await devRun({
     root: "./src",
     output: "src",
     mode: "development",
     plugins: [
-        plugin("swc-plugin-validate"),
-        plugin("swc-plugin-path-resolver", {
+        plugin("swc-plugin-validate", swcPluginsPath),
+        plugin("swc-plugin-path-resolver", swcPluginsPath, {
             alias: {
                 "@/": "./src/",
+                "@swc-plugins/": "./swc-plugins/",
             },
         }),
     ],
 });
 
-console.log(jsMap);
 
+const rt = await VmRuntime.init({
+    codeMap: jsMap,
+    rootPath: path.resolve("src/index.js"),
+})
 
-
+await rt.evaluate();

@@ -5,6 +5,28 @@ import path from "path";
 const BATCH_COUNT = 10;
 const jsMap = new Map();
 
+
+
+export function plugin(name, swcPluginsPath, options = {}) {
+
+    if (path.isAbsolute(name)) return {
+        path: name,
+        options,
+    }
+
+
+    const pluginName = name.replaceAll("-", "_");
+    return {
+        path: path.join(
+            swcPluginsPath,
+            name,
+            `${pluginName}.wasm`
+        ),
+        options,
+    };
+}
+
+
 export async function build({
     root = "./src",
     output = "./.output",
