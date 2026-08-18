@@ -1,22 +1,26 @@
 
 import { build, plugin } from "./compiler.mjs";
-import path from "path";
-const swcPluginsPath = path.resolve(
-    process.cwd(),
-    "./swc-plugins"
-);
-
-
+import scanAutoImportPath from "../swc-plugins/swc-plugin-auto-import/scanning.mjs"
 await build({
     root: "./src",
     output: "./.output",
     plugins: [
-        plugin("swc-plugin-validate", swcPluginsPath),
-        plugin("D:/project/swc-plugins/target/wasm32-wasip1/release/swc_plugin_path_resolver.wasm", swcPluginsPath, {
-            alias: {
-                "@/": "./src/",
-                "@swc-plugins/": "./swc-plugins/",
-            },
+        plugin({
+            name: "D:/project/swc-plugins/target/wasm32-wasip1/release/swc_plugin_auto_import.wasm",
+            options: scanAutoImportPath(["./src/utils"])
+        })
+        ,
+        plugin({
+            name: "swc-plugin-validate"
+        }),
+        plugin({
+            name: "swc-plugin-path-resolver",
+            options: {
+                alias: {
+                    "@/": "./src/",
+                    "@swc-plugins/": "./swc-plugins/",
+                },
+            }
         }),
     ],
 });

@@ -1,0 +1,19 @@
+{
+    "name": "swc-plugin-auto-import",
+    "version": "0.1.0",
+    "description": "",
+    "author": "",
+    "license": "ISC",
+    "keywords": [
+        "swc-plugin"
+    ],
+    "main": "target/wasm32-wasip1/release/swc_plugin_auto_import.wasm",
+    "scripts": {
+        "prepublishOnly": "cargo build-wasip1 --release"
+    },
+    "files": [],
+    "preferUnplugged": true,
+    "dependencies": {
+        "@swc/core": "^1.16.0"
+    }
+}

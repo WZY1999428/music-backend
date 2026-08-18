@@ -7,3 +7,9 @@ export default async function generateToken(data) {
 }
 
 
+export async function aaa(aaa){
+    
+}
+
+
+

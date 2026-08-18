@@ -7,22 +7,26 @@ const jsMap = new Map();
 
 
 
-export function plugin(name, swcPluginsPath, options = {}) {
-
-    if (path.isAbsolute(name)) return {
-        path: name,
-        options,
-    }
-
-
-    const pluginName = name.replaceAll("-", "_");
-    return {
-        path: path.join(
+export async function plugin({
+    name,
+    swcPluginsPath = path.resolve("swc-plugins"),
+    options = {}
+}) {
+    let wasm_path = name;
+    if (!path.isAbsolute(name)) {
+        const pluginName = name.replaceAll("-", "_");
+        wasm_path = path.join(
             swcPluginsPath,
             name,
             `${pluginName}.wasm`
-        ),
-        options,
+        );
+    }
+
+    options = await options;
+
+    return {
+        path: wasm_path,
+        options
     };
 }
 
@@ -144,10 +148,13 @@ async function transformJsFiles(
     batchCount,
     devRun = false
 ) {
-    const swcPlugins = plugins.map(plugin => [
-        plugin.path,
-        plugin.options ?? {},
-    ]);
+    const swcPlugins = await Promise.all(
+        plugins.map(async p => {
+            const { path, options = {} } = await p;
+            return [path, options];
+        })
+    );
+
 
     for (let i = 0; i < files.length; i += batchCount) {
         const batch = files.slice(i, i + batchCount);
