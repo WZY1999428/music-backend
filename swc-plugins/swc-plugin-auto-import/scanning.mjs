@@ -31,38 +31,43 @@ async function collectFiles(rootPath) {
                             continue;
                         }
                         const info = getExportInfo(node);
+                        // console.log(info);
+
                         if (info) {
                             exports.push(info);
                         }
                     }
+
                     jsFiles.push({ input: path.normalize(input), exports });
                 }
             }
         }
     }
 
+
     return jsFiles
 }
 
 function getExportInfo(node) {
-    let target;
     let exportName = "default";
 
-    switch (node.type) {
-        case "ExportDeclaration":
-            target = node.declaration;
-            exportName = target?.identifier?.value ?? "";
-            break;
-
-        case "ExportDefaultDeclaration":
-            target = node.decl;
-            exportName = target?.identifier?.value ?? "default";
-            break;
-
-        case "ExportDefaultExpression":
-            target = node.expression;
-            break;
+    const funcs = {
+        ExportDeclaration: () => {
+            exportName = node.declaration?.identifier?.value ?? "default";
+            return node.declaration
+        },
+        ExportDefaultDeclaration: () => {
+            exportName = node.decl?.identifier?.value ?? "default";
+            return node.decl;
+        },
+        ExportDefaultExpression: () => {
+            exportName = node?.expression?.value ?? "default";
+            return node.expression;
+        }
     }
+    let target = null;
+    if (funcs[node.type]) target = funcs[node.type]()
+
 
     if (!target) {
         return null;
