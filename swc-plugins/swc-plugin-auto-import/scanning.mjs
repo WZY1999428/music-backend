@@ -8,7 +8,7 @@ const exportTypes = new Set([
     "ExportDeclaration",
     "ExportDefaultDeclaration",
 ]);
-
+const funcDecl = ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"];
 
 async function collectFiles(rootPath) {
     const jsFiles = [];
@@ -30,11 +30,10 @@ async function collectFiles(rootPath) {
                         if (!exportTypes.has(node.type)) {
                             continue;
                         }
-                        const info = getExportInfo(node);
-                        // console.log(info);
-
+                        const info = getExportInfo(node, ast);
                         if (info) {
-                            exports.push(info);
+                            if (Array.isArray(info)) exports.push(...info);
+                            else exports.push(info)
                         }
                     }
 
@@ -44,51 +43,106 @@ async function collectFiles(rootPath) {
         }
     }
 
-
     return jsFiles
 }
 
-function getExportInfo(node) {
-    let exportName = "default";
 
-    const funcs = {
-        ExportDeclaration: () => {
-            exportName = node.declaration?.identifier?.value ?? "default";
-            return node.declaration
-        },
-        ExportDefaultDeclaration: () => {
-            exportName = node.decl?.identifier?.value ?? "default";
-            return node.decl;
-        },
-        ExportDefaultExpression: () => {
-            exportName = node?.expression?.value ?? "default";
-            return node.expression;
+function findBinding(ast, name) {
+    for (const item of ast.body) {
+        // function cccc() {}
+        if (
+            item.type === "FunctionDeclaration" &&
+            item.identifier?.value === name
+        ) {
+            return item;
+        }
+
+
+        // class Cccc {}
+        if (
+            item.type === "ClassDeclaration" &&
+            item.identifier?.value === name
+        ) {
+            return item;
+        }
+
+
+        // const cccc = ...
+        if (item.type === "VariableDeclaration") {
+            for (const decl of item.declarations) {
+                if (decl.id?.type === "Identifier" &&
+                    decl.id.value === name) {
+                    return decl.init;
+                }
+            }
         }
     }
-    let target = null;
-    if (funcs[node.type]) target = funcs[node.type]()
 
 
-    if (!target) {
-        return null;
-    }
-
-    const declType = target.type;
-
-    const argsLen =
-        declType === "FunctionDeclaration" ||
-            declType === "FunctionExpression" ||
-            declType === "ArrowFunctionExpression"
-            ? target.params.length
-            : 0;
-
-    return {
-        exportName,
-        argsLen,
-        exportType: node.type,
-        declType,
-    };
+    return null;
 }
+
+function getExportInfo(node, ast) {
+    const isFuncDecl = (type) => funcDecl.includes(type);
+
+    const getArgsLen = (decl) => {
+        return isFuncDecl(decl?.type)
+            ? decl.params?.length ?? 0
+            : 0;
+    };
+
+    switch (node.type) {
+        case "ExportDeclaration": {
+            const declaration = node.declaration;
+            if (["const", "let", "var"].includes(declaration.kind)) {
+                return declaration.declarations.map((decl) => ({
+                    exportName: decl.id?.value,
+                    argsLen: getArgsLen(decl.init),
+                    exportType: node.type,
+                    declType: decl.init?.type,
+                }));
+            }
+
+            return {
+                exportName: declaration.identifier?.value ?? "default",
+                argsLen: getArgsLen(declaration),
+                exportType: node.type,
+                declType: declaration.type,
+            };
+        }
+
+        case "ExportDefaultDeclaration": {
+            const decl = node.decl;
+            return {
+                exportName: decl?.identifier?.value ?? "default",
+                argsLen: getArgsLen(decl),
+                exportType: node.type,
+                declType: decl?.type,
+            };
+        }
+
+        case "ExportDefaultExpression": {
+            const expression = node.expression;
+            let name = expression.value ?? "defaule";
+            let declType = expression?.type;
+            if (expression.type == "Identifier") {
+                const data = findBinding(ast, name);
+                if (data) declType = data.type;
+            }
+            return {
+                exportName: expression.value ?? "defaule",
+                argsLen: getArgsLen(expression),
+                exportType: node.type,
+                declType: declType
+            };
+        }
+
+        default:
+            return null;
+    }
+}
+
+
 export default async (autoImportPaths = []) => {
     const results = await Promise.all(
         autoImportPaths.map(p =>

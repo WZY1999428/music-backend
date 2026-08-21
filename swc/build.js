@@ -2,7 +2,7 @@
 import { build, plugin } from "./compiler.mjs";
 import scanAutoImportPath from "../swc-plugins/swc-plugin-auto-import/scanning.mjs"
 await build({
-    root: "./src",
+    root: "./test",
     output: "./.output",
     plugins: [
         plugin({

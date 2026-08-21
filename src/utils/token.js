@@ -5,9 +5,3 @@ export default async function generateToken(data) {
     await valkey.setObject(token, data, "EX", process.env.JWT_EXPIRE);
     return token;
 }
-
-
-export async function aaa(aaa){
-    
-}
-
