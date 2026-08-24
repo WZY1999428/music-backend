@@ -7,6 +7,7 @@ const exportTypes = new Set([
     "ExportDefaultExpression",
     "ExportDeclaration",
     "ExportDefaultDeclaration",
+    "ExportNamedDeclaration"
 ]);
 const funcDecl = ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"];
 
@@ -49,7 +50,6 @@ async function collectFiles(rootPath) {
 
 function findBinding(ast, name) {
     for (const item of ast.body) {
-        // function cccc() {}
         if (
             item.type === "FunctionDeclaration" &&
             item.identifier?.value === name
@@ -58,7 +58,6 @@ function findBinding(ast, name) {
         }
 
 
-        // class Cccc {}
         if (
             item.type === "ClassDeclaration" &&
             item.identifier?.value === name
@@ -84,13 +83,11 @@ function findBinding(ast, name) {
 
 function getExportInfo(node, ast) {
     const isFuncDecl = (type) => funcDecl.includes(type);
-
     const getArgsLen = (decl) => {
         return isFuncDecl(decl?.type)
             ? decl.params?.length ?? 0
             : 0;
     };
-
     switch (node.type) {
         case "ExportDeclaration": {
             const declaration = node.declaration;
@@ -135,6 +132,11 @@ function getExportInfo(node, ast) {
                 exportType: node.type,
                 declType: declType
             };
+        }
+
+        case "ExportNamedDeclaration": {
+            console.log(node.specifiers);
+            return null
         }
 
         default:

@@ -7,7 +7,7 @@ await build({
     plugins: [
         plugin({
             name: "D:/project/swc-plugins/target/wasm32-wasip1/release/swc_plugin_auto_import.wasm",
-            options: scanAutoImportPath(["./src/utils"])
+            options: scanAutoImportPath(["./test/utils"])
         })
         ,
         plugin({
