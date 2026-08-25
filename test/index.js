@@ -1,2 +1,0 @@
-defaultObject.foo
-defaultValue

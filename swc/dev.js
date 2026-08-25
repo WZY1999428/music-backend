@@ -3,11 +3,6 @@ import { devRun, plugin } from "./compiler.mjs";
 import VmRuntime from "./vmruntime/index.js";
 import scanAutoImportPath from "../swc-plugins/swc-plugin-auto-import/scanning.mjs"
 import path from "path";
-const swcPluginsPath = path.resolve(
-    process.cwd(),
-    "./swc-plugins"
-);
-
 const jsMap = await devRun({
     root: "./src",
     output: "src",
