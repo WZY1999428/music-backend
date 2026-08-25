@@ -74,12 +74,11 @@
 // 6. 已经声明，再 export
 // =========================
 
-const normalObject = {
-    a: 1
-};
-
-export { normalObject };
-
+// const normalObject = {
+//     a: 1
+// };
+// const b = 222;
+// export { normalObject, b }; 
 
 // const normalArray = [1, 2, 3];
 

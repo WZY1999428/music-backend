@@ -1,1 +1,2 @@
-const aaa =normalObject 
+defaultObject.foo
+defaultValue

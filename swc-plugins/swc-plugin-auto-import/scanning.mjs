@@ -25,6 +25,7 @@ async function collectFiles(rootPath) {
             }
             if (file.name.endsWith(".js")) {
                 const ast = await parse(fs.readFileSync(input, 'utf-8'), { syntax: "ecmascript", })
+                const filename = file.name.split(".")[0];
                 if (ast.type == "Module") {
                     const exports = [];
                     for (const node of ast.body) {
@@ -33,11 +34,14 @@ async function collectFiles(rootPath) {
                         }
                         const info = getExportInfo(node, ast);
                         if (info) {
-                            if (Array.isArray(info)) exports.push(...info);
-                            else exports.push(info)
+                            if (Array.isArray(info)) exports.push(...(info.map(f => ({ ...f, filename }))));
+                            else exports.push({ ...info, filename })
                         }
                     }
-
+                    exports.sort((a, b) => {
+                        const priority = { ExportDefaultDeclaration: 0, ExportDeclaration: 1, ExportNamedDeclaration: 1 };
+                        return (priority[a.exportType] ?? 2) - (priority[b.exportType] ?? 2);
+                    });
                     jsFiles.push({ input: path.normalize(input), exports });
                 }
             }
@@ -120,14 +124,14 @@ function getExportInfo(node, ast) {
 
         case "ExportDefaultExpression": {
             const expression = node.expression;
-            let name = expression.value ?? "defaule";
+            let name = expression.value ?? "default";
             let declType = expression?.type;
             if (expression.type == "Identifier") {
                 const data = findBinding(ast, name);
                 if (data) declType = data.type;
             }
             return {
-                exportName: expression.value ?? "defaule",
+                exportName: expression.value ?? "default",
                 argsLen: getArgsLen(expression),
                 exportType: node.type,
                 declType: declType
@@ -135,8 +139,33 @@ function getExportInfo(node, ast) {
         }
 
         case "ExportNamedDeclaration": {
-            console.log(node.specifiers);
-            return null
+            return node.specifiers.map((decl) => {
+                if (decl.name) {
+                    return {
+                        exportName: decl.name.value,
+                        argsLen: getArgsLen(decl.name),
+                        exportType: node.type,
+                        declType: "ObjectExpression"
+                    }
+                }
+
+                let exportName = decl.orig?.value;
+                if (decl.exported) {
+                    exportName = decl.exported.value;
+                }
+                const info = {
+                    exportName: exportName,
+                    argsLen: getArgsLen(decl.orig),
+                    exportType: node.type,
+                    declType: decl.orig?.type
+                }
+                if (decl.orig?.type == "Identifier") {
+                    const data = findBinding(ast, decl.orig?.value);
+                    if (data) info.declType = data.type;
+                }
+                return info
+
+            });
         }
 
         default:
@@ -151,5 +180,5 @@ export default async (autoImportPaths = []) => {
             collectFiles(path.resolve(p))
         )
     );
-    return results.flat();
+    return results.flat().filter(item => item.exports.length > 0);
 };

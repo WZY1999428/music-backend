@@ -2,6 +2,6 @@
 // 16. default function expression
 // =========================
 
-// export default function () {
-//     return 123;
-// }
+export default function () {
+    return 123;
+}

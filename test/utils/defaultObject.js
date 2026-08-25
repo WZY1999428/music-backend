@@ -2,7 +2,7 @@
 // 13. default 对象
 // =========================
 
-// export default {
-//     foo: 1,
-//     bar: 2
-// };
+export default {
+    foo: 1,
+    bar: 2
+};
