@@ -5,8 +5,8 @@
   "main": ".output/index.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production node .output/index.js",
-    "build": "cross-env NODE_ENV=development node swc/build.js",
-    "dev": "cross-env NODE_ENV=development node --experimental-vm-modules  --watch-path=./src  swc/dev.js"
+    "build": "cross-env NODE_ENV=development node compiler/build.js",
+    "dev": "cross-env NODE_ENV=development node --experimental-vm-modules  --watch-path=./src  compiler/dev.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -31,7 +31,6 @@
   },
   "devDependencies": {
     "@swc-node/register": "1.12.1",
-    "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.47",
     "@types/fs-extra": "^11.0.4",
     "@types/koa": "^3.0.3",
@@ -39,3 +38,4 @@
     "cross-env": "^10.1.0"
   }
 }
+

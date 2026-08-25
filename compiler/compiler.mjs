@@ -66,6 +66,7 @@ export async function devRun({
         batchCount,
         true
     );
+
     return jsMap;
 }
 
@@ -86,9 +87,9 @@ async function collectFiles(rootPath, outputPath) {
 
         for (const file of files) {
             const input = path.join(dir, file.name);
-
+            
             const relative = path.relative(rootPath, input);
-
+            
             const output = path.join(outputPath, relative);
 
             if (file.isDirectory()) {
@@ -106,7 +107,6 @@ async function collectFiles(rootPath, outputPath) {
             }
         }
     }
-
     return {
         js: jsFiles,
         other: otherFiles,

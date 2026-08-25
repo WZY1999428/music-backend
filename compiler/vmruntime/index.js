@@ -175,13 +175,12 @@ class VmRuntime {
          */
         if (this.moduleCache.has(absolutePath)) {
             console.log("[CACHE]", absolutePath);
-
             return this.moduleCache.get(absolutePath);
         }
 
         console.log("[LOAD]", absolutePath);
 
-        let code = this.codeMap.get(absolutePath); //  await fs.readFile(absolutePath, "utf8");
+        let code = this.codeMap.get(absolutePath); 
         if (!code) code = await fs.readFile(absolutePath, "utf-8")
         /**
          * 创建 SourceTextModule

@@ -1,8 +1,8 @@
 # Valkey 数据库配置
 [valkey]
-host = "www.hkta.cc"
+host = "localhost"
 port = 6379         
-password = "a7454796209"
+password = "123456789"
 db = 0
 # Mysql 配置
 [mysql]
