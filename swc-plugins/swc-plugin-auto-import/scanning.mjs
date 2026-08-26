@@ -173,7 +173,6 @@ function getExportInfo(node, ast) {
     }
 }
 
-
 export default async (autoImportPaths = []) => {
     const results = await Promise.all(
         autoImportPaths.map(p =>

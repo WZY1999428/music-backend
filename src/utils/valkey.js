@@ -62,6 +62,7 @@ class EnhancedValkey extends Valkey {
         await this.set(key, value, ...args);
     }
 
+
     getObject = async (key) => {
         const value = await this.get(key);
         if (value === null) return null;
@@ -76,6 +77,7 @@ class EnhancedValkey extends Valkey {
     getToken = async (key) => this.getObject(`token:${key}`);
 
     setToken = async (key, value, ...args) => await this.setObject(`token:${key}`, value, ...args)
+    delToken = async (key) => await this.del(`token:${key}`)
 
     verifyMobileVerificationCode = async (phone, value) => await this.#verificationCode("mobile", phone, value)
 

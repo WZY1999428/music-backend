@@ -24,7 +24,10 @@ export default () => {
 
         ctx.unauthorized = () => {
             ctx.status = 401;
-            ctx.body = "Unauthorized";
+            ctx.body = {
+                code: 401,
+                message: "Unauthorized"
+            };
         };
 
         try {

@@ -13,6 +13,7 @@ const userSchema = new Schema({
     password: { type: DataType.VarChar, length: 255, nullable: false },
     email: { type: DataType.VarChar, length: 255, nullable: false },
     rule: { type: DataType.VarChar, length: 255, nullable: false },
+    avatar: { type: DataType.VarChar, length: 255, nullable: true },
     createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
     updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
