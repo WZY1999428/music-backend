@@ -30,12 +30,10 @@
     "toml": "^5.0.0"
   },
   "devDependencies": {
-    "@swc-node/register": "1.12.1",
-    "@swc/core": "^1.15.47",
+    "@swc/core": "1.15.47",
     "@types/fs-extra": "^11.0.4",
     "@types/koa": "^3.0.3",
     "@types/koa-bodyparser": "^5.0.2",
     "cross-env": "^10.1.0"
   }
 }
-

@@ -11,6 +11,7 @@ const hooks = {
     },
     afterFind(data) {
         if (data) convertBooleanFieldsToInt(data, ['isLink', 'enabled'])
+        return data;
     }
 };
 
