@@ -22,25 +22,25 @@ export default async (ctx) => {
         ],
         jsonArrayAgg: [
             {
-                as: "buttons",
+                as: "permissions",
                 fields: {
-                    "id": "menuButtons.id",
-                    "name": "menuButtons.name",
-                    "sort": "menuButtons.sort",
-                    "enabled": "menuButtons.enabled",
+                    "id": "permissions.id",
+                    "name": "permissions.name",
+                    "sort": "permissions.sort",
+                    "enabled": "permissions.enabled",
                 },
                 case: {
                     $whens: [
-                        { when: { "menuButtons.id": { $ne: null } } }
+                        { when: { "permissions.id": { $ne: null } } }
                     ]
                 }
             }
         ],
         joins: [{
-            table: "menu_buttons",
+            table: "menu_permissions",
             type: "left",
-            as: "menuButtons",
-            on: { "menuButtons.menuId": "menus.id" }
+            as: "permissions",
+            on: { "permissions.menuId": "menus.id" }
 
         }],
         group: ["menus.id"],
@@ -52,6 +52,7 @@ export default async (ctx) => {
     result.forEach(t => treeMap.set(t.id, t));
     const rootTree = []
     for (const item of result) {
+        item.permissions = item.permissions.filter(Boolean)
         const parent = treeMap.get(item.parentId);
         if (parent) {
             if (!parent.children) {

@@ -1,4 +1,4 @@
-import routeModel, { menuButtonModel } from "@/database/model/system/menu.js";
+import routeModel, { menuPermissionsModel } from "@/database/model/system/menu.js";
 /** @type {Controller} */
 export default async (ctx) => {
     let {
@@ -37,12 +37,12 @@ export default async (ctx) => {
         if (id) {
             const new_btns = menuButtons.filter(item => !item.id);
             if (Array.isArray(new_btns) && new_btns.length) {
-                await menuButtonModel.insertMany(buildBtns(new_btns, id))
+                await menuPermissionsModel.insertMany(buildBtns(new_btns, id))
             }
             let update_btns = menuButtons.filter(item => item.id);
             if (Array.isArray(update_btns) && update_btns.length) {
                 update_btns = buildBtns(update_btns, id)
-                for (const btn of update_btns) await menuButtonModel.update({ id: btn.id }, btn)
+                for (const btn of update_btns) await menuPermissionsModel.update({ id: btn.id }, btn)
             }
             await model.update({ id }, params)
             msg = "更新成功"
@@ -50,7 +50,7 @@ export default async (ctx) => {
             const result = await model.insert(params)
             console.log(menuButtons);
             if (Array.isArray(menuButtons) && menuButtons.length) {
-                await menuButtonModel.insertMany(buildBtns(menuButtons, result.insertId))
+                await menuPermissionsModel.insertMany(buildBtns(menuButtons, result.insertId))
                 msg = "添加成功"
             }
         }

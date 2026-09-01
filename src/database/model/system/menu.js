@@ -46,6 +46,6 @@ const menuButtonSchema = new Schema({
 
 }, hooks);
 
-export const menuButtonModel = await odm.model('menu_buttons', menuButtonSchema);
+export const menuPermissionsModel = await odm.model('menu_permissions', menuButtonSchema);
 
 export default routeModel;
