@@ -30,8 +30,10 @@ const roleMenuSchema = new Schema({
     id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
     roleId: { type: DataType.VarChar, length: 255, nullable: false },
     routeId: { type: DataType.Int, default: 0, nullable: false },
+    menuPermissionsIds:{},
     createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 });
+
 
 const roleMenuModel = odm.model('role_menus', roleMenuSchema);
 
