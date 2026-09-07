@@ -10,32 +10,38 @@ const hooks = {
     },
     afterFind(data) {
         if (data) convertBooleanFieldsToInt(data, ['enabled'])
+        return data
     }
 };
 
 const roleSchema = new Schema({
     id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
     name: { type: DataType.VarChar, length: 255, nullable: false },
-    routeIds: { type: DataType.VarChar, length: 255, nullable: false },
     sort: { type: DataType.Int, default: 0, nullable: false },
     enabled: { type: DataType.Int, default: 1 },
     createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
     updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 }, hooks);
 
-const roleModel = odm.model('roles', roleSchema);
 
 
 const roleMenuSchema = new Schema({
     id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
     roleId: { type: DataType.VarChar, length: 255, nullable: false },
     routeId: { type: DataType.Int, default: 0, nullable: false },
-    menuPermissionsIds:{},
     createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
 });
 
 
-const roleMenuModel = odm.model('role_menus', roleMenuSchema);
+const menuPermissionsSchema = new Schema({
+    id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
+    permissionId: { type: DataType.VarChar, length: 255, nullable: false },
+    roleId: { type: DataType.VarChar, length: 255, nullable: false },
+    routeId: { type: DataType.Int, default: 0, nullable: false },
+    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+});
 
 
-module.exports = { roleModel, roleMenuModel };
+export const roleModel = await odm.model('roles', roleSchema);
+export const roleMenuModel = await odm.model('role_menus', roleMenuSchema);
+export const menuPermissionsModel = await odm.model('menu_permissions_model', menuPermissionsSchema);
