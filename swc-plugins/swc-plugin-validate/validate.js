@@ -7,7 +7,7 @@
 * @returns {boolean} 是否为有效值
 */
 export const validate = function (value) {
-    return (value === null || value === undefined || value === '') === false;
+    return (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) === false;
 };
 
 

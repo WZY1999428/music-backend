@@ -36,7 +36,7 @@ const routeModel = await odm.model('menus', routeSchema);
 
 const menuPermissionsSchema = new Schema({
     id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
-    routeId: { type: DataType.BigInt, nullable: false },
+    routeId: { type: DataType.BigInt, nullable: false , },
     name: { type: DataType.VarChar, length: 100, nullable: false },
     permission: { type: DataType.VarChar, length: 255, nullable: false },
     sort: { type: DataType.Int, default: 0, nullable: false },

@@ -47,6 +47,7 @@ async function collectFiles(rootPath) {
             }
         }
     }
+    // console.log(JSON.stringify(jsFiles, null, 2));
 
     return jsFiles
 }

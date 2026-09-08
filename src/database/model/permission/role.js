@@ -24,24 +24,42 @@ const roleSchema = new Schema({
 }, hooks);
 
 
+const rolePermissionSchema = new Schema({
+    id: {
+        type: DataType.BigInt,
+        primaryKey: true,
+        autoIncrement: { start: 10000, enabled: true }
+    },
 
-const roleMenuSchema = new Schema({
-    id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
-    roleId: { type: DataType.VarChar, length: 255, nullable: false },
-    routeId: { type: DataType.Int, default: 0, nullable: false },
-    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
+    roleId: {
+        type: DataType.Int,
+        nullable: false,
+        uniqueGroup:["permission"],
+    },
+
+    routeId: {
+        type: DataType.Int,
+        nullable: false
+    },
+
+    permissionId: {
+        type: DataType.Int,
+        nullable: true,
+        uniqueGroup:["permission"],
+    },
+
+    permissionType: {
+        type: DataType.TinyInt,
+        default: 1,
+        nullable: false,
+        uniqueGroup:["permission"],
+    },
+
+    createdAt: {
+        type: DataType.DateTime,
+        default: 'CURRENT_TIMESTAMP'
+    }
 });
-
-
-const menuPermissionsSchema = new Schema({
-    id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
-    permissionId: { type: DataType.VarChar, length: 255, nullable: false },
-    roleId: { type: DataType.VarChar, length: 255, nullable: false },
-    routeId: { type: DataType.Int, default: 0, nullable: false },
-    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-});
-
 
 export const roleModel = await odm.model('roles', roleSchema);
-export const roleMenuModel = await odm.model('role_menus', roleMenuSchema);
-export const menuPermissionsModel = await odm.model('menu_permissions_model', menuPermissionsSchema);
+export const rolePermissionModel = await odm.model('role_permissions', rolePermissionSchema);
