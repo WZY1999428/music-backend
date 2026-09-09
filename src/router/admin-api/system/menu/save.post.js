@@ -48,11 +48,10 @@ export default async (ctx) => {
             msg = "更新成功"
         } else {
             const result = await model.insert(params)
-            console.log(menuButtons);
             if (Array.isArray(menuButtons) && menuButtons.length) {
                 await menuPermissionsModel.insertMany(buildBtns(menuButtons, result.insertId))
-                msg = "添加成功"
             }
+            msg = "添加成功"
         }
         return msg
     })

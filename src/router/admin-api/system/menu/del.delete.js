@@ -11,6 +11,6 @@ export default async (ctx) => {
     if (result.affectedRows > 0) {
         ctx.success(null, "删除成功")
     } else {
-        ctx.success(null, "删除失败数据不存在")
+        ctx.fail("删除失败数据不存在")
     }
 }
