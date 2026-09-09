@@ -1,5 +1,7 @@
 import userModel from "@/database/model/user/index.js"
 export default {
+    action: '用户注册',
+    logType: 'USER_REGISTER',
     /** @type {Controller} */
     handler: async (ctx) => {
         const { username, password, email, nickname, avatar = "" } = ctx.request.body;
@@ -11,17 +13,7 @@ export default {
         if (password.length < 8 || password.length > 16) return ctx.fail("密码长度不能小于8位并且不能大于16位");
         const user = await userModel.findOne({ username });
         if (user) return ctx.fail("该账号已被使用请重新输入");
-        const resut = await userModel.insert({
-            username,
-            password,
-            email,
-            nickname,
-            rule: "",
-            avatar
-        })
-        console.log(resut);
+        await userModel.insert({ username, password, email, nickname, rule: "", avatar })
         ctx.success(null, "注册成功")
-
     },
-    auth: false
 }

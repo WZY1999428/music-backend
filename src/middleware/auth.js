@@ -11,6 +11,8 @@ export default () => {
         }
         ctx.user = info;
         await next();
+
+         
     }
 } 
 

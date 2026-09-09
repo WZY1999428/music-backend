@@ -1,10 +1,15 @@
-/** @type {Controller} */
-export default async (ctx) => {
-    const token = await generateToken({ name: "test", userId: 123 });
-    const { user } = ctx.request.query
-    console.log(user)
-    // $validate(user, "用户不能为空")
-    ctx.body = `
+
+export default {
+    action: '首页',
+    logType: 'INDEX',
+    /** @type {Controller} */
+    handler: async (ctx) => {
+        const token = await generateToken({ name: "test", userId: 123 });
+        const { user } = ctx.request.query
+        console.log(user)
+        // $validate(user, "用户不能为空")
+        ctx.body = `
         <h1>hello world</h1> ${token}
     `;
+    },
 }

@@ -11,6 +11,9 @@ const routerRootPath = path.resolve(process.cwd(), `${process.env.OUTPUT_PATH}/r
 const routeMethods = new Set(["get", "post", "put", "delete", "patch", "options", "head", "all"]);
 // 存储需要鉴权的路由正则表达式集合
 export const routerWhiteList = new Set();
+export const routeMetaMap = new Map();
+
+
 let isExecuted = false;
 /**
  * 核心函数：递归遍历路由目录并自动注册到 Koa-Router
@@ -40,7 +43,7 @@ export async function registerRoutes(router) {
             }
 
             processFile(filePath)
-            
+
             // 2. 获取相对路径并分析文件名
             const relativePath = path.relative(routerRootPath, filePath);
             const parse = path.parse(relativePath);
@@ -82,26 +85,37 @@ export async function registerRoutes(router) {
             const handler = await import(pathToFileURL(filePath));
             const routeAction = handler.default || handler;
 
-            // 情况 A: 直接导出一个函数 (ctx, next) => { ... }
-            if (typeof routeAction === "function") {
-                router[method](routePath, routeAction);
-            }
-            // 情况 B: 导出一个对象 { handler, middleware, auth }
-            else if (routeAction != null && !Array.isArray(routeAction) && typeof routeAction === "object") {
-                if (!routeAction.handler) {
+            //只允许导出一个对象 { handler, middleware, auth , action , logType }
+            if (routeAction != null && !Array.isArray(routeAction) && typeof routeAction === "object") {
+
+                const { handler, action, logType, middleware, auth = true } = routeAction;
+
+
+                if (!handler) {
                     throw new Error(`[Router Error] 文件 "${file}" 没有导出一个有效的 handler 函数`);
                 }
 
+                if (!action) {
+                    throw new Error(`[Router Error] 文件 "${file}" action 不能为空`);
+                }
+
+                if (!logType) {
+                    throw new Error(`[Router Error] 文件 "${file}" logType 日志类型不能为空`);
+                }
+
                 // 合并中间件：支持单个中间件或中间件数组
-                const middlewares = Array.isArray(routeAction.middleware)
-                    ? routeAction.middleware
-                    : (routeAction.middleware ? [routeAction.middleware] : []);
+                const middlewares = Array.isArray(middleware)
+                    ? middleware : (middleware ? [middleware] : []);
+
+                const regPath = pathToRegexp(routePath);
+
+                routeMetaMap.set(regPath, { action, logType, auth })
 
                 // 注册路由：router.get('/path', mw1, mw2, handler)
-                router[method](routePath, ...middlewares, routeAction.handler);
+                router[method](routePath, ...middlewares, handler);
                 // 9. 权限收集：如果配置了 auth: false，将路径转换为正则存入 routerWhiteList 不需要权限验证
-                if (routeAction.auth === false) {
-                    routerWhiteList.add(pathToRegexp(routePath));
+                if (auth) {
+                    routerWhiteList.add(regPath);
                 }
             } else {
                 console.warn(`[Router Error] 文件 "${file}" 导出格式不正确`);

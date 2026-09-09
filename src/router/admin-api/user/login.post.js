@@ -1,6 +1,8 @@
 import userModel from "@/database/model/user/index.js"
 import generateToken from "@/utils/token.js"
 export default {
+    action: '用户登录',
+    logType: 'USER_LOGIN',
     /** @type {Controller} */
     handler: async (ctx) => {
         const { username, password, code } = ctx.request.body;
@@ -16,3 +18,4 @@ export default {
     },
     auth: false
 }   
+
