@@ -74,9 +74,35 @@ class EnhancedValkey extends Valkey {
         }
     }
 
-    getToken = async (key) => this.getObject(`token:${key}`);
+    getToken = async (key, time = 1800) => {
+        const tokenKey = `token:${key}`;
+
+        const data = await this.getObject(tokenKey);
+
+        if (!data) {
+            return null;
+        }
+
+        const refresh = async () => {
+            try {
+                const ttl = await this.ttl(tokenKey);
+                // 剩余时间小于 15 分钟（且大于 0，避免 ttl 返回 -1 或 -2 的异常状态）
+                if (ttl > 0 && ttl < 60 * 15) {
+                    await this.expire(tokenKey, time);
+                }
+            } catch (err) {
+                // 捕获并记录日志，绝不影响上层主接口响应
+                console.error(`[Token Refresh Error] key: ${tokenKey}`, err);
+            }
+        }
+        // 执行刷新，不 await  不阻塞请求
+        refresh()
+        return data;
+    }
 
     setToken = async (key, value, ...args) => await this.setObject(`token:${key}`, value, ...args)
+    getTokenTtl = async (key) => await this.ttl(`token:${key}`)
+    setTokenTtl = async (key, ttl) => await this.expire(`token:${key}`, ttl)
     delToken = async (key) => await this.del(`token:${key}`)
 
     verifyMobileVerificationCode = async (phone, value) => await this.#verificationCode("mobile", phone, value)
@@ -86,6 +112,10 @@ class EnhancedValkey extends Valkey {
     verifyEmailCode = async (email, value) => await this.#verificationCode("email", email, value)
 
     setEmailCode = async (email, value) => await this.#setVerificationCode("email", email, value)
+
+    setCaptcha = async (key, value) => await this.set(`captcha:${key}`, value, "EX", 60)
+    getCaptcha = async (key) => await this.get(`captcha:${key}`)
+    delCaptcha = async (key) => await this.del(`captcha:${key}`)
 
     assertLoginAttemptLimit = async (key, ttl = 300) => {
         if ((await this.#incrementCount(`assertLoginAttemptLimit:${key}`, ttl)) > 5) throw new AppError(key + "账号:登录尝试过于频繁，请稍后再试");

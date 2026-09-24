@@ -13,10 +13,10 @@ password = "123456789"
 database = "koa-serve"
 # Server 配置
 [server]
-port = 3000
+port = 8848
 # JWT 配置
 [jwt]
-expire = 86400
+expire = 1800
  
 [output]
 path = "./src"

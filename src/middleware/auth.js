@@ -4,16 +4,20 @@ export default () => {
     const whiteMatchers = Array.from(routerWhiteList.values());
     return async (ctx, next) => {
         const isWhite = whiteMatchers.some(item => item.regexp.test(ctx.path))
-        const info = await valkey.getToken(ctx.headers["authorization"])
-        if (ctx.path.startsWith("/admin-api") && !isWhite && !info) {
-            ctx.unauthorized();
-            return;
+        const token = ctx.headers["authorization"]
+        const isAdmin = ctx.path.startsWith("/admin-api");
+        if (isAdmin) {
+            const info = await valkey.getToken(token)
+            if (!isWhite && !info) {
+                ctx.unauthorized();
+                return;
+            }
+            ctx.token = token;
+            ctx.user = info;
         }
-        ctx.user = info;
-        await next();
 
-         
+        await next();
     }
-} 
+}
 
 

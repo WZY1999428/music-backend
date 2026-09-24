@@ -1,5 +1,6 @@
-import MySqlODM from "mysql-odm"
-export const odm = new MySqlODM.default();
+import MySqlODM from "mysql-dsl"
+import { Schema, DataType } from "mysql-dsl/schema";
+export const odm = new MySqlODM;
 const { MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE } = process.env;
 export async function initDb() {
     await odm.use({
@@ -9,5 +10,27 @@ export async function initDb() {
         password: MYSQL_PASSWORD,
         database: MYSQL_DATABASE
     });
+
 }
 
+export class BaseSchema extends Schema {
+    constructor(fields) {
+        super({
+            id: {
+                type: DataType.BigInt,
+                primaryKey: true,
+                autoIncrement: { start: 10000, enabled: true }
+            },
+            ...fields, // 传入的具体业务字段放在中间
+            createdAt: {
+                type: DataType.DateTime,
+                default: 'CURRENT_TIMESTAMP'
+            },
+            updatedAt: {
+                type: DataType.DateTime,
+                default: 'CURRENT_TIMESTAMP',
+                onUpdate: 'CURRENT_TIMESTAMP'
+            },
+        });
+    }
+}

@@ -1,6 +1,6 @@
 # 忽略所有子目录里的 node_modules
 **/node_modules/
-
+**/public
 # 忽略所有 yarn.lock / package-lock.json
 **/yarn.lock
 **/package-lock.json

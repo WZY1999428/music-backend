@@ -1,24 +1,36 @@
-import { odm } from "@/database/index.js"
-import { Schema, DataType } from "mysql-odm/schema"
-const hooks = {
-    beforeInsert(data) {
-    },
-    beforeUpdate(_, data) {
-    }
-};
+import { odm, BaseSchema } from "@/database/index.js"
+import { DataType } from "mysql-dsl/schema"
 
-const userSchema = new Schema({
-    id: { type: DataType.BigInt, primaryKey: true, autoIncrement: true },
-    username: { type: DataType.VarChar, length: 255, nullable: false },
-    password: { type: DataType.VarChar, length: 255, nullable: false },
-    email: { type: DataType.VarChar, length: 255, nullable: false },
-    rule: { type: DataType.VarChar, length: 255, nullable: false },
+const userSchema = new BaseSchema({
     avatar: { type: DataType.VarChar, length: 255, nullable: true },
-    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-}, hooks);
+    username: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
+    nickname: { type: DataType.VarChar, length: 255, nullable: false },
+    password: { type: DataType.VarChar, length: 255, nullable: false },
+    email: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
+    phone: { type: DataType.VarChar, length: 50, nullable: false, unique: true },
+    enabled: { type: DataType.Int, default: 1 },
+    isSuperAdmin: { type: DataType.Int, default: 0 },
+});
 
-const userModel = await odm.model('user', userSchema);
+const userRoleSchema = new BaseSchema({
+    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_role_unique"] },
+    roleId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_role_unique"] },
+});
+
+
+
+const userDeptSchema = new BaseSchema({
+    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_dept_unique"] },
+    deptId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_dept_unique"] },
+});
+
+const userModel = await odm.model('system_user', userSchema);
+export const userRoleModel = await odm.model('user_role', userRoleSchema);
+export const userDeptModel = await odm.model('user_dept', userDeptSchema);
+
 
 
 export default userModel;
+
+
+

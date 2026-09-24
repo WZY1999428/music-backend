@@ -1,51 +1,37 @@
-import { odm } from "@/database/index.js"
-import { convertIntFieldsToBoolean, convertBooleanFieldsToInt } from "@/database/utils.js"
-import { Schema, DataType } from "mysql-odm/schema";
+import { odm, BaseSchema } from "@/database/index.js"
+import { DataType } from "mysql-dsl/schema";
 
-const hooks = {
-    beforeInsert(data) {
-        convertIntFieldsToBoolean(data, ['isLink', 'enabled'])
-    },
-    beforeUpdate(_, data) {
-        convertIntFieldsToBoolean(data, ['isLink', 'enabled'])
-    },
-    afterFind(data) {
-        if (data) convertBooleanFieldsToInt(data, ['isLink', 'enabled'])
-        return data;
-    }
-};
 
-const routeSchema = new Schema({
-    id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
-    parentId: { type: DataType.BigInt, default: 0 },
+const routeSchema = new BaseSchema({
+    parentId: { type: DataType.BigInt, default: 0, uniqueGroup: ['parentIdSort'] },
     title: { type: DataType.VarChar, length: 255, nullable: false },
     type: { type: DataType.Int, default: 1, nullable: false },
     icon: { type: DataType.VarChar, length: 255, nullable: true },
-    path: { type: DataType.VarChar, length: 255, nullable: true },
+    path: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
+    sort: { type: DataType.Int, default: 0, nullable: false, uniqueGroup: ['parentIdSort'] },
     component: { type: DataType.VarChar, length: 255, nullable: true },
-    sort: { type: DataType.Int, default: 0, nullable: false },
     isLink: { type: DataType.Int, default: 1 },
+    isHome: { type: DataType.Int, default: 0 },
     enabled: { type: DataType.Int, default: 1 },
-    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-}, hooks);
+    visible: { type: DataType.Int, default: 0 },
+});
 
+
+const menuPermissionsSchema = new BaseSchema({
+    routeId: { type: DataType.BigInt, nullable: false, },
+    name: { type: DataType.VarChar, length: 100, nullable: false },
+    permission: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
+    enabled: { type: DataType.Int, default: 1 },
+});
+
+const apiSchema = new BaseSchema({
+    permissionsId: { type: DataType.BigInt, nullable: false, },
+    method: { type: DataType.VarChar, length: 10, nullable: false },
+    path: { type: DataType.VarChar, length: 255, nullable: false },
+});
 
 const routeModel = await odm.model('menus', routeSchema);
-
-
-const menuPermissionsSchema = new Schema({
-    id: { type: DataType.BigInt, primaryKey: true, autoIncrement: { start: 10000, enabled: true } },
-    routeId: { type: DataType.BigInt, nullable: false , },
-    name: { type: DataType.VarChar, length: 100, nullable: false },
-    permission: { type: DataType.VarChar, length: 255, nullable: false },
-    sort: { type: DataType.Int, default: 0, nullable: false },
-    enabled: { type: DataType.Int, default: 1 },
-    createdAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-    updatedAt: { type: DataType.DateTime, default: 'CURRENT_TIMESTAMP' },
-
-}, hooks);
-
 export const menuPermissionsModel = await odm.model('menu_permissions', menuPermissionsSchema);
+export const apiModel = await odm.model('permissions_api', apiSchema);
 
 export default routeModel;

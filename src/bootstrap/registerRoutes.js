@@ -12,8 +12,7 @@ const routeMethods = new Set(["get", "post", "put", "delete", "patch", "options"
 // 存储需要鉴权的路由正则表达式集合
 export const routerWhiteList = new Set();
 export const routeMetaMap = new Map();
-
-
+export const routeOptions = new Map();
 let isExecuted = false;
 /**
  * 核心函数：递归遍历路由目录并自动注册到 Koa-Router
@@ -88,7 +87,7 @@ export async function registerRoutes(router) {
             //只允许导出一个对象 { handler, middleware, auth , action , logType }
             if (routeAction != null && !Array.isArray(routeAction) && typeof routeAction === "object") {
 
-                const { handler, action, logType, middleware, auth = true } = routeAction;
+                const { handler, action, logType, middleware, auth = true, enableLog = true } = routeAction;
 
 
                 if (!handler) {
@@ -106,15 +105,35 @@ export async function registerRoutes(router) {
                 // 合并中间件：支持单个中间件或中间件数组
                 const middlewares = Array.isArray(middleware)
                     ? middleware : (middleware ? [middleware] : []);
+                let matched = false;
+                for (const regexp of routeMetaMap.keys()) {
+                    if (regexp.test(routePath)) {
+                        routeMetaMap.get(regexp).methods.add({ method, action, logType, auth, enableLog });
+                        matched = true;
+                        break;
+                    }
+                }
 
                 const regPath = pathToRegexp(routePath);
+                if (!matched) {
+                    routeMetaMap.set(regPath.regexp, { methods: new Set([{ method, action, logType, auth, enableLog }]) })
+                }
 
-                routeMetaMap.set(regPath, { action, logType, auth })
+                if (auth && routePath.startsWith("/admin-api/")) {
+                    if (routeOptions.has(routePath)) {
+                        const set = routeOptions.get(routePath)
+                        set.add(method)
+                    } else {
+                        routeOptions.set(routePath, new Set([method]))
+                    }
+                }
+
+
 
                 // 注册路由：router.get('/path', mw1, mw2, handler)
                 router[method](routePath, ...middlewares, handler);
                 // 9. 权限收集：如果配置了 auth: false，将路径转换为正则存入 routerWhiteList 不需要权限验证
-                if (auth) {
+                if (!auth) {
                     routerWhiteList.add(regPath);
                 }
             } else {
@@ -133,14 +152,30 @@ function processFile(filePath) {
     let content = fs.readFileSync(filePath, 'utf-8');
     let originalContent = content;
 
+    if (content === "" || content.trim() === "") {
+        fs.writeFileSync(filePath, `
+export default {
+     action: '',
+     logType: '',
+     /** @type {Controller} */
+     handler: async (ctx) => {
+         ctx.success();
+     },
+}
+            `.trim(), 'utf-8');
+
+
+        return;
+    }
+
     // ---------------------------------------------------------
     // 情况 1：匹配 export default (async) (ctx...) => {
     // 支持同步函数 (ctx) => 和 异步函数 async (ctx) =>
     // ---------------------------------------------------------
-    const pattern1 = /(?<!\/\*\*[\s\S]*?\*\/\s*)(^[ \t]*export\s+default\s+(?:async\s+)?\(\s*ctx[^)]*\)\s*=>)/gm;
-    content = content.replace(pattern1, (match, p1) => {
-        return `${JSDOC_TEMPLATE}${p1}`;
-    });
+    // const pattern1 = /(?<!\/\*\*[\s\S]*?\*\/\s*)(^[ \t]*export\s+default\s+(?:async\s+)?\(\s*ctx[^)]*\)\s*=>)/gm;
+    // content = content.replace(pattern1, (match, p1) => {
+    //     return `${JSDOC_TEMPLATE}${p1}`;
+    // });
 
     // ---------------------------------------------------------
     // 情况 2：匹配 handler: (async) (ctx...) => {
