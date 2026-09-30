@@ -2,8 +2,8 @@ import { albumModel } from "@/database/model/music/album.js";
 import uploadModel from "@/database/model/upload.js";
 import { parseJsonToArray } from "@/utils/parse";
 export default {
-    action: '获取歌曲列表',
-    logType: 'GET_MUSIC_SONG_LIST',
+    action: '获取专辑列表',
+    logType: 'GET_MUSIC_ALBUM_LIST',
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {

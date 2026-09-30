@@ -3,8 +3,12 @@ import { DataType } from "mysql-dsl/schema"
 
 const playlistSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false },
-    description: { type: DataType.VarChar, length: 500, default: '' },
-    coverFileId: { type: DataType.BigInt, nullable: true }
+    cover: { type: DataType.BigInt, nullable: false },
+    isHot: { type: DataType.Int, default: 0 },
+    sort: { type: DataType.Int, default: 0 },
+    createUserId: { type: DataType.BigInt, nullable: false },
+    enabled: { type: DataType.BigInt, default: 1 },
+    description: { type: DataType.VarChar, length: 500 },
 });
 
 const playlistSongSchema = new BaseSchema({
@@ -13,6 +17,4 @@ const playlistSongSchema = new BaseSchema({
 });
 
 export const playlistSongModel = await odm.model('music_playlist_song', playlistSongSchema);
-
-
-export default playlistModel;  
+export const playlistModel = await odm.model('music_playlist', playlistSchema);

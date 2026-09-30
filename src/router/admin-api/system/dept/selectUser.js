@@ -1,5 +1,6 @@
 
 import userModel from "@/database/model/user/index.js"
+import { NORMAL_ENABLED_USER_QUERY } from "@/utils/query.js"
 
 
 export default {
@@ -16,7 +17,7 @@ export default {
 
         const page = paginate(pageIndex, pageSize)
         const aggregateParams = {
-            query: { "user_dept.deptId": { $eq: null }, ...query, "system_user.enabled": { $eq: 1 } },
+            query: { "user_dept.deptId": { $eq: null }, ...query, ...NORMAL_ENABLED_USER_QUERY },
             joins: [{
                 table: "user_dept",
                 type: "left",
@@ -25,23 +26,17 @@ export default {
             }]
         }
 
+        const fields = userModel.qualifyFields(["id", "avatar", "username", "nickname", "email", "phone"])
+        fields.push("user_dept.deptId")
         const aggregate = userModel.aggregate({
-            fields: [
-                "system_user.id",
-                "system_user.avatar",
-                "system_user.username",
-                "system_user.nickname",
-                "system_user.email",
-                "system_user.phone",
-                "user_dept.deptId",
-            ],
+            fields: fields,
             ...aggregateParams,
             sort: { "system_user.createdAt": "desc" },
             ...page
         })
         const totalAggregate = userModel.aggregate({
             ...aggregateParams,
-            fields: ["system_user.id"]
+            fields: fields[0]
         })
         const [list, total] = await Promise.all([aggregate, totalAggregate])
         ctx.success({

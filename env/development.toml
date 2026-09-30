@@ -16,7 +16,7 @@ database = "koa-serve"
 port = 8848
 # JWT 配置
 [jwt]
-expire = 1800
+expire = 86400
  
 [output]
 path = "./src"

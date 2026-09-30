@@ -5,7 +5,7 @@ export default {
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { username, roleName, ["dateRange[]"]: dateRange = [], method, pageIndex = 0, pageSize = 20 } = ctx.request.query;
+        const { username, roleName, dateRange = [], method, pageIndex = 0, pageSize = 20 } = ctx.request.query;
         const query = {};
         if (username && username.trim()) query.username = { $like: `%${username.trim()}%` };
         if (roleName && roleName.trim()) query.logType = { $like: `%${roleName.trim()}%` };

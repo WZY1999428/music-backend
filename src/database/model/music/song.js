@@ -3,6 +3,7 @@ import { DataType } from "mysql-dsl/schema"
 
 const songSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false }, // 歌名（如：晴天）
+    mvUrl: { type: DataType.VarChar, length: 255, nullable: true }, // 歌名（如：晴天）
     cover: { type: DataType.Int, nullable: true }, // 封面图 文件id
     createUserId: { type: DataType.BigInt, nullable: true }, // 创建人
     enabled: { type: DataType.TinyInt, nullable: false, default: 1 }, // 是否启用
@@ -27,6 +28,18 @@ const songAudioSchema = new BaseSchema({
 });
 
 
+const songLyricSchema = new BaseSchema({
+    songId: { type: DataType.Int, nullable: false },   // 歌曲id
+    title: { type: DataType.VarChar, length: 255, nullable: false }, // 歌词标题
+    lang: { type: DataType.VarChar, length: 20, nullable: false },   // 语言
+    sort: { type: DataType.Int, nullable: false },   // 排序
+    content: { type: DataType.Text, nullable: false },   // 歌词内容
+    enabled: { type: DataType.Int, nullable: true, default: 0 },   // 是否启用
+    format: { type: DataType.VarChar, length: 20, nullable: false },   // 格式 LRC TTML Karaoke
+});
+
 export const songModel = await odm.model('music_song', songSchema);
 export const songArtistModel = await odm.model('music_song_artist', songArtistSchema);
 export const songAudioModel = await odm.model('music_song_audio', songAudioSchema);
+export const songLyricModel = await odm.model('music_song_lyric', songLyricSchema);
+

@@ -6,7 +6,7 @@ export default {
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { filename, "dateRange[]": dateRange, pageIndex = 1, pageSize = 10 } = ctx.request.query;
+        const { filename, dateRange, pageIndex = 1, pageSize = 10 } = ctx.request.query;
         const query = {};
         const page = paginate(pageIndex, pageSize);
         if (filename && filename.trim()) query.filename = { $like: `%${filename.trim()}%` };
@@ -41,7 +41,7 @@ export default {
             ...page
         })
 
-        const [list, total] = await Promise.all([aggregate, uploadModel.count({query})])
+        const [list, total] = await Promise.all([aggregate, uploadModel.count({ query })])
         ctx.success({
             list: list,
             total: total,

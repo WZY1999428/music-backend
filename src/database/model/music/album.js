@@ -22,14 +22,14 @@ const albumSchema = new BaseSchema({
 
 
 const albumArtistSchema = new BaseSchema({
-    albumId: { type: DataType.BigInt, nullable: false },   // 专辑id
-    artistId: { type: DataType.BigInt, nullable: false },    // 演唱者 id
+    albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },   // 专辑id
+    artistId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },    // 演唱者 id
 });
 
 
 const albumSongSchema = new BaseSchema({
-    albumId: { type: DataType.BigInt, nullable: false }, // 专辑ID
-    songId: { type: DataType.BigInt, nullable: false }, // 歌曲ID
+    albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
+    songId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
     sort: { type: DataType.Int, default: 0 }, // 排序
 });
 

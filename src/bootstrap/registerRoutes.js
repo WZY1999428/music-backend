@@ -41,7 +41,6 @@ export async function registerRoutes(router) {
                 continue;
             }
 
-            processFile(filePath)
 
             // 2. 获取相对路径并分析文件名
             const relativePath = path.relative(routerRootPath, filePath);
@@ -49,7 +48,7 @@ export async function registerRoutes(router) {
 
             // 仅处理 .js 或 .ts 文件
             if (![".js", ".ts"].includes(parse.ext)) continue;
-
+            processFile(filePath)
             // 3. 处理路径层级：将系统路径分隔符替换为 URL 的正斜杠 /
             let routePath = `/${parse.dir.replaceAll(path.sep, "/")}`;
 

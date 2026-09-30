@@ -21,9 +21,8 @@ const upload = multer({
         },
 
         filename(_req, file, cb) {
-            const ext = path.extname(file.originalname);
-            const name = path.basename(file.originalname, ext);
-            cb(null, `${Date.now()}-${name}${ext}`);
+            const name =  Buffer.from(file.originalname, 'latin1').toString('utf8') 
+            cb(null, `${Date.now()}-${name}`);
         }
     })
 });

@@ -40,7 +40,7 @@ sudo mysql
 查看 root 的认证方式：
 
 ```sql
-SELECT user, host, plugin FROM mysql.user;
+
 ```
 
 如果看到：
@@ -56,7 +56,7 @@ MySQL 8.4 不再默认加载 `mysql_native_password`，因此不要使用：
 ```sql
 ALTER USER 'root'@'localhost'
 IDENTIFIED WITH mysql_native_password
-BY '123456789';
+BY '4>zp8i]UXb=s4';
 ```
 
 否则会出现：
@@ -70,7 +70,7 @@ ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
 ```sql
 ALTER USER 'root'@'localhost'
 IDENTIFIED WITH caching_sha2_password
-BY '123456789';
+BY '4>zp8i]UXb=s4';
 
 FLUSH PRIVILEGES;
 ```

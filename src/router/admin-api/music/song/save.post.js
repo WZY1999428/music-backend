@@ -5,7 +5,7 @@ export default {
     logType: 'SAVE_MUSIC_SONG',
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { id, title, cover, publishDate, singerList, audioList, enabled = 1 } = ctx.request.body;
+        const { id, title, cover, publishDate, singerList, audioList, mvUrl, enabled = 1 } = ctx.request.body;
         $validate(title, "歌曲名称不能为空")
         $validate(cover, "歌曲封面不能为空")
         $validate(publishDate, "歌曲发布日期不能为空")
@@ -21,6 +21,7 @@ export default {
                 const params = {
                     title,
                     cover: cover.id,
+                    mvUrl: mvUrl?.id,
                     publishDate: formatDate(publishDate),
                     enabled,
                     createUserId: ctx.user.userId

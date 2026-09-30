@@ -10,8 +10,9 @@ export default {
         const { id } = ctx.request.params;
         const song = await songModel.findOne({ id })
         if (!song) return ctx.fail("歌曲不存在")
-        const ids = [song.cover].filter(Boolean)
+        const ids = [song.cover, song.mvUrl].filter(Boolean)
         const songAudioFields = songAudioModel.qualifyFields(["id", "songId", "fileId", "duration", "format", "quality", "bitrate", "sampleRate", "bitDepth"])
+
         const [files, artis, audioList] = await Promise.all([
             uploadModel.findMany({ id: { $in: ids } }),
             songArtistModel.findMany({ songId: id }, { fields: ["artistId"] }),
@@ -38,6 +39,7 @@ export default {
             })
         ])
         song.cover = formatUploadFileRef(files, song.cover)
+        song.mvUrl = formatUploadFileRef(files, song.mvUrl)
         song.singerList = artis.map(item => item.artistId)
         song.audioList = audioList
         ctx.success(song)
