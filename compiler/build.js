@@ -6,8 +6,7 @@ await build({
     output: "./.output",
     plugins: [
         plugin({
-            // name: "swc-plugin-auto-import",
-            name: "E:/project/swc-plugins/target/wasm32-wasip1/release/swc_plugin_auto_import.wasm",
+            name: "swc-plugin-auto-import",
             options: scanAutoImportPath(["./src/utils"])
         })
         ,
