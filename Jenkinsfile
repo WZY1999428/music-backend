@@ -44,7 +44,7 @@ pipeline {
         stage('服务重启') {
             steps {
                 echo '============================== [5/5] 使用 PM2 重启服务 (koa-serve) =============================='
-                sh 'npm start'
+                sh 'npm pm2:start'
                 echo '服务已成功重启并上线！'
             }
         }

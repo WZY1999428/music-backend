@@ -4,7 +4,8 @@
   "description": "",
   "main": ".output/index.js",
   "scripts": {
-    "start": "pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs",
+    "start": "cross-env NODE_ENV=production node .output/index.js",
+    "pm2:start": "pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs",
     "build": "cross-env NODE_ENV=development node compiler/build.js",
     "dev": "cross-env NODE_ENV=development node --experimental-vm-modules  --watch-path=./src  compiler/dev.js"
   },
