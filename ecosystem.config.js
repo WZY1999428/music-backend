@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   apps : [{
     name   : "music-server",
     script : "./.output/index.js",
