@@ -1,10 +1,11 @@
 pipeline {
     agent any
-
+ 
     environment {
         // 将 NVM 的 Node 路径以及系统的基础路径拼接起来
-        PATH = "/root/.nvm/versions/node/v25.12.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+        PATH = "/root/.nvm/versions/node/v24.12.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
     }
+    
     
     stages {
         stage('环境检查') {
