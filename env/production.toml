@@ -8,7 +8,7 @@ db = 0
 [mysql]
 host = "127.0.0.1"
 port = 3306
-username = "hkta"
+username = "root"
 password = "7ExJ,wc4Q58@2TRD"
 database = "koa-serve"
 # Server 配置
