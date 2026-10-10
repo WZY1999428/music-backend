@@ -10,14 +10,31 @@ export default {
         const { title, artist, pageIndex, pageSize } = ctx.request.query;
         const query = {}
         if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
-        if (artist && artist.trim()) {
-            const artistIds = await artistModel.findMany({ name: { $like: `%${artist}%` } }, { fields: ["id"] })
-            if (artistIds.length > 0) {
-                query["songArtist.artistId"] = { $in: artistIds.map(item => item.id) }
-            }
-        }
-        const page = paginate(pageIndex, pageSize);
+
         const fields = songModel.qualifyFields(["id", "title", "cover", "enabled", "publishDate", "updatedAt", "enabled"]);
+        if (artist && artist.trim()) {
+            query[songModel.qualifyField("id")] = {
+                $in: [{
+                    table: songArtistModel.table,
+                    fields: ["songId"], // 查出包含该歌手的歌曲 ID 列表
+                    joins: [
+                        {
+                            table: artistModel.table,
+                            as: "artistTable",
+                            type: "inner",
+                            on: {
+                                "artistTable.id": "songArtist.artistId"
+                            }
+                        }
+                    ],
+                    query: {
+                        "artistTable.name": { $like: `%${artist.trim()}%` }
+                    }
+                }]
+            };
+        }
+
+
         const [list, total] = await Promise.all([
             songModel.aggregate({
                 fields,
@@ -78,7 +95,7 @@ export default {
                 ],
                 group: [fields[0]],
                 sort: { createdAt: "asc" },
-                ...page,
+                ...paginate(pageIndex, pageSize),
             }),
             songModel.count({
                 query,
@@ -93,15 +110,16 @@ export default {
                             "songArtist.songId": songModel.qualifyField("id")
                         },
                     },
+
                 ]
             })
         ])
         await fillArtistList(list)
-
-
         ctx.success({
             list,
             total
         });
     },
 }
+
+
