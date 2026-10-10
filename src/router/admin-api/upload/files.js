@@ -1,4 +1,4 @@
-import uploadModel from "@/database/model/upload"
+import uploadModel from "@/database/model/upload.js"
 
 export default {
     action: '获取上传文件列表',

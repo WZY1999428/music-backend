@@ -1,6 +1,6 @@
 import { playlistModel } from "@/database/model/music/playlist.js";
 import uploadModel from "@/database/model/upload.js";
-import { parseJsonToArray } from "@/utils/parse";
+import { parseJsonToArray } from "@/utils/parse.js";
 export default {
     action: '获取歌单列表',
     logType: 'GET_MUSIC_PLAYLIST_LIST',

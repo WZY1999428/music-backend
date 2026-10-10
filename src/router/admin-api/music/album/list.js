@@ -1,6 +1,6 @@
 import { albumModel } from "@/database/model/music/album.js";
 import uploadModel from "@/database/model/upload.js";
-import { parseJsonToArray } from "@/utils/parse";
+import { parseJsonToArray } from "@/utils/parse.js";
 export default {
     action: '获取专辑列表',
     logType: 'GET_MUSIC_ALBUM_LIST',

@@ -1,7 +1,6 @@
 import uploadModel from "@/database/model/upload.js";
 import { albumModel, albumArtistModel, albumSongModel } from "@/database/model/music/album.js";
-import { formatUploadFileRef } from "@/utils/parse.js";
-import { parseJsonToArray } from "@/utils/parse";
+import { formatUploadFileRef, parseJsonToArray } from "@/utils/parse.js";
 export default {
     action: '获取专辑详情',
     enableLog: false,

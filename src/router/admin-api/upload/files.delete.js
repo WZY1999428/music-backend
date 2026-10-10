@@ -1,4 +1,4 @@
-import uploadModel from "@/database/model/upload"
+import uploadModel from "@/database/model/upload.js"
 import fs from "node:fs/promises"
 import path from "node:path"
 export default {
