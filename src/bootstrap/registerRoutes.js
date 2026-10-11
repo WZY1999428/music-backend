@@ -26,6 +26,7 @@ export async function registerRoutes(router) {
     isExecuted = true;
     // 使用队列进行广度优先遍历 (BFS) 扫描目录
     const routeDirQueue = [routerRootPath];
+    const routeQueue = [];
     while (routeDirQueue.length) {
         const dir = routeDirQueue.shift();
         const files = fs.readdirSync(dir);
@@ -131,8 +132,9 @@ export async function registerRoutes(router) {
                 console.log(`${method} : ${routePath}`);
 
                 // 注册路由：router.get('/path', mw1, mw2, handler)
-                router[method](routePath, ...middlewares, handler);
+                // router[method](routePath, ...middlewares, handler);
                 // 9. 权限收集：如果配置了 auth: false，将路径转换为正则存入 routerWhiteList 不需要权限验证
+                routeQueue.push({ method, routePath, middlewares, handler, });
                 if (!auth) {
                     routerWhiteList.add(regPath);
                 }
@@ -140,6 +142,21 @@ export async function registerRoutes(router) {
                 console.warn(`[Router Error] 文件 "${file}" 导出格式不正确`);
             }
         }
+    }
+
+    routeQueue.sort((a, b) => {
+        const getScore = routePath => {
+            const segments = routePath.split('/').filter(Boolean);
+            return segments.reduce((score, segment) => {
+                if (segment.startsWith(':')) return score;
+                return score + 1;
+            }, 0);
+        };
+        return getScore(b.routePath) - getScore(a.routePath);
+    });
+    // 统一注册
+    for (const { method, routePath, middlewares, handler } of routeQueue) {
+        router[method](routePath, ...middlewares, handler);
     }
 }
 
