@@ -17,6 +17,8 @@ const router = new KoaRouter();
 await registerRoutes(router);
 await registerMiddleware(app);
 
+console.log(uploadPath);
+
 app.use(bodyParser())
     .use(koaStatic(path.resolve(process.env.PUBLIC_PATH)))
     .use(koaStatic(uploadPath))
