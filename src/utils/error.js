@@ -9,7 +9,6 @@ class AppError extends Error {
         Error.captureStackTrace(this, this.constructor);
     }
 
-
     static fail(message) {
         return new AppError(message, "FAIL", 200);
     }

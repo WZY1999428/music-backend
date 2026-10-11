@@ -25,18 +25,21 @@ export function toDateTimeRange(range) {
 }
 
 
-export function formatDate(date, format = "YYYY-MM-DD"){
-    try  {
+export function formatDate(date, format = "YYYY-MM-DD") {
+    try {
         return dayjs(date).format(format)
     } catch (error) {
         return null
     }
 }
 
-export function formatDateTime(date, format = "YYYY-MM-DD HH:mm:ss"){
-    try  {
+export function formatDateTime(date, format = "YYYY-MM-DD HH:mm:ss") {
+    try {
         return dayjs(date).format(format)
     } catch (error) {
         return null
     }
 }
+
+
+export const uploadPath = process.env.NODE_ENV === "production" ? process.env.PUBLIC_UPLOAD_PATH : path.resolve(process.env.PUBLIC_UPLOAD_PATH);

@@ -21,3 +21,7 @@ expire = 1800
  
 [output]
 path = "./.output"
+
+[public]
+path = "./public"
+upload = "/home/本地磁盘2"

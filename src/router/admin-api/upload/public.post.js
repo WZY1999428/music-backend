@@ -8,8 +8,8 @@ const upload = multer({
         destination(req, _file, cb) {
             const now = new Date();
             let savePath = req.body.path;
-            if (!savePath) savePath = "public/uploads";
-            else savePath = `public/${savePath}`
+            if (!savePath) savePath = `${uploadPath}/uploads`;
+            else savePath = `${uploadPath}/${savePath}`
             const dir = path.join(
                 savePath,
                 now.getFullYear().toString(),
@@ -21,7 +21,7 @@ const upload = multer({
         },
 
         filename(_req, file, cb) {
-            const name =  Buffer.from(file.originalname, 'latin1').toString('utf8') 
+            const name = Buffer.from(file.originalname, 'latin1').toString('utf8')
             cb(null, `${Date.now()}-${name}`);
         }
     })
@@ -40,7 +40,7 @@ export default {
             originalName: file.originalname,
             filename: file.filename,
             userId: ctx.user?.userId,
-            url: file.path.replace(/\\/g, "/").replace("public/", "/"),
+            url: file.path.replace(/\\/g, "/").replace(`${uploadPath}/`, "/"),
             size: file.size,
             mimeType: file.mimetype,
             type

@@ -20,3 +20,8 @@ expire = 86400
  
 [output]
 path = "./src"
+
+
+[public]
+path = "./public"
+upload = "./public"

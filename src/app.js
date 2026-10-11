@@ -17,7 +17,8 @@ await registerRoutes(router);
 await registerMiddleware(app);
 
 app.use(bodyParser())
-    .use(koaStatic(path.resolve('./public')))
+    .use(koaStatic(path.resolve(process.env.PUBLIC_PATH)))
+    .use(koaStatic(uploadPath))
     .use(router.routes())
     .use(router.allowedMethods());
 

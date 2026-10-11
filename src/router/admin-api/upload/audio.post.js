@@ -2,18 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import multer from "@koa/multer";
 import { parseFile } from 'music-metadata';
-
 import uploadModel from "@/database/model/upload.js";
 const audioExt = new Set([".flac", ".mp3", ".wav", ".ogg"])
 const upload = multer({
     storage: multer.diskStorage({
         destination(_req, _file, cb) {
-            const dir = path.join("public/audio");
+            const dir = path.join(`${uploadPath}/audio`);
             fs.mkdirSync(dir, { recursive: true });
             cb(null, dir);
         },
         filename(_req, file, cb) {
-            console.log(file);
             const ext = path.extname(file.originalname);
             if (!audioExt.has(ext.toLowerCase())) {
                 return cb(new Error("只支持上传 flac、mp3、wav、ogg 格式的文件"));
