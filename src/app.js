@@ -5,6 +5,7 @@ if (process.versions.node < "18.0.0") {
 import Koa from "koa";
 import { bodyParser } from "@koa/bodyparser"
 import "./utils/valkey.js";
+import { uploadPath } from "./utils/config.js";
 import { registerRoutes } from "./bootstrap/registerRoutes.js";
 import registerMiddleware from "./bootstrap/registerMiddleware.js";
 import KoaRouter from "@koa/router";
