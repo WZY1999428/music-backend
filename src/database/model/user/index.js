@@ -6,7 +6,7 @@ const userSchema = new BaseSchema({
     username: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
     nickname: { type: DataType.VarChar, length: 255, nullable: false },
     password: { type: DataType.VarChar, length: 255, nullable: false },
-    email: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
+    email: { type: DataType.VarChar, length: 255, nullable: true, unique: true },
     phone: { type: DataType.VarChar, length: 50, nullable: false, unique: true },
     enabled: { type: DataType.Int, default: 1 },
     isSuperAdmin: { type: DataType.Int, default: 0 },

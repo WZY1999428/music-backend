@@ -9,6 +9,7 @@ export default {
     handler: async (ctx) => {
         const roleId = ctx.user.roleId;
         const isSuperAdmin = ctx.user.isSuperAdmin;
+
         const tasks = [];
         let rolePermissions = []
         const routeQuery = { enabled: { $eq: 1 } };
@@ -35,10 +36,11 @@ export default {
             if (permissionsIds.length) permissionsQuery.id = { $in: permissionsIds }
         }
 
-        tasks.push(menuPermissionsModel.findMany(permissionsQuery, {
-            fields: ['id', 'name', 'permission']
-        }))
-
+        if (isSuperAdmin || permissionsQuery.id) {
+            tasks.push(menuPermissionsModel.findMany(permissionsQuery, {
+                fields: ['id', 'name', 'permission']
+            }))
+        }
 
         const [result, permissions = []] = await Promise.all(tasks);
 

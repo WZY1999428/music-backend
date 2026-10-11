@@ -3,6 +3,7 @@ import { routeOptions } from "@/bootstrap/registerRoutes.js";
 export default {
     action: '获取接口列表',
     logType: 'GET_SYSTEM_APIS',
+    enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const apis = [];

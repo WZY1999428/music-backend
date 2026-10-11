@@ -4,7 +4,7 @@ host = "127.0.0.1"
 port = 6379       
 username = "hkta"
 password = "a7454796209"
-db = 0
+db = 1
 # Mysql 配置
 [mysql]
 host = "127.0.0.1"

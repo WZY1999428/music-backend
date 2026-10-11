@@ -19,9 +19,9 @@ export default {
             password = "12345678";
         }
 
-        if (!Array.isArray(deptIds) || deptIds.every(id => typeof id !== 'number')) {
-            return ctx.fail("部门ID格式不正确");
-        }
+        // if (!Array.isArray(deptIds) || deptIds.every(id => typeof id !== 'number')) {
+        //     return ctx.fail("部门ID格式不正确");
+        // }
 
         if (password && (password.length < 8 || password.length > 16)) {
             return ctx.fail("密码长度不能小于8位并且不能大于16位");
@@ -72,17 +72,20 @@ export default {
                 field: 'roleId'
             });
 
+            if (oldDeptIds.length) {
 
-            // =========================
-            // 部门
-            // =========================
-            await syncRelation({
-                model: userDeptModel,
-                userId,
-                oldIds: oldDeptIds,
-                newIds: deptIds,
-                field: 'deptId'
-            });
+                // =========================
+                // 部门
+                // =========================
+                await syncRelation({
+                    model: userDeptModel,
+                    userId,
+                    oldIds: oldDeptIds,
+                    newIds: deptIds,
+                    field: 'deptId'
+                });
+            }
+
 
             return result;
         });

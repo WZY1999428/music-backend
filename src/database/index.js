@@ -1,6 +1,6 @@
 import MySqlODM from "mysql-dsl"
 import { Schema, DataType } from "mysql-dsl/schema";
-export const odm = new MySqlODM({ debug: true });
+export const odm = new MySqlODM({ debug: false });
 const { MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE } = process.env;
 export async function initDb() {
     await odm.use({
@@ -8,7 +8,8 @@ export async function initDb() {
         port: parseInt(MYSQL_PORT),
         user: MYSQL_USERNAME,
         password: MYSQL_PASSWORD,
-        database: MYSQL_DATABASE
+        database: MYSQL_DATABASE,
+        createDatabase: true
     });
 
 }
