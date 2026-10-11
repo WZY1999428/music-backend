@@ -16,8 +16,9 @@ export default {
             httpOnly: true,
             maxAge: 5 * 60 * 1000,
             sameSite: "lax",
-            secure: process.env.NODE_ENV === "production"
+            // secure: process.env.NODE_ENV === "production"
         });
+
         ctx.type = 'image/svg+xml';
         ctx.body = cap.data;
     },
