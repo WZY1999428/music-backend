@@ -1,7 +1,7 @@
 import Valkey from "iovalkey";
 import AppError from "./error.js";
 
-const { VALKEY_PORT, VALKEY_HOST, VALKEY_PASSWORD, VALKEY_DB } = process.env;
+const { VALKEY_PORT, VALKEY_HOST, VALKEY_PASSWORD, VALKEY_USERNAME, VALKEY_DB } = process.env;
 
 class EnhancedValkey extends Valkey {
     constructor(options) {
@@ -143,6 +143,7 @@ function getDate() {
 const valkey = new EnhancedValkey({
     port: Number(VALKEY_PORT),
     host: VALKEY_HOST,
+    username: VALKEY_USERNAME,
     password: VALKEY_PASSWORD,
     db: Number(VALKEY_DB),
 });

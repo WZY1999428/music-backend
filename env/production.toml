@@ -1,7 +1,8 @@
 # Valkey 数据库配置
 [valkey]
 host = "127.0.0.1"
-port = 6379         
+port = 6379       
+username = "hkta"
 password = "a7454796209"
 db = 0
 # Mysql 配置
