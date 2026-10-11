@@ -128,6 +128,7 @@ export async function registerRoutes(router) {
                 }
 
 
+                console.log(`${method} : ${routePath}`);
 
                 // 注册路由：router.get('/path', mw1, mw2, handler)
                 router[method](routePath, ...middlewares, handler);
