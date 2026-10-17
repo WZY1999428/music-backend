@@ -6,6 +6,9 @@ const { VALKEY_PORT, VALKEY_HOST, VALKEY_PASSWORD, VALKEY_USERNAME, VALKEY_DB } 
 class EnhancedValkey extends Valkey {
     constructor(options) {
         super(options);
+
+
+        this.expiredSubscriber = null;
     }
 
     #incrementCount = async (countKey, ttl = 300) => {
@@ -74,9 +77,8 @@ class EnhancedValkey extends Valkey {
         }
     }
 
-    getToken = async (key, time = 1800) => {
-        const tokenKey = `token:${key}`;
-
+    getToken = async (key, time = 1800, prefix = "admin-api") => {
+        const tokenKey = `${prefix}:token:${key}`;
         const data = await this.getObject(tokenKey);
 
         if (!data) {
@@ -100,11 +102,11 @@ class EnhancedValkey extends Valkey {
         return data;
     }
 
-    setToken = async (key, value, ...args) => await this.setObject(`token:${key}`, value, ...args)
-    getTokenTtl = async (key) => await this.ttl(`token:${key}`)
-    setTokenTtl = async (key, ttl) => await this.expire(`token:${key}`, ttl)
-    delToken = async (key) => await this.del(`token:${key}`)
+    setToken = async (key, value, prefix = "admin-api", ...args) => await this.setObject(`${prefix}:token:${key}`, value, ...args)
+    delToken = async (key, prefix = "admin-api") => await this.del(`${prefix}:token:${key}`)
 
+    getTokenTtl = async (key, prefix = "admin-api") => await this.ttl(`${prefix}:token:${key}`)
+    setTokenTtl = async (key, ttl, prefix = "admin-api") => await this.expire(`${prefix}:token:${key}`, ttl)
     verifyMobileVerificationCode = async (phone, value) => await this.#verificationCode("mobile", phone, value)
 
     setMobileVerificationCode = async (phone, value) => await this.#setVerificationCode("mobile", phone, value)
@@ -125,7 +127,28 @@ class EnhancedValkey extends Valkey {
     ipBlacklist = async (ip, ttl = 3600) => {
         await this.set(`ipBlacklist:${ip}`, 1, "EX", ttl);
     }
+
+
+
+
+    /**
+      * 监听 Key 过期事件
+      * @param {Function} callback 过期时的回调，参数为过期的 key
+      */
+    async onExpired(callback) {
+        if (!this.expiredSubscriber) {
+            this.expiredSubscriber = this.duplicate();
+            const db = this.options?.db ?? 0;
+            await this.expiredSubscriber.psubscribe(
+                `__keyevent@${db}__:expired`
+            );
+            this.expiredSubscriber.on("pmessage", callback);
+        }
+    }
+
 }
+
+
 
 // 或者当天剩余秒数
 function getSecondsLeftToday() {
@@ -148,10 +171,13 @@ const valkey = new EnhancedValkey({
     db: Number(VALKEY_DB),
 });
 
+// 设置键空间事件通知，Ex表示过期事件
+await valkey.config("SET", "notify-keyspace-events", "Ex");
 
 valkey.on('error', (err) => console.error('Valkey Error:', err));
 
 valkey.on('connect', () => console.log('Valkey connected'));
+
 
 
 

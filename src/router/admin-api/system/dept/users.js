@@ -1,4 +1,4 @@
-import { userDeptModel } from "@/database/model/user/index.js"
+import { userDeptModel } from "@/database/model/system/user.js"
 
 export default {
     action: '获取部门成员',

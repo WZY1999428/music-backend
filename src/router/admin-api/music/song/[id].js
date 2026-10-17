@@ -1,5 +1,5 @@
 import uploadModel from "@/database/model/upload.js";
-import { songModel, songArtistModel, songAudioModel } from "@/database/model/music/song.js";
+import { songModel, songArtistModel, songAudioModel, songTypeModel } from "@/database/model/music/song.js";
 import { formatUploadFileRef } from "@/utils/parse.js";
 export default {
     action: '获取歌曲详情',
@@ -13,9 +13,10 @@ export default {
         const ids = [song.cover, song.mvUrl].filter(Boolean)
         const songAudioFields = songAudioModel.qualifyFields(["id", "songId", "fileId", "duration", "format", "quality", "bitrate", "sampleRate", "bitDepth"])
 
-        const [files, artis, audioList] = await Promise.all([
+        const [files, artis, songTypes, audioList,] = await Promise.all([
             uploadModel.findMany({ id: { $in: ids } }),
             songArtistModel.findMany({ songId: id }, { fields: ["artistId"] }),
+            songTypeModel.findMany({ songId: id }, { fields: ["type"] }),
             songAudioModel.aggregate({
                 query: { songId: id },
                 fields: songAudioFields,
@@ -41,6 +42,7 @@ export default {
         song.cover = formatUploadFileRef(files, song.cover)
         song.mvUrl = formatUploadFileRef(files, song.mvUrl)
         song.singerList = artis.map(item => item.artistId)
+        song.songTypes = songTypes.map(item => item.type)
         song.audioList = audioList
         ctx.success(song)
     },

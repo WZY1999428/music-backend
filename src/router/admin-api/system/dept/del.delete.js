@@ -1,5 +1,5 @@
 import deptModel from "@/database/model/system/dept.js"
-import { userDeptModel } from "@/database/model/user/index.js"
+import { userDeptModel } from "@/database/model/system/user.js"
 export default {
     action: '删除部门信息',
     logType: 'DELETE_DEPT_INFO',

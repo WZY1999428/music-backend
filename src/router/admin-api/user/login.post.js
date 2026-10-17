@@ -1,4 +1,4 @@
-import userModel, { userRoleModel } from "@/database/model/user/index.js"
+import userModel, { userRoleModel } from "@/database/model/system/user.js"
 import generateToken from "@/utils/token.js"
 export default {
     action: '用户登录',

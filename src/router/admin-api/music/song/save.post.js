@@ -1,11 +1,11 @@
-import { songModel, songArtistModel, songAudioModel } from "@/database/model/music/song.js";
+import { songModel, songArtistModel, songAudioModel, songTypeModel } from "@/database/model/music/song.js";
 import { formatDate } from "@/utils/date.js";
 export default {
     action: '保存歌曲',
     logType: 'SAVE_MUSIC_SONG',
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { id, title, cover, publishDate, singerList, audioList, mvUrl, enabled = 1 } = ctx.request.body;
+        const { id, title, cover, publishDate, singerList, audioList, songTypes, mvUrl, enabled = 1 } = ctx.request.body;
         $validate(title, "歌曲名称不能为空")
         $validate(cover, "歌曲封面不能为空")
         $validate(publishDate, "歌曲发布日期不能为空")
@@ -46,6 +46,15 @@ export default {
                     list: audioList,
                     key: 'fileId',
                     createInsertData: (audio) => songAudioInfo(songId, audio)
+                })
+
+                // 同步歌曲类型
+                await syncRelation({
+                    model: songTypeModel,
+                    oldList: await songTypeModel.findMany({ songId }),
+                    list: songTypes,
+                    key: 'type',
+                    createInsertData: (type) => ({ songId, type })
                 })
             })
 

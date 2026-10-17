@@ -1,4 +1,4 @@
-import userModel from "@/database/model/user/index.js"
+import userModel from "@/database/model/system/user.js"
 
 export default {
     action: '获取全部成员',

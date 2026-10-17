@@ -42,3 +42,16 @@ export function formatDateTime(date, format = "YYYY-MM-DD HH:mm:ss") {
 }
 
 
+// 获取今日还是多少秒
+export function getSecondsLeftToday() {
+    const now = new Date();
+    return getSecondsLeft(now);
+}
+
+
+// 获取指定日期的剩余秒数
+export function getSecondsLeft(date) {
+    const now = new Date();
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+    return Math.floor((endOfDay - now) / 1000);
+}

@@ -138,6 +138,13 @@ sudo systemctl status valkey
 sudo nano /etc/valkey/valkey.conf
 ```
 
+编辑订阅权限：
+
+```bash
+valkey-cli
+ACL SETUSER username &__keyevent@*__:expired
+```
+
 找到：
 
 ```conf

@@ -13,7 +13,7 @@ export default {
         if (code) query.code = { $eq: code };
         const page = paginate(pageIndex, pageSize);
         
-        const fields = albumModel.qualifyFields(["id", "title", "cover", "releaseDate", "company", "type", "genre", "sort", "isHot", "enabled"])
+        const fields = albumModel.qualifyFields()
         const [list, total] = await Promise.all([
             albumModel.aggregate({
                 fields,

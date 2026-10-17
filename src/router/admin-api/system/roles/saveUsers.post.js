@@ -1,6 +1,6 @@
 
 import { roleModel, } from "@/database/model/system/role.js"
-import userModel, { userRoleModel } from "@/database/model/user/index.js"
+import userModel, { userRoleModel } from "@/database/model/system/user.js"
 
 export default {
     action: '保存角色成员',

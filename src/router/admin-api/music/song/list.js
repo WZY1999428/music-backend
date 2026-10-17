@@ -10,8 +10,7 @@ export default {
         const { title, artist, pageIndex, pageSize } = ctx.request.query;
         const query = {}
         if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
-
-        const fields = songModel.qualifyFields(["id", "title", "cover", "enabled", "publishDate", "updatedAt", "enabled"]);
+        const fields = songModel.qualifyFields();
         if (artist && artist.trim()) {
             query[songModel.qualifyField("id")] = {
                 $in: [{

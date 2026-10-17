@@ -1,4 +1,4 @@
-import userModel, { userDeptModel } from "@/database/model/user/index.js"
+import userModel, { userDeptModel } from "@/database/model/system/user.js"
 import deptModel from "@/database/model/system/dept.js"
 
 export default {

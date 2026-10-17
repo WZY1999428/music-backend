@@ -1,4 +1,4 @@
-import userModel, { userRoleModel } from "@/database/model/user/index.js";
+import userModel, { userRoleModel } from "@/database/model/system/user.js";
 export default {
     action: '获取用户信息',
     logType: 'GET_USER_INFO',

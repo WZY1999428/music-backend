@@ -1,4 +1,4 @@
-import userModel from "@/database/model/user/index.js"
+import userModel from "@/database/model/system/user.js"
 import { NORMAL_ENABLED_USER_QUERY } from "@/utils/query.js"
 export default {
     action: '获取系统用户列表',

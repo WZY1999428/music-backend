@@ -1,4 +1,4 @@
-import userModel, { userRoleModel, userDeptModel } from "@/database/model/user/index.js"
+import userModel, { userRoleModel, userDeptModel } from "@/database/model/system/user.js"
 
 export default {
     action: '系统用户注册/编辑',

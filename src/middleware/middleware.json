@@ -1,10 +1,11 @@
 {
     "order": [
-        "X-Token.js",
         "range.js",
         "loggerMiddleware.js",
         "response.js",
         "auth.js"
     ],
-    "ignore": []
+    "ignore": [
+        "X-Token.js"
+    ]
 }

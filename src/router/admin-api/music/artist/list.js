@@ -12,7 +12,7 @@ export default {
         if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
         if (code) query.code = { $eq: code };
         const page = paginate(pageIndex, pageSize);
-        const fields = artistModel.qualifyFields(["id", "name", "realName", "gender", "area", "isHot", "updatedAt", "enabled"]);
+        const fields = artistModel.qualifyFields();
         const [list, total] = await Promise.all([
             artistModel.aggregate({
                 fields,

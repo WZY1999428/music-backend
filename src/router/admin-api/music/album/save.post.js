@@ -6,8 +6,6 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         const { id, title, cover, releaseDate, company, type, genre, description, singerList, sort, isHot, enabled } = ctx.request.body;
-        console.log(releaseDate);
-        
         $validate(title, "专辑名称不能为空")
         $validate(cover, "专辑封面不能为空")
         $validate(releaseDate, "专辑发布日期不能为空")

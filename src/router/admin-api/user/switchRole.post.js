@@ -1,5 +1,5 @@
 
-import { userRoleModel } from "@/database/model/user/index.js"
+import { userRoleModel } from "@/database/model/system/user.js"
 import { roleModel } from "@/database/model/system/role.js"
 export default {
      action: '切换用户角色',

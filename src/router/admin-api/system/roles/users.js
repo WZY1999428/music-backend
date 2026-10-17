@@ -1,5 +1,5 @@
 
-import { userRoleModel } from "@/database/model/user/index.js"
+import { userRoleModel } from "@/database/model/system/user.js"
 export default {
     action: '获取角色成员',
     logType: 'GET_ROLE_USERS',

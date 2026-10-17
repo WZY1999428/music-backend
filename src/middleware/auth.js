@@ -1,5 +1,6 @@
 import { routerWhiteList } from "@/bootstrap/registerRoutes.js";
 import valkey from "@/utils/valkey.js";
+import { appTokenExpire } from "@/utils/config.js";
 export default () => {
     const whiteMatchers = Array.from(routerWhiteList.values());
     return async (ctx, next) => {
@@ -14,6 +15,14 @@ export default () => {
             }
             ctx.token = token;
             ctx.user = info;
+        } else {
+            // const info = await valkey.getToken(token, appTokenExpire , "app-api")
+            // if (!info) {
+            //     ctx.unauthorized();
+            //     return;
+            // }
+            // ctx.token = token;
+            // ctx.appUser = info;
         }
 
         await next();

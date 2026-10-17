@@ -1,7 +1,6 @@
 export default () => {
     return async (ctx, next) => {
         ctx.path = ctx.path.replace(/\/+/g, "/");
-
         ctx.success = (data, message = "操作成功") => {
             ctx.body = {
                 code: 0,

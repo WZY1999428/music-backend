@@ -1,4 +1,4 @@
-import { playlistModel } from "@/database/model/music/playlist.js";
+import { playlistModel, playlistStatsModel } from "@/database/model/music/playlist.js";
 export default {
     action: '保存歌单',
     logType: 'SAVE_MUSIC_PLAYLIST',
@@ -20,8 +20,13 @@ export default {
                 enabled,
                 createUserId: ctx.user.userId
             }
-            id ? await playlistModel.updateOne({ id }, params) : await playlistModel.insertOne(params)
-
+            await playlistModel.withTransaction(async (model) => {
+                const result = id ? await model.updateOne({ id }, params) : await model.insertOne(params)
+                if (result.insertId) {
+                    await playlistStatsModel.insertOne({ playlistId: result.insertId, favoriteTotal: 0, playTotal: 0, clickTotal: 0 })
+                }
+                return result
+            })
             ctx.success(null, id ? "更新成功" : "添加成功")
         } catch (error) {
             if (error.code == "ER_DUP_ENTRY") return ctx.fail("歌单已存在")

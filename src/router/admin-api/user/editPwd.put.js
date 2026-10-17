@@ -1,4 +1,4 @@
-import userModel from "@/database/model/user/index.js"
+import userModel from "@/database/model/system/user.js"
 export default {
     action: '修改用户密码',
     logType: 'EDIT_PASSWORD',
