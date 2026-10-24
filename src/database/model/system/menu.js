@@ -18,9 +18,9 @@ const routeSchema = new BaseSchema({
 
 
 const menuPermissionsSchema = new BaseSchema({
-    routeId: { type: DataType.BigInt, nullable: false, },
+    routeId: { type: DataType.BigInt, nullable: false, uniqueGroup: ['route_permission'] },
     name: { type: DataType.VarChar, length: 100, nullable: false },
-    permission: { type: DataType.VarChar, length: 255, nullable: false, unique: true },
+    permission: { type: DataType.VarChar, length: 255, nullable: false, unique: true, uniqueGroup: ['route_permission'] },
     enabled: { type: DataType.Int, default: 1 },
 });
 

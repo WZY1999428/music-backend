@@ -1,5 +1,5 @@
 import { odm, BaseSchema } from "@/database/index.js"
-import { DataType } from "mysql-dsl/schema"
+import { DataType, Schema } from "mysql-dsl/schema"
 
 const albumSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false }, // 专辑名（如：叶惠美）
@@ -21,13 +21,13 @@ const albumSchema = new BaseSchema({
 
 
 
-const albumArtistSchema = new BaseSchema({
+const albumArtistSchema = new Schema({
     albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },   // 专辑id
     artistId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },    // 演唱者 id
 });
 
 
-const albumSongSchema = new BaseSchema({
+const albumSongSchema = new Schema({
     albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
     songId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
     sort: { type: DataType.Int, default: 0 }, // 排序

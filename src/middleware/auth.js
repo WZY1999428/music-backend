@@ -1,6 +1,4 @@
 import { routerWhiteList } from "@/bootstrap/registerRoutes.js";
-import valkey from "@/utils/valkey.js";
-import { appTokenExpire } from "@/utils/config.js";
 export default () => {
     const whiteMatchers = Array.from(routerWhiteList.values());
     return async (ctx, next) => {
@@ -8,7 +6,7 @@ export default () => {
         const token = ctx.headers["authorization"]
         const isAdmin = ctx.path.startsWith("/admin-api");
         if (isAdmin) {
-            const info = await valkey.getToken(token)
+            const info = await getAdminToken(token)
             if (!isWhite && !info) {
                 ctx.unauthorized();
                 return;

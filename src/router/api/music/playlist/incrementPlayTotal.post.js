@@ -3,6 +3,7 @@ import { playlistStatsModel } from "@/database/model/music/playlist"
 export default {
     action: '增加音乐播放量',
     logType: 'INCREMENT_PLAY_TOTAL',
+     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { playlistId } = ctx.request.body;

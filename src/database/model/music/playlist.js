@@ -1,5 +1,5 @@
 import { odm, BaseSchema } from "@/database/index.js"
-import { DataType } from "mysql-dsl/schema"
+import { DataType, Schema } from "mysql-dsl/schema"
 
 const playlistSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false },
@@ -11,9 +11,9 @@ const playlistSchema = new BaseSchema({
     description: { type: DataType.VarChar, length: 500 },
 });
 
-const playlistSongSchema = new BaseSchema({
-    playlistId: { type: DataType.Int, nullable: false },  // 歌单ID
-    songId: { type: DataType.Int, nullable: false },  // 歌曲ID
+const playlistSongSchema = new Schema({
+    playlistId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_song"] },  // 歌单ID
+    songId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_song"] },  // 歌曲ID
 });
 
 const playlistStatsSchema = new BaseSchema({

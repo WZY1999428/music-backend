@@ -1,5 +1,6 @@
 import { odm, BaseSchema } from "@/database/index.js"
 const { DataType } = await import("mysql-dsl/schema");
+
 const dictTypeSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 50, nullable: false, unique: true },
     remark: { type: DataType.VarChar, length: 255, nullable: true },

@@ -26,3 +26,8 @@ path = "./.output"
 [public]
 path = "./public"
 upload = "/home/本地磁盘2"
+ 
+# Gemini 配置
+[gemini]
+api_key = "AIzaSyDjMJM_u4Da0CavL-WW-hHwmbp7i36WYZc"
+proxy_url = "https://hkta.cc:8848"

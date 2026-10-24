@@ -19,7 +19,7 @@ const upload = multer({
             if (file.size > 1024 * 1024 * 100) {
                 return cb(new Error("文件大小不能超过100MB"));
             }
-            cb(null, Buffer.from(file.originalname, 'latin1').toString('utf8'));
+            cb(null, `${Date.now()}${ext}`);
         }
     })
 });
@@ -36,7 +36,7 @@ export default {
         if (!matedata.format) {
             return ctx.fail("音频解析失败")
         }
-        
+
         const result = await uploadModel.insertOne({
             originalName: file.originalname,
             filename: file.filename,
@@ -44,7 +44,7 @@ export default {
             url: file.path.replace(/\\/g, "/").replace("public/", "/"),
             size: file.size,
             mimeType: file.mimetype,
-            type:"audio"
+            type: "audio"
         })
 
         ctx.success({

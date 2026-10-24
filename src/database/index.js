@@ -1,6 +1,6 @@
 import MySqlODM from "mysql-dsl"
 import { Schema, DataType } from "mysql-dsl/schema";
-export const odm = new MySqlODM({ debug: true });
+export const odm = new MySqlODM({ debug: process.NODE_ENV != "production" });
 const { MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE } = process.env;
 export async function initDb() {
     await odm.use({
@@ -14,7 +14,12 @@ export async function initDb() {
 
 }
 
+
+
 export class BaseSchema extends Schema {
+    /**
+     * @param {import("mysql-dsl/schema").Schema} fields
+     */
     constructor(fields) {
         super({
             id: {

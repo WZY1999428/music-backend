@@ -107,8 +107,9 @@ class EnhancedValkey extends Valkey {
 
     getTokenTtl = async (key, prefix = "admin-api") => await this.ttl(`${prefix}:token:${key}`)
     setTokenTtl = async (key, ttl, prefix = "admin-api") => await this.expire(`${prefix}:token:${key}`, ttl)
-    verifyMobileVerificationCode = async (phone, value) => await this.#verificationCode("mobile", phone, value)
 
+    
+    verifyMobileVerificationCode = async (phone, value) => await this.#verificationCode("mobile", phone, value)
     setMobileVerificationCode = async (phone, value) => await this.#setVerificationCode("mobile", phone, value)
 
     verifyEmailCode = async (email, value) => await this.#verificationCode("email", email, value)

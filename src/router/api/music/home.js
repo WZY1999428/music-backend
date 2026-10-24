@@ -1,6 +1,7 @@
 import { songModel } from "@/database/model/music/song.js"
 import bannerModel from "@/database/model/app/banner.js"
 import uploadModel from "@/database/model/upload.js"
+import { getSongList } from "@/utils/getSongList"
 
 export default {
     action: '获取APP首页数据',
@@ -9,13 +10,16 @@ export default {
     /** @type {Controller} */
 
     handler: async (ctx) => {
-        const hotSongList = await songModel.findMany({
-            enabled: 1
-        }, { fields: ["id", "title", "cover"], sort: { playTotal: "desc", publishDate: "desc" }, limit: 10 })
+        const hotSongList = await getSongList({
+            [songModel.qualifyField('enabled')]: 1
+        }, {
+            limit: 10,
+            sort: { [songModel.qualifyField("playTotal")]: "desc", [songModel.qualifyField("publishDate")]: "desc" }
+        })
 
         const bannerList = await bannerModel.aggregate({
             query: { enabled: 1 },
-            fields: bannerModel.qualifyFields(["id", "image", "type", "title", "value", "enabled","desc"]),
+            fields: bannerModel.qualifyFields(["id", "image", "type", "title", "value", "enabled", "desc"]),
             joins: [{
                 table: uploadModel.table,
                 on: {

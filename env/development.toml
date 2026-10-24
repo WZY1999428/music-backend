@@ -26,4 +26,8 @@ path = "./src"
 [public]
 path = "./public"
 upload = "./public"
- 
+  
+# Gemini 配置
+[gemini]
+key = "AIzaSyDjMJM_u4Da0CavL-WW-hHwmbp7i36WYZc"
+proxy_url = "https://hkta.cc:8848"

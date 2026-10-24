@@ -3,6 +3,7 @@ import { favoritePlaylistModel, playlistStatsModel } from "@/database/model/musi
 export default {
     action: '切换歌单收藏',
     logType: 'TOGGLE_PLAYLIST_FAVORITE',
+    enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { playlistId } = ctx.request.body;

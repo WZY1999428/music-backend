@@ -1,5 +1,5 @@
 import { odm, BaseSchema } from "@/database/index.js"
-import { DataType } from "mysql-dsl/schema"
+import { DataType, Schema } from "mysql-dsl/schema"
 
 const songSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false }, // 歌名（如：晴天）
@@ -14,15 +14,21 @@ const songSchema = new BaseSchema({
     publishDate: { type: DataType.DateTime, nullable: false }, // 发布日期
 });
 
-const songArtistSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false },   // 歌曲id
-    artistId: { type: DataType.Int, nullable: false },    // 演唱者 id
+const songArtistSchema = new Schema({
+    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_artist"] },   // 歌曲id
+    artistId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_artist"] },    // 演唱者 id
+});
+
+
+const songLangSchema = new Schema({
+    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_lang"] },   // 歌曲id
+    lang: { type: DataType.VarChar, length: 20, nullable: false, uniqueGroup: ["song_lang"] },    // 语言
 });
 
 
 const songAudioSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false },   // 歌曲id
-    fileId: { type: DataType.Int, nullable: false },    // 文件id
+    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_audio"] },   // 歌曲id
+    fileId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_audio"] },    // 文件id
     duration: { type: DataType.Int, nullable: false }, // 时长（秒）
     format: { type: DataType.VarChar, length: 20, nullable: false },   // 格式
     quality: { type: DataType.VarChar, length: 20, nullable: false },  // 质量
@@ -42,14 +48,14 @@ const songLyricSchema = new BaseSchema({
     format: { type: DataType.VarChar, length: 20, nullable: false },   // 格式 LRC TTML Karaoke
 });
 
-const favoriteSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false },   // 歌曲id
-    userId: { type: DataType.BigInt, nullable: false },    // 用户id
+const favoriteSchema = new Schema({
+    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_user_favorite"] },   // 歌曲id
+    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["song_user_favorite"] },    // 用户id
 });
 
-const songTypeSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false },   // 歌曲id
-    type: { type: DataType.VarChar, length: 20, nullable: false },    // 类型
+const songTypeSchema = new Schema({
+    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_type"] },   // 歌曲id
+    type: { type: DataType.VarChar, length: 20, nullable: false, uniqueGroup: ["song_type"] },    // 类型
 });
 
 
@@ -60,4 +66,5 @@ export const songAudioModel = await odm.model('music_song_audio', songAudioSchem
 export const songLyricModel = await odm.model('music_song_lyric', songLyricSchema);
 export const favoriteSongModel = await odm.model('music_song_favorite', favoriteSchema);
 export const songTypeModel = await odm.model('music_song_type', songTypeSchema);
+export const songLangModel = await odm.model('music_song_lang', songLangSchema);
 
