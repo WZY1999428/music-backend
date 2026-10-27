@@ -37,11 +37,13 @@ export default {
             return ctx.fail("音频解析失败")
         }
 
+        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "/");
+
         const result = await uploadModel.insertOne({
             originalName: file.originalname,
             filename: file.filename,
             userId: ctx.user?.userId,
-            url: file.path.replace(/\\/g, "/").replace("public/", "/"),
+            url: url,
             size: file.size,
             mimeType: file.mimetype,
             type: "audio"
@@ -49,7 +51,7 @@ export default {
 
         ctx.success({
             fileId: result.insertId,
-            url: file.path.replace(/\\/g, "/").replace("public/", "/"),
+            url: url,
             filename: file.filename,
             size: file.size,
             ...matedata.format

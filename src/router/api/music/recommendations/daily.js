@@ -69,6 +69,7 @@ async function getDailyRecommendations() {
 
     ids.push(...randomSong.map(item => item.id))
 
+
     await valkey.setObject(DAILY_RECOMMENDATIONS_KEY, ids, "EX", getSecondsLeftToday())
 
     return [...host, ...newSong, ...randomSong]

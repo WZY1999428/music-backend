@@ -83,7 +83,7 @@ export default {
                         select: [
                             {
                                 type: "array",
-                                as: "artistList",
+                                alias: "artistList",
                                 fields: {
                                     "artist": "songArtist.artistId"
                                 }

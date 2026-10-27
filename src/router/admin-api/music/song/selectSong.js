@@ -87,7 +87,7 @@ export default {
                         select: [
                             {
                                 type: "array",
-                                as: "artistList",
+                                alias: "artistList",
                                 fields: {
                                     "artist": "songArtist.artistId"
                                 }
@@ -97,7 +97,7 @@ export default {
 
                 ],
                 group: [fields[0]],
-                sort: { createdAt: "asc" },
+                sort: { [songModel.qualifyField("createdAt")]: "asc" },
                 ...page,
             }),
             songModel.count({

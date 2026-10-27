@@ -3,6 +3,7 @@ import uploadModel from "@/database/model/upload.js";
 import fs from "node:fs";
 import path from "node:path";
 import { stat } from "node:fs/promises";
+import valkey from "@/utils/valkey";
 
 export default {
     action: "获取音乐流",
@@ -13,7 +14,12 @@ export default {
     handler: async (ctx) => {
         // 从查询参数中获取歌曲ID和音质
         const { songId, quality } = ctx.request.query;
-
+        // const songUrl = await valkey.get(`audioUrl:${songId}:${quality}`);
+        // if (songUrl) {
+        //     // 读取并返回音频流
+        //     await readAudio(songUrl, ctx)
+        //     return;
+        // }
         // 校验歌曲ID
         if (!songId) {
             ctx.fail("歌曲ID不能为空");
@@ -34,7 +40,7 @@ export default {
             joins: [{
                 table: uploadModel.table,
                 as: "upload",
-                on: {[fileIdField]: "upload.id"},
+                on: { [fileIdField]: "upload.id" },
             }],
         });
 
@@ -48,13 +54,17 @@ export default {
         const song = songList.find(item => item.quality == quality) ?? songList[0];
 
         // 获取音频文件路径
-        const filePath = song.url;
+        const filePath = path.join(uploadPath, song.url);
 
         // 校验文件路径
         if (!filePath) {
             ctx.fail("音频文件不存在");
             return;
         }
+
+        console.log(filePath, song.url);
+
+        valkey.set(`audioUrl:${songId}:${quality}`, filePath, "EX", 60 * 30)
 
         // 读取并返回音频流
         await readAudio(filePath, ctx)
@@ -138,6 +148,7 @@ async function readAudio(filePath, ctx) {
         return;
     }
 
+
     if (startText === "") {
         // bytes=-500：请求文件最后 500 字节
         const suffixLength = Number(endText);
@@ -186,12 +197,9 @@ async function readAudio(filePath, ctx) {
     ctx.status = 206;
     ctx.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
     ctx.length = contentLength;
-
     // 创建文件流，只读取指定范围的数据
-    ctx.body = fs.createReadStream(filePath, {
-        start,
-        end,
-    });
+    const stream = fs.createReadStream(filePath, { start, end });
+    ctx.body = stream
 }
 
 /**

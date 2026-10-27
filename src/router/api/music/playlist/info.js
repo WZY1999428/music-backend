@@ -42,7 +42,6 @@ export default {
             ctx.fail("歌单不存在");
             return;
         }
-        console.log("playlist info:", result);
         
         ctx.success(result[0]);
     },

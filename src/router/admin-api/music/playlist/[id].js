@@ -8,11 +8,13 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         const { id } = ctx.request.params;
+
         const song = await playlistModel.findOne({ id })
         if (!song) return ctx.fail("歌单不存在")
         if (song.cover) {
-            const files = await uploadModel.findOne({ id: song.cover });
-            song.cover = formatUploadFileRef([files], song.cover)
+            const file = await uploadModel.findOne({ id: song.cover });
+            console.log(file);
+            if (file) song.cover = formatUploadFileRef([file], song.cover)
         }
         ctx.success(song)
     }

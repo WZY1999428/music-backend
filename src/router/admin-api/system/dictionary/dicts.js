@@ -18,9 +18,9 @@ export default {
                         [fields[0]]: dictItemModel.qualifyField("dictId")
                     },
                     select: [
-                        {
+                        {   
                             type: "jsonArray",
-                            as: "dictItems",
+                            alias: "dictItems",
                             fields: {
                                 "id": dictItemFields[0],
                                 "title": dictItemFields[1],

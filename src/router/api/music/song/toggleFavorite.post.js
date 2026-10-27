@@ -8,18 +8,19 @@ export default {
         const { songId } = ctx.request.body;
         $validate(songId, "歌曲id不能为空")
         const userId = ctx.user.userId
-        const msg = await favoriteSongModel.withTransaction(async (model) => {
+
+        const status = await favoriteSongModel.withTransaction(async (model) => {
             const favorite = await model.findOne({ songId, userId: userId })
             if (favorite) {
                 await model.deleteOne({ id: favorite.id })
                 await songModel.updateOne({ id: songId }, { $dec: { favoriteCount: 1 } })
-                return "取消收藏成功"
+                return false
             } else {
                 await model.insertOne({ songId, userId: userId })
                 await songModel.updateOne({ id: songId }, { $inc: { favoriteCount: 1 } })
-                return "收藏成功"
+                return true
             }
         })
-        ctx.success(msg)
+        ctx.success(status)
     }
 }
