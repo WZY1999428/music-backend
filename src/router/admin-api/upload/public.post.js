@@ -40,7 +40,7 @@ export default {
             originalName: file.originalname,
             filename: file.filename,
             userId: ctx.user?.userId,
-            url: file.path.replace(/\\/g, "/").replace(`${uploadPath}/`, "/"),
+            url: file.path.replace(/\\/g, "/").replace(uploadPath, ""),
             size: file.size,
             mimeType: file.mimetype,
             type

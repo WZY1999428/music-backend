@@ -37,7 +37,7 @@ export default {
             return ctx.fail("音频解析失败")
         }
 
-        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "/");
+        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
 
         const result = await uploadModel.insertOne({
             originalName: file.originalname,

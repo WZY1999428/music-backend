@@ -20,7 +20,6 @@ const albumSchema = new BaseSchema({
 });
 
 
-
 const albumArtistSchema = new Schema({
     albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },   // 专辑id
     artistId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },    // 演唱者 id
