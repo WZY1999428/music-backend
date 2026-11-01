@@ -16,6 +16,12 @@ const playlistSongSchema = new Schema({
     songId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_song"] },  // 歌曲ID
 });
 
+
+const playlistTagSchema = new Schema({
+    playlistId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_tag"] },  // 歌单ID
+    tag: { type: DataType.VarChar, length: 50, nullable: false , uniqueGroup: ["playlist_tag"] },  // 标签
+});
+
 const playlistStatsSchema = new BaseSchema({
     playlistId: { type: DataType.Int, nullable: false, unique: true },  // 歌单ID
     favoriteTotal: { type: DataType.BigInt, nullable: false, default: 0 },  // 收藏总数
@@ -32,3 +38,4 @@ export const playlistSongModel = await odm.model('music_playlist_song', playlist
 export const playlistModel = await odm.model('music_playlist', playlistSchema);
 export const playlistStatsModel = await odm.model('music_playlist_stats', playlistStatsSchema);
 export const favoritePlaylistModel = await odm.model('music_playlist_favorite', favoriteSchema);
+export const playlistTagModel = await odm.model('music_playlist_tag', playlistTagSchema);

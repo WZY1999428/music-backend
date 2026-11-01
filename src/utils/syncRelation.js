@@ -16,7 +16,7 @@ export async function syncRelation({
     model,
     oldList = [],
     list = [],
-    key,
+    key = "id",
     createInsertData
 }) {
 
@@ -44,15 +44,13 @@ export async function syncRelation({
         .map(item => createInsertData(item))
 
     // 新数据已经删除的关系
-    const deleteList = oldList.filter(
-        item => !newSet.has(item[key])
-    )
-    await Promise.all([
-        insertList.length
-            ? model.insertMany(insertList)
-            : null,
-        deleteList.length
-            ? model.deleteMany({ id: { $in: deleteList.map(item => item.id) } })
-            : null,
-    ])
+    const deleteList = oldList.filter(item => !newSet.has(item[key] || item))
+    console.log(deleteList, oldList);
+    if (deleteList.length) {
+        await model.deleteMany({ [key]: { $in: deleteList.map(item => item[key]) } })
+    }
+
+    if (insertList.length) {
+        await model.insertMany(insertList)
+    }
 }

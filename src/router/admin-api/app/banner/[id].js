@@ -11,9 +11,11 @@ export default {
         const banner = await bannerModel.findOne({ id });
         if (banner.image) {
             const img = await uploadModel.findOne({ id: banner.image });
-            banner.image = {
-                id: img.id,
-                url: img.url
+            if(img){
+                banner.image = {
+                    id: img.id,
+                    url: img.url
+                }
             }
         }
         ctx.success(banner);

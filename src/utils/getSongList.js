@@ -21,12 +21,12 @@ export function getSongList(query, options = {}) {
                     limit: 1
                 }
             },
-            langs: {
+            language: {
                 $select: {
                     table: songLangModel.table,
                     type: "jsonArray",
                     query: {
-                        "music_song.id": { $col: songLangModel.qualifyField("songId") }
+                        [songModel.qualifyField("id")]: { $col: songLangModel.qualifyField("songId") }
                     },
                     joins: [
                         {

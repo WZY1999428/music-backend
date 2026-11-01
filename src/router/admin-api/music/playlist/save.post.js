@@ -1,15 +1,16 @@
-import { playlistModel, playlistStatsModel } from "@/database/model/music/playlist.js";
+import { playlistModel, playlistStatsModel, playlistTagModel } from "@/database/model/music/playlist.js";
 export default {
     action: '保存歌单',
     logType: 'SAVE_MUSIC_PLAYLIST',
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { id, title, cover, sort, isHot, enabled = 1, description } = ctx.request.body;
+        const { id, title, cover, sort, isHot, tags = [], enabled = 1, description } = ctx.request.body;
 
         $validate(title, "歌单名称不能为空")
         if (!cover || !cover.id) {
             return ctx.fail("歌单封面不能为空")
         }
+
         try {
             const params = {
                 cover: cover.id,
@@ -20,11 +21,21 @@ export default {
                 enabled,
                 createUserId: ctx.user.userId
             }
+
             await playlistModel.withTransaction(async (model) => {
                 const result = id ? await model.updateOne({ id }, params) : await model.insertOne(params)
                 if (result.insertId) {
                     await playlistStatsModel.insertOne({ playlistId: result.insertId, favoriteTotal: 0, playTotal: 0, clickTotal: 0 })
                 }
+                const playlistId = result.insertId || id
+                // 同步标签
+                await syncRelation({
+                    model: playlistTagModel,
+                    oldList: (await playlistTagModel.findMany({ playlistId })),
+                    list: tags,
+                    key: 'playlistId',
+                    createInsertData: (tag) => ({ playlistId, tag })
+                })
                 return result
             })
             ctx.success(null, id ? "更新成功" : "添加成功")

@@ -1,11 +1,10 @@
 
-import { playlistModel, playlistStatsModel } from "@/database/model/music/playlist.js"
-import { albumModel, albumArtistModel } from "@/database/model/music/album.js"
 import artistModel from "@/database/model/music/artist.js"
-import { songModel, songArtistModel } from "@/database/model/music/song.js"
 import uploadModel from "@/database/model/upload.js"
-import { paginate } from "@/utils/paginate";
-import { getSongList } from "@/utils/getSongList"
+import { songModel, songArtistModel } from "@/database/model/music/song.js"
+import { albumModel, albumArtistModel } from "@/database/model/music/album.js"
+import { playlistModel, playlistStatsModel, playlistTagModel } from "@/database/model/music/playlist.js"
+import { dictItemModel, dictTypeModel } from "@/database/model/system/dictionary.js"
 
 export default {
     action: 'APP搜索音乐',
@@ -38,14 +37,38 @@ export default {
 
 
 // 获取歌单列表
-function getPlaylist(keyword, paginate, fetchCount = true) {
+async function getPlaylist(keyword, paginate, fetchCount = true) {
+    const playlistIdField = playlistModel.qualifyField('id');
+
+    const query = {
+        $or: [
+            { [playlistModel.qualifyField("title")]: { $like: `%${keyword}%` } },
+            {
+                $exists: {
+                    table: playlistTagModel.table,
+                    joins: [{
+                        table: dictItemModel.table,
+                        as: 'dictItem',
+                        on: { "dictItem.value": playlistTagModel.qualifyField("tag") },
+                    }],
+                    query: {
+                        [playlistTagModel.qualifyField("playlistId")]: { $col: playlistIdField },
+                        "dictItem.dictId": { $col: "dictType.id" },
+                        "dictItem.title": { $like: `%${keyword}%` },
+                    }
+                }
+            }
+        ],
+        [playlistModel.qualifyField("enabled")]: 1,
+    }
+
     const taks = [playlistModel.aggregate({
-        fields: playlistModel.qualifyFields(['title', 'cover', 'isHot', 'sort', 'description']),
+        fields: playlistModel.qualifyFields(['id', 'title', 'cover', 'isHot', 'sort', 'description']),
         joins: [
             {
                 table: playlistStatsModel.table,
                 as: 'stats',
-                on: { "stats.playlistId": playlistModel.qualifyField('id') },
+                on: { "stats.playlistId": playlistIdField },
                 select: [{
                     type: "raw",
                     fields: {
@@ -59,33 +82,53 @@ function getPlaylist(keyword, paginate, fetchCount = true) {
                 as: 'upload',
                 type: "left",
                 on: { "upload.id": playlistModel.qualifyField('cover') },
+                select: [{ type: "raw", fields: { "cover": "upload.url" } }]
+            },
+            {
+                table: playlistTagModel.table,
+                as: 'playlistTag',
+                type: "left",
+                on: { "playlistTag.playlistId": playlistIdField },
+            },
+            {
+                table: dictTypeModel.table,
+                as: 'dictType',
+                on: { "dictType.code": { $eq: "PLAYLIST_TAG" } },
+            },
+            {
+                table: dictItemModel.table,
+                as: 'dictItem2',
+                type: "left",
+                on: { "dictItem2.dictId": "dictType.id", "dictItem2.value": "playlistTag.tag" },
                 select: [{
-                    type: "raw",
-                    fields: {
-                        "cover": "upload.url",
-                    }
+                    type: "jsonArray",
+                    alias: "tags",
+                    fields: { "title": "dictItem2.title", "value": "dictItem2.value", "id": "dictItem2.id" }
                 }]
             }
         ],
-        query: {
-            title: { $like: `%${keyword}%` },
-            [playlistModel.qualifyField("enabled")]: 1
-        },
+        query: query,
+        group: [playlistIdField, "stats.favoriteTotal", "stats.playTotal", "stats.clickTotal"],
         ...paginate
     })]
 
     if (fetchCount) {
-        taks.push(playlistModel.count({
-            query: { title: { $like: `%${keyword}%` }, enabled: 1 },
-        }))
+        query.$or[1].$exists.joins.unshift({
+            table: dictTypeModel.table,
+            as: 'dictType',
+            on: { "dictType.code": { $eq: "PLAYLIST_TAG" } },
+        })
+        taks.push(playlistModel.count({ query }))
     }
-
-    return Promise.all(taks)
+    const result = await Promise.all(taks);
+    result[0].forEach(item => item.isHot = item.isHot === 1)
+    return result
 }
+
 // 获取专辑列表
-function getAlbumList(keyword, paginate, fetchCount = true) {
+async function getAlbumList(keyword, paginate, fetchCount = true) {
     const taks = [albumModel.aggregate({
-        fields: albumModel.qualifyFields(['title', 'releaseDate', 'company', 'type', 'genre', 'description']),
+        fields: albumModel.qualifyFields(['id', 'title', 'releaseDate', 'company', 'type', 'genre', 'description']),
         joins: [
             {
                 table: albumArtistModel.table,
@@ -98,11 +141,11 @@ function getAlbumList(keyword, paginate, fetchCount = true) {
                 type: "left",
                 on: { "artist.id": "albumArtist.artistId" },
                 select: [{
-                    type: "raw",
+                    type: "jsonArray",
+                    alias: "artists",
                     fields: {
                         "artistId": "artist.id",
                         "artistName": "artist.name",
-
                     }
                 }]
             },
@@ -119,6 +162,7 @@ function getAlbumList(keyword, paginate, fetchCount = true) {
                 }]
             }
         ],
+        group: [albumModel.qualifyField('id')],
         query: {
             title: { $like: `%${keyword}%` },
             [albumModel.qualifyField("enabled")]: 1
@@ -131,13 +175,18 @@ function getAlbumList(keyword, paginate, fetchCount = true) {
             query: { title: { $like: `%${keyword}%` }, enabled: 1 },
         }))
     }
-
-    return Promise.all(taks)
+    const result = await Promise.all(taks);
+    result[0].forEach(item => {
+        item.genre = parseJson(item.genre)
+    })
+    return result
 }
+
+
 // 获取艺术家列表
 function getArtistList(keyword, paginate, fetchCount = true) {
     const taks = [artistModel.aggregate({
-        fields: artistModel.qualifyFields(['name', 'realName', 'pinyin', 'gender', 'description', 'sort']),
+        fields: artistModel.qualifyFields(['id', 'name', 'realName', 'pinyin', 'gender', 'description', 'sort']),
         joins: [
             {
                 table: uploadModel.table,
