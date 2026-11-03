@@ -1,6 +1,7 @@
 export default {
     action: '获取歌单类型',
     logType: 'GET_PLAYLIST_TABS',
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         ctx.success([

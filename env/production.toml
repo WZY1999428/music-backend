@@ -1,33 +1,34 @@
 # Valkey 数据库配置
 [valkey]
-host = "127.0.0.1"
-port = 6379       
+host = "192.168.0.105"
+port = 6379         
 username = "hkta"
 password = "a7454796209"
 db = 1
 # Mysql 配置
 [mysql]
-host = "127.0.0.1"
+host = "192.168.0.105"
 port = 3306
-username = "root"
+username = "hkta"
 password = "7ExJ,wc4Q58@2TRD"
-database = "koa-serve"
+database = "koa-serve-dev"
 # Server 配置
 [server]
-port = 3000
+port = 8848
 # JWT 配置
 [jwt]
-expire = 1800
+expire = 86400
 app_expire = 604800
- 
+
 [output]
 path = "./.output"
 
+
 [public]
 path = "./public"
-upload = "/home/本地磁盘2"
- 
+upload = "./public"
+  
 # Gemini 配置
 [gemini]
-api_key = "AIzaSyDjMJM_u4Da0CavL-WW-hHwmbp7i36WYZc"
+key = "AIzaSyDjMJM_u4Da0CavL-WW-hHwmbp7i36WYZc"
 proxy_url = "https://hkta.cc:8848"

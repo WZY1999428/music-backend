@@ -3,6 +3,7 @@ import uploadModel from "@/database/model/upload.js";
 export default {
     action: '获取歌单详情',
     logType: 'GET_PLAYLIST_INFO',
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { playlistId } = ctx.request.query;
@@ -11,7 +12,7 @@ export default {
         const playlisFields = playlistModel.qualifyFields(["id", "isHot", "title", "description"]);
         const playlisStatsFields = playlistStatsModel.qualifyFields(["favoriteTotal", "playTotal", "clickTotal"]);
         const pid = playlistModel.qualifyField("id");
-        
+        playlistStatsModel.updateOne({ playlistId }, { $inc: { clickTotal: 1 } })
         const result = await playlistModel.aggregate({
             query: {
                 [pid]: playlistId
@@ -42,7 +43,7 @@ export default {
             ctx.fail("歌单不存在");
             return;
         }
-        
+
         ctx.success(result[0]);
     },
 }

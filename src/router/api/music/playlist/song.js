@@ -1,11 +1,12 @@
 import { playlistModel, playlistSongModel } from "@/database/model/music/playlist.js"
 import { songModel } from "@/database/model/music/song.js"
-import { getSongList } from "@/utils/getSongList";
+import { getSongList } from "@/utils/getSongList.js";
 
 export default {
     action: '获取歌单音乐',
     logType: 'APP_GET_PLAYLIST_SONG',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { playlistId } = ctx.request.query;

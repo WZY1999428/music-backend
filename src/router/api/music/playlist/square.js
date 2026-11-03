@@ -7,6 +7,7 @@ export default {
     action: '获取歌单广场',
     logType: 'GET_PLAYLIST_SQUARE',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const sort = Object.fromEntries(["stats.favoriteTotal", "stats.playTotal", "stats.clickTotal"].map(key => [key, "desc"]));

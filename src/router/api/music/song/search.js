@@ -10,6 +10,7 @@ export default {
     action: 'APP搜索音乐',
     logType: 'APP_SEARCH_MUSIC',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         // complex album signle artist playlist

@@ -1,12 +1,13 @@
 import uploadModel from "@/database/model/upload.js"
 import { playlistModel, playlistStatsModel, playlistTagModel } from "@/database/model/music/playlist.js"
 import { dictItemModel, dictTypeModel } from "@/database/model/system/dictionary.js"
-import { paginate } from "@/utils/paginate"
+import { paginate } from "@/utils/paginate.js"
 
 export default {
     action: '获取歌单广场推荐',
     logType: 'GET_PLAYLIST_SQUARE_RECOM',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { type, pageIndex, pageSize } = ctx.request.query

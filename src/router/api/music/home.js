@@ -1,14 +1,14 @@
 import { songModel } from "@/database/model/music/song.js"
 import bannerModel from "@/database/model/app/banner.js"
 import uploadModel from "@/database/model/upload.js"
-import { getSongList } from "@/utils/getSongList"
+import { getSongList } from "@/utils/getSongList.js"
 
 export default {
     action: '获取APP首页数据',
     logType: 'GET_APP_HOME_DATA',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
-
     handler: async (ctx) => {
         const hotSongList = await getSongList({
             [songModel.qualifyField('enabled')]: 1

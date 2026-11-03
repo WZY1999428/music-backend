@@ -4,6 +4,7 @@ export default {
     action: '根据歌单类型获取音乐',
     logType: 'GET_PLAYLIST_FEATURED',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { category } = ctx.request.query;

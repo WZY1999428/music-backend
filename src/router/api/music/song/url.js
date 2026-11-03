@@ -3,13 +3,13 @@ import uploadModel from "@/database/model/upload.js";
 import fs from "node:fs";
 import path from "node:path";
 import { stat } from "node:fs/promises";
-import valkey from "@/utils/valkey";
+import valkey from "@/utils/valkey.js";
 
 export default {
     action: "获取音乐流",
     logType: "API_GET_SONG_URL",
     enableLog: false,
-
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         // 从查询参数中获取歌曲ID和音质

@@ -7,6 +7,7 @@ export default {
     action: 'APP获取专辑信息',
     logType: 'APP_GET_ALBUM_INFO',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { albumId } = ctx.request.query;

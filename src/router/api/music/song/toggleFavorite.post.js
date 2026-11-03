@@ -1,8 +1,9 @@
-import { favoriteSongModel, songModel } from "@/database/model/music/song"
+import { favoriteSongModel, songModel } from "@/database/model/music/song.js"
 
 export default {
     action: '切换歌曲收藏',
     logType: 'TOGGLE_SONG_FAVORITE',
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { songId } = ctx.request.body;

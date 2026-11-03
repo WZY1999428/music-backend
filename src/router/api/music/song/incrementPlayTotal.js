@@ -1,8 +1,9 @@
-import { songModel } from "@/database/model/music/song"
+import { songModel } from "@/database/model/music/song.js"
 
 export default {
     action: '增加音乐播放量',
     logType: 'INCREMENT_PLAY_TOTAL',
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { songId } = ctx.request.body;

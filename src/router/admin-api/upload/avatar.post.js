@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import multer from "@koa/multer";
-const imgExt = new Set([".png", ".jpeg", ".gif", ".webp"])
-const upload = multer({
+const imgExt = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"])
+
+export const uploadMulter = multer({
     storage: multer.diskStorage({
         destination(_req, _file, cb) {
             const now = new Date();
@@ -21,8 +22,8 @@ const upload = multer({
             if (!imgExt.has(ext.toLowerCase())) {
                 return cb(new Error("只支持上传 png、jpeg、gif、webp 格式的文件"));
             }
-            if (file.size > 1024 * 1024 * 2) {
-                return cb(new Error("文件大小不能超过2MB"));
+            if (file.size > 1024 * 1024 * 4) {
+                return cb(new Error("文件大小不能超过4MB"));
             }
             const name = path.basename(file.originalname, ext);
             cb(null, `${Date.now()}-${name}${ext}`);
@@ -30,19 +31,21 @@ const upload = multer({
     })
 });
 
+export async function handler(ctx) {
+    const file = ctx.files?.avatar?.[0];
+    $validate(file, "请选择要上传的文件");
+    const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
+    ctx.success({
+        url: url,
+        name: file.filename,
+        size: file.size,
+    });
+}
+
 export default {
     action: "上传头像文件",
     logType: "UPLOAD_AVATAR_FILE",
-    middleware: [upload.fields([{ name: "avatar", maxCount: 1 }])],
+    middleware: [uploadMulter.fields([{ name: "avatar", maxCount: 1 }])],
     /** @type {Controller} */
-    handler: async (ctx) => {
-        const file = ctx.files?.avatar?.[0];
-        $validate(file, "请选择要上传的文件");
-        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
-        ctx.success({
-            url: url,
-            name: file.filename,
-            size: file.size,
-        });
-    }
+    handler
 };

@@ -4,6 +4,7 @@ export default {
     action: 'APP获取根据名称获取歌手信息',
     logType: 'APP_GET_ARTIST_NAME_BY_INFO',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { name } = ctx.request.query;

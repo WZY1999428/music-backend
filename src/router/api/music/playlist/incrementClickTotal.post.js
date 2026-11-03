@@ -1,9 +1,10 @@
-import { playlistStatsModel } from "@/database/model/music/playlist"
+import { playlistStatsModel } from "@/database/model/music/playlist.js"
 
 export default {
     action: '增加歌单点击量',
     logType: 'INCREMENT_PLAYLIST_CLICK_TOTAL',
-     enableLog: false,
+    enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { playlistId } = ctx.request.body;

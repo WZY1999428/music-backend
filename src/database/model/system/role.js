@@ -1,7 +1,5 @@
 import { odm, BaseSchema } from "@/database/index.js"
-import { convertIntFieldsToBoolean } from "@/database/utils.js"
 const { DataType } = await import("mysql-dsl/schema");
-
 const roleSchema = new BaseSchema({
     name: { type: DataType.VarChar, length: 255, nullable: false },
     weight: { type: DataType.Int, default: 0, nullable: false },

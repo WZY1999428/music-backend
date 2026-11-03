@@ -21,5 +21,5 @@ export async function generateAppToken(data) {
 
 
 export default async function getAppToken(key) {
-    return await valkey.getToken(key);
+    return await valkey.getToken(key, 60 * 60 * 24, "app-api");
 }

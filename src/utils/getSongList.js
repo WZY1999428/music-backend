@@ -1,5 +1,5 @@
 import { songModel, songArtistModel, songLangModel, songAudioModel } from "@/database/model/music/song.js";
-import artistModel from "@/database/model/music/artist";
+import artistModel from "@/database/model/music/artist.js";
 import uploadModel from "@/database/model/upload.js";
 import { dictItemModel, dictTypeModel } from "@/database/model/system/dictionary.js"
 

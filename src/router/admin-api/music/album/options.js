@@ -1,6 +1,5 @@
 import { albumModel } from "@/database/model/music/album.js";
-import { paginate } from "@/utils/paginate";
-import { parseJsonToArray } from "@/utils/parse.js";
+import { paginate } from "@/utils/paginate.js";
 export default {
     action: '获取专辑选项',
     logType: 'GET_MUSIC_ALBUM_OPTIONS',

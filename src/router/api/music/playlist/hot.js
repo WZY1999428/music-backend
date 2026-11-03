@@ -4,6 +4,7 @@ import { playlistModel, playlistStatsModel } from "@/database/model/music/playli
 export default {
     action: '获取热门歌单',
     logType: 'APP_GET_PLAYLIST_HOT',
+        auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const result = await playlistModel.aggregate({

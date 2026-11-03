@@ -3,6 +3,7 @@ export default {
     action: '热门新歌',
     logType: 'GET_HOT_NEW_SONGS',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const result = await getSongList({}, {

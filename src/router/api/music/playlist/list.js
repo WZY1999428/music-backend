@@ -1,11 +1,12 @@
 import { playlistModel, playlistStatsModel } from "@/database/model/music/playlist.js"
-import uploadModel from "@/database/model/upload";
-import { paginate } from "@/utils/paginate";
+import uploadModel from "@/database/model/upload.js";
+import { paginate } from "@/utils/paginate.js";
 
 export default {
     action: 'app获取歌单列表',
     logType: 'APP_GET_PLAYLIST_LIST',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { pageIndex, pageSize } = ctx.request.query;

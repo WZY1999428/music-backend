@@ -1,8 +1,8 @@
+import uploadModel from "@/database/model/upload.js";
 import fs from "node:fs";
 import path from "node:path";
 import multer from "@koa/multer";
 import { parseFile } from 'music-metadata';
-import uploadModel from "@/database/model/upload.js";
 const audioExt = new Set([".flac", ".mp3", ".wav", ".ogg"])
 const upload = multer({
     storage: multer.diskStorage({

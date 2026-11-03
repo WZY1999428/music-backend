@@ -2,6 +2,7 @@ import { songLyricModel } from "@/database/model/music/song.js"
 export default {
     action: '获取歌词',
     logType: 'GET_SONG_LYRIC',
+    auth: false,
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {

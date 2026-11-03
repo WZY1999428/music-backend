@@ -1,4 +1,4 @@
-import valkey from "@/utils/valkey";
+import valkey from "@/utils/valkey.js";
 import { songModel } from "@/database/model/music/song.js";
 const LEADERBOARD_KEY = 'leaderboard';
 
@@ -6,6 +6,7 @@ export default {
     action: '获取排行榜',
     logType: 'APP_GET_LEADERBOARD',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const leaderboard = await valkey.getObject(`${LEADERBOARD_KEY}`);

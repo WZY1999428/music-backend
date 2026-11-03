@@ -1,4 +1,4 @@
-import valkey from "@/utils/valkey";
+import valkey from "@/utils/valkey.js";
 import { songModel } from "@/database/model/music/song.js";
 const DAILY_RECOMMENDATIONS_KEY = 'daily_recommendations';
 
@@ -6,6 +6,7 @@ export default {
     action: '获取每日推荐',
     logType: 'GET_DAILY_RECOMMENDATIONS',
     enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         let songList = [];

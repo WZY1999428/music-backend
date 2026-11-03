@@ -1,5 +1,4 @@
 import { userRoleModel } from "@/database/model/system/user.js"
-// import { roleModel } from "@/database/model/system/role.js"
 
 export default {
     action: '获取用户角色',

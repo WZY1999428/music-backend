@@ -1,11 +1,12 @@
 
-import { songModel } from "@/database/model/music/song"
-import artistModel from "@/database/model/music/artist"
+import { songModel } from "@/database/model/music/song.js"
+import artistModel from "@/database/model/music/artist.js"
 
 export default {
     action: 'app获取歌曲关键词',
     logType: 'APP_GET_SONG_KEYWORD',
     enableLog: true,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const { keyword } = ctx.request.query
