@@ -11,7 +11,7 @@ export default {
     handler: async (ctx) => {
         const leaderboard = await valkey.getObject(`${LEADERBOARD_KEY}`);
         if (leaderboard && leaderboard.length) {
-            const songList = await getSongList({ [songModel.qualifyField("id")]: { $in: leaderboard } })
+            const songList = await getSongList({ [songModel.qualifyField("id")]: { $in: leaderboard } }, { userId: ctx.appUser?.userId, })
             return ctx.success(songList);
         }
         const newLeaderboard = await getLeaderboard();
@@ -34,6 +34,7 @@ async function getLeaderboard() {
             clickTotal: 'desc',
             favoriteTotal: 'desc'
         },
+        userId: ctx.appUser?.userId,
         offset: 0,
         limit: 50
     })

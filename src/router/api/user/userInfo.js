@@ -3,6 +3,7 @@ import appUserModel from "@/database/model/app/user/user.js";
 export default {
     action: 'app获取用户信息',
     logType: 'APP_GET_USER_INFO',
+    enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const user = ctx.appUser;
@@ -16,7 +17,6 @@ export default {
             ctx.fail('用户已被禁用');
             return;
         }
-        console.log(userInfo);
         
         ctx.success(userInfo);
     },

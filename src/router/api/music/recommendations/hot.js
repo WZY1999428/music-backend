@@ -12,6 +12,7 @@ export default {
         }, {
             offset: 0,
             limit: 50,
+             userId: ctx.appUser?.userId,
             sort: { [songModel.qualifyField("playTotal")]: "desc", [songModel.qualifyField("publishDate")]: "desc" }
         })
 

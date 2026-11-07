@@ -1,4 +1,6 @@
 import uploadModel from "@/database/model/upload.js";
+import artistModel from "@/database/model/music/artist.js";
+
 import fs from "node:fs";
 import path from "node:path";
 import multer from "@koa/multer";
@@ -36,11 +38,17 @@ export default {
         if (!matedata.format) {
             return ctx.fail("音频解析失败")
         }
+        let artists = []
+        if (matedata.common && matedata.common.artist.length) {
+            artists = await artistModel.findMany({
+                name: { $in: matedata.common.artists }
+            }, { fields: ["id", "name"] })
+        }
 
         const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
 
         const result = await uploadModel.insertOne({
-            originalName: file.originalname,
+            originalName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
             filename: file.filename,
             userId: ctx.user?.userId,
             url: url,
@@ -54,7 +62,11 @@ export default {
             url: url,
             filename: file.filename,
             size: file.size,
-            ...matedata.format
+            ...matedata.format,
+            ...matedata.common,
+            artists
         });
     }
 };
+
+

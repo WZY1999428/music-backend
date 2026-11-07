@@ -174,11 +174,11 @@ class VmRuntime {
          * ⭐⭐⭐ 核心：模块缓存
          */
         if (this.moduleCache.has(absolutePath)) {
-            console.log("[CACHE]", absolutePath);
+            // console.log("[CACHE]", absolutePath);
             return this.moduleCache.get(absolutePath);
         }
 
-        console.log("[LOAD]", absolutePath);
+        // console.log("[LOAD]", absolutePath);
 
         let code = this.codeMap.get(absolutePath); 
         if (!code) code = await fs.readFile(absolutePath, "utf-8")

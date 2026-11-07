@@ -9,23 +9,27 @@ export default {
     auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        let songList = [];
-        if (ctx.appUser) {
-            const dailyRecommendations = await valkey.getObject(`${ctx.appUser.userId}_${DAILY_RECOMMENDATIONS_KEY}`);
-            if (dailyRecommendations && dailyRecommendations.length > 0) {
-                songList = await getSongList({ [songModel.qualifyField('id')]: { $in: dailyRecommendations } })
-                ctx.success(songList);
-                return;
+        try {
+            let songList = [];
+            if (ctx.appUser) {
+                const dailyRecommendations = await valkey.getObject(`${ctx.appUser.userId}_${DAILY_RECOMMENDATIONS_KEY}`);
+                if (dailyRecommendations && dailyRecommendations.length > 0) {
+                    songList = await getSongList({ [songModel.qualifyField('id')]: { $in: dailyRecommendations } }, { userId: ctx.appUser?.userId, })
+                    ctx.success(songList);
+                    return;
+                }
             }
-        }
 
-        const dailyRecommendations = await valkey.getObject(DAILY_RECOMMENDATIONS_KEY);
-        if (dailyRecommendations && dailyRecommendations.length > 0) {
-            songList = await getSongList({ [songModel.qualifyField('id')]: { $in: dailyRecommendations } })
-        } else {
-            songList = await getDailyRecommendations()
+            const dailyRecommendations = await valkey.getObject(DAILY_RECOMMENDATIONS_KEY);
+            if (dailyRecommendations && dailyRecommendations.length > 0) {
+                songList = await getSongList({ [songModel.qualifyField('id')]: { $in: dailyRecommendations } }, { userId: ctx.appUser?.userId, })
+            } else {
+                songList = await getDailyRecommendations(ctx.appUser?.userId)
+            }
+            ctx.success(songList);
+        } catch (error) {
+            console.log(error);
         }
-        ctx.success(songList);
     },
 }
 
@@ -36,13 +40,11 @@ valkey.onExpired(async (_pattern, _channel, key) => {
 });
 
 
-async function getDailyRecommendations() {
+async function getDailyRecommendations(userId) {
+    const sort=Object.fromEntries(songModel.qualifyFields(['playTotal', 'clickTotal', 'favoriteTotal']).map(field => [field, 'desc']))
     const host = await getSongList({}, {
-        sort: {
-            playTotal: 'desc',
-            clickTotal: 'desc',
-            favoriteTotal: 'desc'
-        },
+        sort: sort,
+        userId: userId,
         offset: 0,
         limit: 5
     })
@@ -50,11 +52,8 @@ async function getDailyRecommendations() {
     const newSong = await getSongList({
         [songModel.qualifyField('id')]: { $nin: ids }
     }, {
-        sort: {
-            playTotal: 'desc',
-            clickTotal: 'desc',
-            favoriteTotal: 'desc'
-        },
+        sort:sort,
+        userId:userId,
         offset: 0,
         limit: 5
     })
@@ -64,6 +63,7 @@ async function getDailyRecommendations() {
         [songModel.qualifyField('id')]: { $nin: ids }
     }, {
         sort: { $random: true },
+        userId: userId,
         offset: 0,
         limit: 5
     })

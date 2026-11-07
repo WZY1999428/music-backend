@@ -13,7 +13,7 @@ export default {
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
             return ctx.success([])
         }
-        const songs = await getSongList({ [songModel.qualifyField("id")]: { $in: ids } })
+        const songs = await getSongList({ [songModel.qualifyField("id")]: { $in: ids } }, { userId: ctx.appUser?.userId, })
         ctx.success(songs);
     },
 }

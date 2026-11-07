@@ -143,6 +143,9 @@ sudo nano /etc/valkey/valkey.conf
 ```bash
 valkey-cli
 ACL SETUSER username &__keyevent@*__:expired
+# 添加订阅权限
+ACL SETUSER hkta +psubscribe +subscribe +publish
+ACL SETUSER hkta &__keyevent@0__:expired
 ```
 
 找到：

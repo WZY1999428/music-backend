@@ -14,12 +14,12 @@ export default {
     handler: async (ctx) => {
         // 从查询参数中获取歌曲ID和音质
         const { songId, quality } = ctx.request.query;
-        // const songUrl = await valkey.get(`audioUrl:${songId}:${quality}`);
-        // if (songUrl) {
-        //     // 读取并返回音频流
-        //     await readAudio(songUrl, ctx)
-        //     return;
-        // }
+        const songUrl = await valkey.get(`audioUrl:${songId}:${quality}`);
+        if (songUrl) {
+            // 读取并返回音频流
+            await readAudio(songUrl, ctx)
+            return;
+        }
         // 校验歌曲ID
         if (!songId) {
             ctx.fail("歌曲ID不能为空");
@@ -62,7 +62,6 @@ export default {
             return;
         }
 
-        console.log(filePath, song.url);
 
         valkey.set(`audioUrl:${songId}:${quality}`, filePath, "EX", 60 * 30)
 

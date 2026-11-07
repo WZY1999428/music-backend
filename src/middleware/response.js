@@ -1,3 +1,4 @@
+import { mysqlErrCode, valkeyCode } from "../utils/errorCode.js";
 export default () => {
     return async (ctx, next) => {
         ctx.path = ctx.path.replace(/\/+/g, "/");
@@ -44,6 +45,15 @@ export default () => {
                 };
                 ctx.status = error.status
             } else {
+
+                if (error.sqlState && mysqlErrCode[error.errno]) {
+                    ctx.fail(mysqlErrCode[error.errno])
+                    return
+                } else if (error.code && valkeyCode[error.code]) {
+                    ctx.fail(valkeyCode[error.code])
+                    return
+                }
+
                 ctx.fail(`服务异常：${error.message}`)
             }
 

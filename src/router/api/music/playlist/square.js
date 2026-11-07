@@ -130,6 +130,5 @@ async function getPlaylist(options = {}) {
         taks.push(playlistModel.count({ query }))
     }
     const result = await Promise.all(taks);
-    result[0].forEach(item => item.isHot = item.isHot === 1)
     return result
 }

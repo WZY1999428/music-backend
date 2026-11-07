@@ -14,6 +14,7 @@ export default {
             [songModel.qualifyField('enabled')]: 1
         }, {
             limit: 10,
+            userId: ctx.appUser?.userId,
             sort: { [songModel.qualifyField("playTotal")]: "desc", [songModel.qualifyField("publishDate")]: "desc" }
         })
 

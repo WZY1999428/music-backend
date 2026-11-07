@@ -20,15 +20,15 @@ export default {
             playlist: getPlaylist,
             album: getAlbumList,
             artist: getArtistList,
-            signle: getSingleList,
+            single: getSingleList,
         }
 
         if (type === "complex") {
-            const [playlist, album, artist, song] = await getComplexList(keyword);
+            const [playlist, album, artist, song] = await getComplexList(keyword, ctx);
             ctx.success({ playlist: playlist[0], album: album[0], artist: artist[0], song: song[0] });
             return;
         } else {
-            const [list, total] = await (funs[type] || getSingleList)(keyword, paginate(pageIndex, pageSize));
+            const [list, total] = await (funs[type] || getSingleList)(keyword, paginate(pageIndex, pageSize), true, ctx);
             ctx.success({ list, total });
             return;
         }
@@ -231,13 +231,13 @@ function getArtistList(keyword, paginate, fetchCount = true) {
 }
 
 // 获取单曲列表
-function getSingleList(keyword, paginate, fetchCount = true) {
+function getSingleList(keyword, paginate, fetchCount = true, ctx) {
     const query = [
         { [songModel.qualifyField("title")]: { $like: `%${keyword}%` } },
         { "artist.name": { $like: `%${keyword}%` } }]
     const taks = [getSongList({
         $or: query
-    }, { ...paginate })]
+    }, { ...paginate, userId: ctx.appUser?.userId })]
     if (fetchCount) {
         taks.push(songModel.count({
             query: {
@@ -266,13 +266,13 @@ function getSingleList(keyword, paginate, fetchCount = true) {
 }
 
 // 获取综合列表
-function getComplexList(keyword) {
+function getComplexList(keyword, ctx) {
     const paginate = { limit: 10 };
     const taks = [
-        getPlaylist(keyword, paginate, false),
-        getAlbumList(keyword, paginate, false),
-        getArtistList(keyword, paginate, false),
-        getSingleList(keyword, paginate, false),
+        getPlaylist(keyword, paginate, false, ctx),
+        getAlbumList(keyword, paginate, false, ctx),
+        getArtistList(keyword, paginate, false, ctx),
+        getSingleList(keyword, paginate, false, ctx),
     ]
     return Promise.all(taks)
 }

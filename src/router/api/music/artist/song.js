@@ -9,8 +9,7 @@ export default {
     handler: async (ctx) => {
         const { artistId } = ctx.request.query;
         $validate(artistId, "歌手id不能为空")
-        const result = await getSongList({ "artist.id": artistId })
-        console.log(result);
+        const result = await getSongList({ "artist.id": artistId }, { userId: ctx.appUser?.userId, })
         ctx.success(result);
     },
 }

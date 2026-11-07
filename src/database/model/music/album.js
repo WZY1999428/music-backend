@@ -11,6 +11,7 @@ const albumSchema = new BaseSchema({
     type: { type: DataType.VarChar, length: 50 },      //   （如：album: 录音室专辑, single: 单曲, ep: EP, live: 现场演唱会）
     genre: { type: DataType.VarChar, length: 100, nullable: true },      // 流派/风格（如："流行 / Pop"）
     createUserId: { type: DataType.BigInt, nullable: true },       // 创建人ID
+    favoriteTotal: { type: DataType.BigInt, nullable: true },       // 收藏数量
     // 3. 详情描述
     description: { type: DataType.Text, nullable: true },                // 专辑介绍 / 简介
     // 4. 运营与展示控制
@@ -32,6 +33,15 @@ const albumSongSchema = new Schema({
     sort: { type: DataType.Int, default: 0 }, // 排序
 });
 
+
+
+const favoriteArostSchema = new BaseSchema({
+    albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
+    userId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
+});
+
+
 export const albumModel = await odm.model('music_album', albumSchema);
 export const albumArtistModel = await odm.model('music_album_artist', albumArtistSchema);
 export const albumSongModel = await odm.model('music_album_song', albumSongSchema);
+export const favoriteArostModel = await odm.model('music_album_favorite', favoriteArostSchema);

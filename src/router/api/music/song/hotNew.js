@@ -7,7 +7,8 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         const result = await getSongList({}, {
-            sort: Object.fromEntries(songModel.qualifyFields(["playTotal","publishDate"]).map(field => [field, "DESC"])),
+            userId: ctx.appUser?.userId,
+            sort: Object.fromEntries(songModel.qualifyFields(["playTotal", "publishDate"]).map(field => [field, "desc"])),
             limit: 50
         })
         ctx.success(result);

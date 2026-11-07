@@ -11,11 +11,12 @@ export default {
         const { albumId } = ctx.request.query;
         $validate(albumId, "专辑id不能为空")
         const result = await getSongList({ "albumSong.albumId": albumId }, {
+            userId: ctx.appUser?.userId,
             joins: [{
                 table: albumSongModel.table,
                 as: 'albumSong',
                 type: "left",
-                on:{
+                on: {
                     "albumSong.songId": "music_song.id"
                 }
             }]

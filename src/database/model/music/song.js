@@ -14,13 +14,13 @@ const songSchema = new BaseSchema({
     publishDate: { type: DataType.DateTime, nullable: false }, // 发布日期
 });
 
-const songArtistSchema = new Schema({
+const songArtistSchema = new BaseSchema({
     songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_artist"] },   // 歌曲id
     artistId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_artist"] },    // 演唱者 id
 });
 
 
-const songLangSchema = new Schema({
+const songLangSchema = new BaseSchema({
     songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_lang"] },   // 歌曲id
     lang: { type: DataType.VarChar, length: 20, nullable: false, uniqueGroup: ["song_lang"] },    // 语言
 });

@@ -17,7 +17,7 @@ export default {
         $validate(await playlistModel.findOne({ id: playlistId }), "歌单不存在");
         const songs = await playlistSongModel.findMany({ playlistId });
         if (!songs.length) return ctx.success([]);
-        const songList = await getSongList({ [songModel.qualifyField("id")]: { $in: songs.map(song => song.songId) } })
+        const songList = await getSongList({ [songModel.qualifyField("id")]: { $in: songs.map(song => song.songId) } }, { userId: ctx.appUser?.userId })
         ctx.success(songList);
     },
 }

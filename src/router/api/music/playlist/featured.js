@@ -34,11 +34,12 @@ export default {
             if (!songIds.length) {
                 return ctx.success([])
             }
-            const result = await getSongList({ [songIdField]: { $in: songIds.map(i => i.id) } })
+            const result = await getSongList({ [songIdField]: { $in: songIds.map(i => i.id) } }, { userId: ctx.appUser?.userId, })
             ctx.success(result);
         } else if (category === "indie") {
             const result = await getSongList({}, {
                 sort: Object.fromEntries([songSortFields].map(field => [field, "asc"])),
+                userId: ctx.appUser?.userId,
                 offset: 0,
                 limit: 50
             })
@@ -55,7 +56,8 @@ export default {
             if (!songIds.length) {
                 return ctx.success([])
             }
-            const result = await getSongList({ [songIdField]: { $in: songIds.map(i => i.songId) } })
+            const result = await getSongList({ [songIdField]: { $in: songIds.map(i => i.songId) } }, { userId: ctx.appUser?.userId, })
+            
             ctx.success(result);
         } else {
             ctx.success([])

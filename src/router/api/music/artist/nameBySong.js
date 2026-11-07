@@ -12,7 +12,10 @@ export default {
         const result = await getSongList({
             "artist.name": name
         },
-            { ...paginate(pageIndex, pageSize) }
+            {
+                ...paginate(pageIndex, pageSize),
+                userId: ctx.appUser?.userId,
+            }
         )
         if (result) {
             ctx.success(result)

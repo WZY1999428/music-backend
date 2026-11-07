@@ -15,12 +15,21 @@ const artistSchema = new BaseSchema({
     area: { type: DataType.VarChar, length: 50, nullable: true },         // 地区 (如: 华语, 欧美, 日本, 韩国)
     // 3. 详情与介绍
     description: { type: DataType.Text, nullable: true },                 // 歌手简介 / 履历
+    favoriteTotal: { type: DataType.Int, default: 0 },                    // 收藏总数
     // 4. 统计与展示控制 (用于前台排序/推荐)
     sort: { type: DataType.Int, default: 0 },                       // 权重/自定义排序 (值越大越靠前)
     isHot: { type: DataType.Int, default: 0 },                           // 是否热门歌手 (0: 否, 1: 是，用于首页推荐)
     // 5. 状态管理
     enabled: { type: DataType.Int, default: 1 },                          // 状态 (0: 隐藏/下架, 1: 正常展示)
 });
+
+const favoriteSchema = new BaseSchema({
+    artistId: { type: DataType.VarChar, length: 100, nullable: false, unique: true },// 歌手/乐队ID
+    userId: { type: DataType.VarChar, length: 100, nullable: true },   // 用户ID
+});
+
+export const artistFavoriteModel = await odm.model('music_artist_favorite', favoriteSchema);
+
 
 const artistModel = await odm.model('music_artist', artistSchema);
 
