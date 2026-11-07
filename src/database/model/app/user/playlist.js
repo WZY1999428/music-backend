@@ -15,3 +15,4 @@ const playlistSongSchema = new BaseSchema({
 
 export const userPlaylistSongModel = await odm.model('app_user_playlist_song', playlistSongSchema);
 export const userPlaylistModel = await odm.model('app_user_playlist', playlistSchema);
+

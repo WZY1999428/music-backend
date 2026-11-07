@@ -29,8 +29,8 @@
     "koa-static": "^5.0.0",
     "multer": "^2.1.1",
     "music-metadata": "^11.16.0",
-    "mysql-dsl":"file://E:/project/odm-to-sql",
     "path-to-regexp": "^8.4.2",
+    "mysql-dsl": "git@github.com:WZY1999428/odm-to-sql.git",
     "svg-captcha": "^1.4.0",
     "toml": "^5.0.0"
   },
