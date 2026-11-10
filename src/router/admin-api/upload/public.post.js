@@ -31,15 +31,20 @@ export async function handler(ctx) {
     const file = ctx.files?.file?.[0];
     $validate(file, "请选择要上传的文件");
     const type = ctx.request.body.type || "public";
+
+    const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
     const fileInfo = {
         originalName: file.originalname,
         filename: file.filename,
         userId: ctx.user?.userId,
-        url: file.path.replace(/\\/g, "/").replace(uploadPath, "/"),
+        url: url,
         size: file.size,
         mimeType: file.mimetype,
         type
     };
+
+
+
     const result = await uploadModel.insertOne(fileInfo);
     fileInfo.id = result.insertId;
     ctx.success(fileInfo);
