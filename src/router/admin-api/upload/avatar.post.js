@@ -34,7 +34,7 @@ export const uploadMulter = multer({
 export async function handler(ctx) {
     const file = ctx.files?.avatar?.[0];
     $validate(file, "请选择要上传的文件");
-    const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
+    const url = file.path.replace(/\\/g, "/").replace(uploadPath, "/");
     ctx.success({
         url: url,
         name: file.filename,

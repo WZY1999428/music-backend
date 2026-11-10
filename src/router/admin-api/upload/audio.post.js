@@ -45,7 +45,7 @@ export default {
             }, { fields: ["id", "name"] })
         }
 
-        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
+        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "/");
 
         const result = await uploadModel.insertOne({
             originalName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
