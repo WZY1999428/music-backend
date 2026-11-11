@@ -9,9 +9,11 @@ export default {
     handler: async (ctx) => {
         const { title, code, pageIndex, pageSize } = ctx.request.query;
         const query = {}
-        if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
+        if (title && title.trim()) query.name = { $like: `%${title.trim()}%` }
         if (code) query.code = { $eq: code };
         const page = paginate(pageIndex, pageSize);
+        console.log(page);
+        
         const fields = artistModel.qualifyFields();
         const [list, total] = await Promise.all([
             artistModel.aggregate({

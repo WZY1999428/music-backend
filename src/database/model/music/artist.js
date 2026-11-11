@@ -4,7 +4,7 @@ import { DataType } from "mysql-dsl/schema"
 const artistSchema = new BaseSchema({
     // 1. 基础信息
     name: { type: DataType.VarChar, length: 100, nullable: false, unique: true },        // 歌手/乐队名称 (如: 周杰伦 / Mayday)
-    realName: { type: DataType.VarChar, length: 100, nullable: true },   // 真实姓名 (如: 周杰伦 / 蔡依林)
+    alias: { type: DataType.VarChar, length: 500, nullable: true },   // 别名 (如: 周杰伦 / 蔡依林)
     avatar: { type: DataType.BigInt, nullable: false },      // 歌手头像/封面图片地址
     cover: { type: DataType.BigInt, nullable: true },       // 歌手主页大背景图 (可选)
     createUserId: { type: DataType.BigInt, nullable: true },       // 歌手主页大背景图 (可选)
@@ -22,6 +22,10 @@ const artistSchema = new BaseSchema({
     // 5. 状态管理
     enabled: { type: DataType.Int, default: 1 },                          // 状态 (0: 隐藏/下架, 1: 正常展示)
 });
+
+
+
+
 
 const favoriteSchema = new BaseSchema({
     artistId: { type: DataType.VarChar, length: 100, nullable: false, unique: true },// 歌手/乐队ID

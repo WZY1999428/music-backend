@@ -11,6 +11,9 @@ native-code/target
 **/dist/
 .output
 /backend/thumb
+
+artist.json
+scannSongInfo.js
 # Auto detect text files and perform LF normalization
 * text=auto
 **.db **.db-*
