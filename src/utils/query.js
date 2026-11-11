@@ -22,7 +22,7 @@ export async function fillArtistList(list) {
             id: { $in: artistIds }
         },
         {
-            fields: ["id", "name", "realName"]
+            fields: ["id", "name", "alias"]
         }
     )
 
@@ -42,7 +42,7 @@ export async function fillArtistList(list) {
                 return {
                     id,
                     name: artist.name,
-                    realName: artist.realName
+                    alias: artist.alias
                 }
             })
             .filter(Boolean)

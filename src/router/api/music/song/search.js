@@ -187,7 +187,7 @@ async function getAlbumList(keyword, paginate, fetchCount = true) {
 // 获取艺术家列表
 function getArtistList(keyword, paginate, fetchCount = true) {
     const taks = [artistModel.aggregate({
-        fields: artistModel.qualifyFields(['id', 'name', 'realName', 'pinyin', 'gender', 'description', 'sort']),
+        fields: artistModel.qualifyFields(['id', 'name', 'alias', 'pinyin', 'gender', 'description', 'sort']),
         joins: [
             {
                 table: uploadModel.table,

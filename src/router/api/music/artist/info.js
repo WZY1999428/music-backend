@@ -10,7 +10,7 @@ export default {
     handler: async (ctx) => {
         const { artistId } = ctx.request.query;
         $validate(artistId, "歌手id不能为空")
-        const fields = artistModel.qualifyFields(["id", "name", "realName", "avatar", "cover", "pinyin", "firstLetter", "gender", "area", "description", "sort"]);
+        const fields = artistModel.qualifyFields(["id", "name", "alias", "avatar", "cover", "pinyin", "firstLetter", "gender", "area", "description", "sort"]);
         const arFieldId = artistModel.qualifyField("id");
         if (ctx.appUser?.userId) {
             fields.push({

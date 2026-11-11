@@ -12,7 +12,7 @@ export default {
                     name: { $like: `%${keyword}%` },
                 },
                 {
-                    realName: { $like: `$${keyword}%` }
+                    alias: { $like: `$${keyword}%` }
                 }
             ]
         }

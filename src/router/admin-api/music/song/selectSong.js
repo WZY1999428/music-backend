@@ -118,7 +118,7 @@ export default {
         ])
         const artistIds = list.flatMap(item => item.artistList || [])
         if (artistIds.length) {
-            const artistList = await artistModel.findMany({ id: { $in: artistIds } }, { fields: ["id", "name", "realName"] })
+            const artistList = await artistModel.findMany({ id: { $in: artistIds } }, { fields: ["id", "name", "alias"] })
             const artistMap = new Map(artistList.map(artist => [artist.id, artist]))
             list.forEach(item => {
                 item.artistList = item.artistList.map(id => {
@@ -127,7 +127,7 @@ export default {
                         return {
                             id,
                             name: artist.name,
-                            realName: artist.realName
+                            alias: artist.alias
                         }
                     }
                     return null

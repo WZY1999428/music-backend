@@ -10,7 +10,7 @@ export default {
     handler: async (ctx) => {
         const userId = ctx.appUser.userId
 
-        const fields = artistModel.qualifyFields(['id', 'name', 'realName', 'pinyin', 'gender', 'description', 'sort'])
+        const fields = artistModel.qualifyFields(['id', 'name', 'alias', 'pinyin', 'gender', 'description', 'sort'])
 
         fields.push({
             songCount: {
