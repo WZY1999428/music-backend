@@ -39,9 +39,9 @@ export default {
             return ctx.fail("音频解析失败")
         }
         let artists = []
-        if (matedata.common && matedata.common.artist.length) {
+        if (matedata.common && matedata.common.artist) {
             artists = await artistModel.findMany({
-                name: { $in: matedata.common.artists }
+                name: { $in: matedata.common.artist.split("/").map(a => a.trim()).filter(Boolean) }
             }, { fields: ["id", "name"] })
         }
         const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
@@ -66,5 +66,3 @@ export default {
         });
     }
 };
-
-
