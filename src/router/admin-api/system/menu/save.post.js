@@ -12,6 +12,7 @@ export default {
             icon = null,
             path = null,
             component = null,
+            isHome = 0,
             sort = 0,
             isLink = 0,
             enabled = 1,
@@ -44,7 +45,7 @@ export default {
 
         if (exists && !id) return ctx.fail(`已存在相同的 名称：${title}  路径：${path}`);
 
-        const params = { parentId, title, icon, path, component, sort, isLink, enabled, type, visible }
+        const params = { parentId, title, icon, path, component, sort, isLink, enabled, type, visible, isHome }
         try {
             const message = await routeModel.withTransaction(async (model) => {
                 let msg = ""

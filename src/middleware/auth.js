@@ -6,7 +6,7 @@ export default () => {
         const token = ctx.headers["authorization"]
 
         const isAdmin = ctx.path.startsWith("/admin-api");
-        
+
         if (isAdmin) {
             const isWhite = whiteMatchers.some(item => item.regexp.test(ctx.path))
             const info = await getAdminToken(token)
@@ -16,6 +16,7 @@ export default () => {
             }
             ctx.user = info;
         } else if (ctx.path.startsWith("/api")) {
+            const deviceId = ctx.headers["deviceid"]
             const isWhite = appwhiteMatchers.some(item => item.regexp.test(ctx.path))
             const info = await getAppToken(token)
             if (!isWhite && !info) {

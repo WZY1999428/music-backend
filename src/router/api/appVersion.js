@@ -3,6 +3,8 @@ import uploadModel from "@/database/model/upload.js";
 export default {
     action: '获取app版本信息',
     logType: 'GET_APP_VERSION',
+    enableLog: false,
+    auth: false,
     /** @type {Controller} */
     handler: async (ctx) => {
         const config = await systemConfigModel.aggregate({
@@ -25,10 +27,6 @@ export default {
                 select: [{ type: "raw", fields: { "appUrl": "upload.url" } }]
             },]
         })
-
-        console.log(config);
-        
-
         const map = new Map(config.map((item) => [item.configKey, item.appUrl || item.configValue]));
         ctx.success({
             appUrl: map.get("appUrl") || '',

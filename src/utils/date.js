@@ -69,3 +69,43 @@ export function getSecondsLeft(date) {
 export function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
+
+
+
+/**
+ * 获取本周及上周同期的时间范围
+ * @param {Date} [date=new Date()] 当前时间
+ * @returns {{
+ *   now: Date,
+ *   thisWeekStart: Date,
+ *   thisWeekEnd: Date,
+ *   lastWeekStart: Date,
+ *   lastWeekEnd: Date
+ * }}
+ */
+export function getWeekCompareRange(date = new Date()) {
+    const now = new Date(date);
+
+    // 本周一 00:00
+    const thisWeekStart = new Date(now);
+    const day = thisWeekStart.getDay() || 7;
+
+    thisWeekStart.setDate(thisWeekStart.getDate() - day + 1);
+    thisWeekStart.setHours(0, 0, 0, 0);
+
+    // 上周同期起点
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    // 上周同期终点
+    const lastWeekEnd = new Date(now);
+    lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
+
+    return {
+        now,
+        thisWeekStart,
+        thisWeekEnd: now,
+        lastWeekStart,
+        lastWeekEnd
+    };
+}
