@@ -21,15 +21,12 @@ export default {
             appUserModel.count({ createdAt: { $lt: lastWeekEnd } }),
         ])
 
-        const change = totalLastWeek > 0
-            ? ((thisWeekTotal - totalLastWeek) / totalLastWeek * 100).toFixed(1)
-            : null;
 
         ctx.success([
             {
                 title: '歌曲总数量',
                 value: thisWeekTotal,
-                change: change + '%',
+                change: change(totalLastWeek, thisWeekTotal) + '%',
                 isUp: thisWeekTotal >= totalLastWeek,
                 color: 'blue',
                 icon: "AudioFilled"
@@ -37,14 +34,14 @@ export default {
             {
                 title: '歌手总数量',
                 value: thisWeekArtistTotal,
-                change: change + '%',
+                change: change(totalLastWeekArtist, thisWeekArtistTotal) + '%',
                 isUp: thisWeekArtistTotal >= totalLastWeekArtist,
                 color: 'green',
                 icon: "UserOutlined"
             }, {
                 title: '用户总数量',
                 value: thisWeekUserTotal,
-                change: change + '%',
+                change: change(totalLastWeekUser, thisWeekUserTotal) + '%',
                 isUp: thisWeekUserTotal >= totalLastWeekUser,
                 color: 'green',
                 icon: "UsergroupAddOutlined"
@@ -53,4 +50,8 @@ export default {
     },
 }
 
-
+function change(totalLastWeek, thisWeekTotal){
+    return totalLastWeek > 0
+        ? ((thisWeekTotal - totalLastWeek) / totalLastWeek * 100).toFixed(1)
+        : null;
+}
