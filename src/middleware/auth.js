@@ -6,6 +6,7 @@ export default () => {
         const token = ctx.headers["authorization"]
 
         const isAdmin = ctx.path.startsWith("/admin-api");
+        
         if (isAdmin) {
             const isWhite = whiteMatchers.some(item => item.regexp.test(ctx.path))
             const info = await getAdminToken(token)

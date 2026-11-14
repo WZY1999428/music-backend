@@ -31,7 +31,6 @@ export async function handler(ctx) {
     const file = ctx.files?.file?.[0];
     $validate(file, "请选择要上传的文件");
     const type = ctx.request.body.type || "public";
-
     const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
     const fileInfo = {
         originalName: file.originalname,
@@ -42,9 +41,7 @@ export async function handler(ctx) {
         mimeType: file.mimetype,
         type
     };
-
-
-
+   
     const result = await uploadModel.insertOne(fileInfo);
     fileInfo.id = result.insertId;
     ctx.success(fileInfo);

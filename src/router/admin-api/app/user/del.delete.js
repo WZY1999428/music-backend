@@ -1,7 +1,7 @@
 import userModel from "@/database/model/app/user/user.js"
 import userFavoriteModel from "@/database/model/app/user/userFavorite.js"
 import userPlayHistoryModel from "@/database/model/app/user/userPlayHistory.js"
-import userPlaylistModel from "@/database/model/app/user/userPlaylist.js"
+import { userPlaylistModel } from "@/database/model/app/user/userPlaylist.js"
 
 export default {
     action: '删除app用户',

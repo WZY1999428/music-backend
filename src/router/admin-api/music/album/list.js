@@ -7,12 +7,20 @@ export default {
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { title, code, pageIndex, pageSize } = ctx.request.query;
+        const { title, dateRange = [], status, pageIndex, pageSize } = ctx.request.query;
         const query = {}
         if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
-        if (code) query.code = { $eq: code };
         const page = paginate(pageIndex, pageSize);
-        
+
+        if (parseInt(status) === 0 || parseInt(status) === 1) {
+            query[albumModel.qualifyField("enabled")] = status;
+        }
+
+        if (dateRange.length > 1) {
+            const range = toDateTimeRange(dateRange)
+            query[albumModel.qualifyField("createdAt")] = { $between: range };
+        }
+
         const fields = albumModel.qualifyFields()
         const [list, total] = await Promise.all([
             albumModel.aggregate({
@@ -29,7 +37,6 @@ export default {
                         },
                         select: [
                             {
-                                //选择表中的 用户昵称
                                 type: "raw",
                                 fields: {
                                     "createUser": "user.nickname"

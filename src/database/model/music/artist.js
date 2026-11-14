@@ -24,9 +24,6 @@ const artistSchema = new BaseSchema({
 });
 
 
-
-
-
 const favoriteSchema = new BaseSchema({
     artistId: { type: DataType.VarChar, length: 100, nullable: false, unique: true },// 歌手/乐队ID
     userId: { type: DataType.VarChar, length: 100, nullable: true },   // 用户ID

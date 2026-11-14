@@ -1,7 +1,7 @@
 import { odm, BaseSchema } from "@/database/index.js"
 import { DataType } from "mysql-dsl/schema"
 
-const userPlaylistSchema = new BaseSchema({
+ const userPlaylistSchema = new BaseSchema({
     userId: { type: DataType.BigInt, nullable: false, index: true },   // 创建者用户ID
     title: { type: DataType.VarChar, length: 255, nullable: false },   // 歌单名称
     cover: { type: DataType.BigInt, nullable: true },                  // 封面图 文件id
@@ -17,8 +17,7 @@ const userPlaylistSongSchema = new BaseSchema({
     songId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["playlist_song_unique"] },     // 歌曲ID
     sort: { type: DataType.Int, default: 0 },                                                      // 排序
 });
+export const userPlaylistModel = await odm.model('app_user_playlist', userPlaylistSchema);
 
 export const userPlaylistSongModel = await odm.model('app_user_playlist_song', userPlaylistSongSchema);
-const userPlaylistModel = await odm.model('app_user_playlist', userPlaylistSchema);
 
-export default userPlaylistModel;

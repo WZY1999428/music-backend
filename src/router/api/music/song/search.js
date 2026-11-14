@@ -122,7 +122,6 @@ async function getPlaylist(keyword, paginate, fetchCount = true) {
         taks.push(playlistModel.count({ query }))
     }
     const result = await Promise.all(taks);
-    result[0].forEach(item => item.isHot = item.isHot === 1)
     return result
 }
 
@@ -215,7 +214,10 @@ function getArtistList(keyword, paginate, fetchCount = true) {
             }
         ],
         query: {
-            name: { $like: `%${keyword}%` },
+            $or: [
+                { name: { $like: `%${keyword}%` } },
+                { alias: { $like: `%${keyword}%` } },
+            ],
             [artistModel.qualifyField("enabled")]: 1
         },
         ...paginate

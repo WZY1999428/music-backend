@@ -4,7 +4,7 @@ export default {
     logType: 'GET_APP_USER_LIST',
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { username, nickname, dateRange, enabled, pageIndex, pageSzie } = ctx.request.params;
+        const { username, nickname, dateRange, enabled, pageIndex, pageSize } = ctx.request.params;
         const query = {};
         if (username) query.username = { $like: `%${username}%` };
         if (nickname) query.nickname = { $like: `%${nickname}%` };
@@ -14,7 +14,7 @@ export default {
             query.createdAt = { $between: range };
         }
         const [users, total] = await Promise.all([
-            userModel.findMany(query, { ...paginate(pageIndex, pageSzie) }),
+            userModel.findMany(query, { ...paginate(pageIndex, pageSize) }),
             userModel.count(query)
         ]);
         ctx.success({

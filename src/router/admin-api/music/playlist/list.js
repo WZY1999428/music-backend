@@ -7,10 +7,18 @@ export default {
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { title, code, pageIndex, pageSize } = ctx.request.query;
+        const { title, dateRange = [], status, pageIndex, pageSize } = ctx.request.query;
         const query = {}
         if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
-        if (code) query.code = { $eq: code };
+
+        if (parseInt(status) === 0 || parseInt(status) === 1) {
+            query[playlistModel.qualifyField("enabled")] = status;
+        }
+
+        if (dateRange.length > 1) {
+            const range = toDateTimeRange(dateRange)
+            query[playlistModel.qualifyField("createdAt")] = { $between: range };
+        }
         const page = paginate(pageIndex, pageSize);
         const fields = playlistModel.qualifyFields(["id", "title", "cover", "sort", "isHot", "enabled", "description", "createdAt", "updatedAt"])
         const [list, total] = await Promise.all([

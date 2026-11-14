@@ -1,4 +1,4 @@
-import { userPlaylistSongModel, userPlaylistModel } from "@/database/model/app/user/playlist.js"
+import { userPlaylistSongModel, userPlaylistModel } from "@/database/model/app/user/userPlaylist.js"
 
 export default {
     action: '删除用户歌单',
@@ -10,7 +10,7 @@ export default {
         $validate(playlistId, "歌单id不能为空");
         const userId = ctx.appUser.userId
         await userPlaylistModel.withTransaction(async (model) => {
-            const result = model.deleteOne({ id: playlistId, createUserId: userId })
+            const result = model.deleteOne({ id: playlistId, userId: userId })
             if (result.affectedRows === 0) {
                 throw new Error("歌单不存在");
             }

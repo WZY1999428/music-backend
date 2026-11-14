@@ -1,4 +1,4 @@
-import { userPlaylistModel, userPlaylistSongModel } from "@/database/model/app/user/playlist.js"
+import { userPlaylistModel, userPlaylistSongModel } from "@/database/model/app/user/userPlaylist.js"
 import { songModel } from "@/database/model/music/song.js"
 export default {
     action: '获取用户歌单',
@@ -12,7 +12,7 @@ export default {
 
         const playlist = await userPlaylistModel.aggregate({
             fields: fields,
-            query: { [userPlaylistModel.qualifyField("createUserId")]: userId },
+            query: { [userPlaylistModel.qualifyField("userId")]: userId },
             joins: [{
                 table: userPlaylistSongModel.table,
                 as: "userPlaylistSong",

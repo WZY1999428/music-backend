@@ -1,4 +1,4 @@
-import { userPlaylistModel } from "@/database/model/app/user/playlist.js"
+import { userPlaylistModel } from "@/database/model/app/user/userPlaylist.js"
 import uploadModel from "@/database/model/upload.js";
 
 export default {
@@ -13,7 +13,7 @@ export default {
             fields: userPlaylistModel.qualifyFields(),
             query: {
                 [userPlaylistModel.qualifyField("id")]: id,
-                createUserId: ctx.appUser.userId
+                [userPlaylistModel.qualifyField("userId")]: ctx.appUser.userId
             },
             joins: [
                 {

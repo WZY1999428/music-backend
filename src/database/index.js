@@ -10,7 +10,7 @@ export async function initDb() {
         user: MYSQL_USERNAME,
         password: MYSQL_PASSWORD,
         database: MYSQL_DATABASE,
-        createDatabase: true
+        createDatabase: true,
     });
 
 }

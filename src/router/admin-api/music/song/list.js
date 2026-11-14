@@ -7,30 +7,44 @@ export default {
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { title, artist, pageIndex, pageSize } = ctx.request.query;
+        const { title, artist, dateRange = [], status, pageIndex, pageSize } = ctx.request.query;
         const query = {}
         if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
         const fields = songModel.qualifyFields();
         if (artist && artist.trim()) {
-            query[songModel.qualifyField("id")] = {
-                $in: [{
-                    table: songArtistModel.table,
-                    fields: ["songId"], // 查出包含该歌手的歌曲 ID 列表
-                    joins: [
-                        {
-                            table: artistModel.table,
-                            as: "artistTable",
-                            type: "inner",
-                            on: {
-                                "artistTable.id": "songArtist.artistId"
-                            }
+            query["$exists"] = {
+                table: songArtistModel.table,
+                joins: [
+                    {
+                        table: songArtistModel.table,
+                        as: "songArtist",
+                        type: "left",
+                        on: { "songArtist.songId": songModel.qualifyField("id") }
+                    },
+                    {
+                        table: artistModel.table,
+                        as: "artistTable",
+                        on: {
+                            "artistTable.id": "songArtist.artistId"
                         }
-                    ],
-                    query: {
-                        "artistTable.name": { $like: `%${artist.trim()}%` }
                     }
-                }]
+                ],
+                query: {
+                    $or: [
+                        { "artistTable.name": { $like: `%${artist.trim()}%` } },
+                        { "artistTable.alias": { $like: `%${artist.trim()}%` } },
+                    ]
+                }
             };
+        }
+
+        if (parseInt(status) === 0 || parseInt(status) === 1) {
+            query[songModel.qualifyField("enabled")] = status;
+        }
+
+        if (dateRange.length > 1) {
+            const range = toDateTimeRange(dateRange)
+            query[songModel.qualifyField("publishDate")] = { $between: range };
         }
 
 
@@ -38,7 +52,6 @@ export default {
             songModel.aggregate({
                 fields,
                 query,
-                // 连表查询 创建人
                 joins: [
                     {
                         table: "system_user",
@@ -47,15 +60,7 @@ export default {
                         on: {
                             "user.id": songModel.qualifyField("createUserId")
                         },
-                        select: [
-                            {
-                                //选择表中的 用户昵称
-                                type: "raw",
-                                fields: {
-                                    "createUser": "user.nickname"
-                                }
-                            }
-                        ]
+                        select: [{ type: "raw", fields: { "createUser": "user.nickname" } }]
                     },
                     {
                         table: uploadModel.table,
@@ -64,33 +69,30 @@ export default {
                         on: {
                             "upload.id": songModel.qualifyField("cover")
                         },
-                        select: [
-                            {
-                                type: "raw",
-                                fields: {
-                                    "cover": "upload.url"
-                                }
-                            }
-                        ]
+                        select: [{ type: "raw", fields: { "cover": "upload.url" } }]
                     },
                     {
                         table: songArtistModel.table,
                         as: "songArtist",
                         type: "left",
-                        on: {
-                            "songArtist.songId": songModel.qualifyField("id")
-                        },
+                        on: { "songArtist.songId": songModel.qualifyField("id") }
+                    },
+                    {
+                        table: artistModel.table,
+                        as: "artist",
+                        type: "left",
+                        on: { "artist.id": "songArtist.artistId" },
                         select: [
                             {
-                                type: "array",
+                                type: "jsonArray",
                                 alias: "artistList",
                                 fields: {
-                                    "artist": "songArtist.artistId"
+                                    "id": "artist.id",
+                                    "name": "artist.name"
                                 }
                             }
                         ]
                     },
-
                 ],
                 group: [fields[0]],
                 sort: { createdAt: "asc" },
@@ -113,7 +115,7 @@ export default {
                 ]
             })
         ])
-        await fillArtistList(list)
+        // await fillArtistList(list)
         ctx.success({
             list,
             total
