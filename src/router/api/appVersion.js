@@ -29,7 +29,6 @@ export default {
         })
         const map = new Map(config.map((item) => [item.configKey, item.appUrl || item.configValue]));
         ctx.success({
-            appUrl: map.get("appUrl") || '',
             appVersion: map.get("appVersion") || '',
             appDescription: map.get("appDescription") || ''
         });
