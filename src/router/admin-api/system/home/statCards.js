@@ -1,7 +1,7 @@
 
 import { songModel } from "@/database/model/music/song.js"
 import artistModel from "@/database/model/music/artist.js"
-import appUserModel from "@/database/model/app/user/user"
+import appUserModel from "@/database/model/app/user/user.js"
 
 export default {
     action: '获取系统首页统计信息',
