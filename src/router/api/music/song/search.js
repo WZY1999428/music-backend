@@ -185,8 +185,33 @@ async function getAlbumList(keyword, paginate, fetchCount = true) {
 
 // 获取艺术家列表
 function getArtistList(keyword, paginate, fetchCount = true) {
+    const query = {
+        $exists: {
+            table: songArtistModel.table,
+            joins: [
+                {
+                    table: artistModel.table,
+                    as: "artistTable",
+                    on: { "artistTable.id": songArtistModel.qualifyField("artistId") }
+                },
+                {
+                    table: artistAliasModel.table,
+                    as: "artistAlias",
+                    type: "left",
+                    on: { "artistAlias.artistId": "artistTable.id" }
+                }
+            ],
+            query: {
+                $or: [
+                    { "artistTable.name": { $like: `%${artist.trim()}%` } },
+                    { "artistAlias.alias": artist.trim() }
+                ]
+            }
+        },
+    }
     const taks = [artistModel.aggregate({
         fields: artistModel.qualifyFields(['id', 'name', 'alias', 'pinyin', 'gender', 'description', 'sort']),
+        query: query,
         joins: [
             {
                 table: uploadModel.table,
@@ -213,37 +238,15 @@ function getArtistList(keyword, paginate, fetchCount = true) {
                 }]
             }
         ],
-        query: {
-            $exists: {
-                table: songArtistModel.table,
-                joins: [
-                    {
-                        table: artistModel.table,
-                        as: "artistTable",
-                        on: { "artistTable.id": songArtistModel.qualifyField("artistId") }
-                    },
-                    {
-                        table: artistAliasModel.table,
-                        as: "artistAlias",
-                        type: "left",
-                        on: { "artistAlias.artistId": "artistTable.id" }
-                    }
-                ],
-                query: {
-                    $or: [
-                        { "artistTable.name": { $like: `%${artist.trim()}%` } },
-                        { "artistAlias.alias": artist.trim() }
-                    ]
-                }
-            },
-            [artistModel.qualifyField("enabled")]: 1
-        },
+        group: [artistModel.qualifyField("id")],
         ...paginate
     })]
 
     if (fetchCount) {
         taks.push(artistModel.count({
-            query: { name: { $like: `%${keyword}%` }, enabled: 1 },
+            query,
+            field: artistModel.qualifyField("id"),
+            distinct: true
         }))
     }
 

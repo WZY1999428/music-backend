@@ -94,12 +94,14 @@ export default {
                     ]
                 }],
                 sort: { createdAt: "asc" },
+                group: [artistModel.qualifyField("id")],
                 ...page,
             }),
             artistModel.count({
                 query,
-                joins: areaJoins.concat(artistAliasJoin)
-
+                joins: areaJoins.concat(artistAliasJoin),
+                field: artistModel.qualifyField("id"),
+                distinct: true
             })
         ])
         ctx.success({
