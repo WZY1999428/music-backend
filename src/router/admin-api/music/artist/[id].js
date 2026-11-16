@@ -1,6 +1,5 @@
-import artistModel from "@/database/model/music/artist.js";
+import artistModel, { artistAliasModel } from "@/database/model/music/artist.js";
 import uploadModel from "@/database/model/upload.js";
-import { formatUploadFileRef } from "@/utils/parse.js";
 export default {
     action: '获取歌手详情',
     enableLog: false,
@@ -8,13 +7,36 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         const { id } = ctx.request.params;
-        const artis = await artistModel.findOne({ id })
-        if (!artis) return ctx.fail("歌手不存在")
-        const ids = [artis.avatar, artis.cover].filter(Boolean)
-        const files = await uploadModel.findMany({ id: { $in: ids } })
-        artis.cover = formatUploadFileRef(files, artis.cover)
-        artis.avatar = formatUploadFileRef(files, artis.avatar)
-        ctx.success(artis)
+
+        const artist = await artistModel.aggregate({
+            query: { [artistModel.qualifyField("id")]: id },
+            joins: [{
+                table: uploadModel.table,
+                as: "coverUpload",
+                type: "left",
+                on: { "coverUpload.id": artistModel.qualifyField("cover") },
+                select: [{ type: "jsonObject", alias: "cover", fields: { "url": "coverUpload.url", id: "coverUpload.id" } }]
+            }, {
+                table: uploadModel.table,
+                as: "avatarUpload",
+                type: "left",
+                on: { "avatarUpload.id": artistModel.qualifyField("avatar") },
+                select: [{ type: "jsonObject", alias: "avatar", fields: { "url": "avatarUpload.url", id: "avatarUpload.id" } }]
+            }, {
+                table: artistAliasModel.table,
+                as: "artistAlias",
+                type: "left",
+                on: { "artistAlias.artistId": artistModel.qualifyField("id") },
+                select: [{
+                    type: "jsonArray", alias: "alias", fields: {
+                        alias: "artistAlias.alias",
+                        id: "artistAlias.id"
+                    }
+                }]
+            }]
+        })
+        if (!artist) return ctx.fail("歌手不存在")
+        ctx.success(artist)
     },
 }
 

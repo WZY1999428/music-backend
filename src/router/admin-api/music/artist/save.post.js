@@ -1,10 +1,10 @@
-import artistModel from "@/database/model/music/artist.js";
+import artistModel, { artistAliasModel } from "@/database/model/music/artist.js";
 export default {
     action: '保存歌手',
     logType: 'SAVE_MUSIC_ARTIST',
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { id, name, alias, avatar, cover,sort, gender, area, isHot, description, enabled = 1 } = ctx.request.body;
+        const { id, name, alias, avatar, cover, sort, gender, area, isHot, description, enabled = 1 } = ctx.request.body;
         const createUserId = ctx.user.userId;
         $validate(name, "歌手名称不能为空")
         $validate(gender, "歌手性别不能为空")
@@ -17,8 +17,19 @@ export default {
         }
 
         try {
-            const params = { name, alias, avatar: avatar.id, cover: cover.id, sort, gender, area, enabled, createUserId, description, isHot }
-            id ? await artistModel.updateOne({ id }, params) : await artistModel.insertOne(params)
+            const params = { name, avatar: avatar.id, cover: cover.id, sort, gender, area, enabled, createUserId, description, isHot }
+            await artistModel.withTransaction(async (model) => {
+                id ? await model.updateOne({ id }, params) : await model.insertOne(params)
+                // 同步歌手别名
+                await syncRelation({
+                    model: artistAliasModel,
+                    oldList: await artistAliasModel.findMany({ artistId: id }),
+                    list: alias,
+                    key: 'alias',
+                    createInsertData: (alias) => ({ artistId: id, alias })
+                })
+            })
+
             ctx.success(null, id ? "更新成功" : "添加成功")
         } catch (error) {
             if (error.code == "ER_DUP_ENTRY") return ctx.fail("协议编号已存在")

@@ -29,10 +29,15 @@ const favoriteSchema = new BaseSchema({
     userId: { type: DataType.VarChar, length: 100, nullable: true },   // 用户ID
 });
 
-export const artistFavoriteModel = await odm.model('music_artist_favorite', favoriteSchema);
 
+const artistAliasSchema = new BaseSchema({
+    artistId: { type: DataType.VarChar, length: 100, nullable: false, uniqueGroup: ['artist_alias'] },// 歌手/乐队ID
+    alias: { type: DataType.VarChar, length: 100, nullable: true, uniqueGroup: ['artist_alias'] },   // 别名
+});
+
+export const artistFavoriteModel = await odm.model('music_artist_favorite', favoriteSchema);
+export const artistAliasModel = await odm.model('music_artist_alias', artistAliasSchema);
 
 const artistModel = await odm.model('music_artist', artistSchema);
-
 
 export default artistModel;  
