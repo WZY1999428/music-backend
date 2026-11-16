@@ -42,7 +42,9 @@ export default {
                             }
                         },
                         {
-                            "artistAlias.alias": artist.trim()
+                            "artistAlias.alias": {
+                                $like: `${artist.trim()}%`
+                            }
                         }
                     ]
                 }
