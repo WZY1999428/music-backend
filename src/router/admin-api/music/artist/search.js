@@ -1,4 +1,4 @@
-import artistModel from "@/database/model/music/artist.js";
+import artistModel, { artistAliasModel } from "@/database/model/music/artist.js";
 export default {
     action: '搜索歌手',
     logType: 'SEARCH_MUSIC_ARTIST',
@@ -8,16 +8,24 @@ export default {
         const query = {};
         if (keyword) {
             query.$or = [
-                {
-                    name: { $like: `%${keyword}%` },
-                },
-                {
-                    alias: { $like: `$${keyword}%` }
-                }
+                { name: { $like: `%${keyword.trim()}%` } },
+                { "artistAlias.alias": keyword.trim() }
             ]
         }
         const page = paginate(1, 20);
-        const result = await artistModel.findMany(query, { ...page, fields: ["name", "id"] });
+        const result = await artistModel.aggregate({
+            query,
+            fields: ["name", "id"],
+            joins: [
+                {
+                    table: artistAliasModel.table,
+                    as: "artistAlias",
+                    type: "left",
+                    on: { "artistAlias.artistId": artistModel.qualifyField("id") }
+                }
+            ],
+            ...page,
+        });
         ctx.success(result);
     },
 }
