@@ -14,7 +14,7 @@ export default {
                     .filter(Boolean) || [];
                 if (alias.length) {
                     // 保存别名
-                    await model.insertMany(alias.map(alias => ({ artistId: artist.id, alias })))
+                    await model.insertMany(alias.map(alias => ({ artistId: artist.id, alias }))).catch(() => { })
                 }
             }
         })
