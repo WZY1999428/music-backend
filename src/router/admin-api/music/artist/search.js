@@ -8,8 +8,8 @@ export default {
         const query = {};
         if (keyword) {
             query.$or = [
-                { name: { $like: `%${keyword.trim()}%` } },
-                { "artistAlias.alias": keyword.trim() }
+                { name: { $like: `${keyword.trim()}%` } },
+                { "artistAlias.alias": { $like: `${keyword.trim()}%` } }
             ]
         }
         const page = paginate(1, 20);
