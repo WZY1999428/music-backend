@@ -14,23 +14,28 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         // complex album signle artist playlist
-        const { keyword, type = "complex", pageIndex = 1, pageSize = 20 } = ctx.request.query;
-        $validate(keyword, "搜索关键词不能为空");
-        const funs = {
-            playlist: getPlaylist,
-            album: getAlbumList,
-            artist: getArtistList,
-            single: getSingleList,
-        }
+        try {
+            const { keyword, type = "complex", pageIndex = 1, pageSize = 20 } = ctx.request.query;
+            $validate(keyword, "搜索关键词不能为空");
+            const funs = {
+                playlist: getPlaylist,
+                album: getAlbumList,
+                artist: getArtistList,
+                single: getSingleList,
+            }
 
-        if (type === "complex") {
-            const [playlist, album, artist, song] = await getComplexList(keyword, ctx);
-            ctx.success({ playlist: playlist[0], album: album[0], artist: artist[0], song: song[0] });
-            return;
-        } else {
-            const [list, total] = await (funs[type] || getSingleList)(keyword, paginate(pageIndex, pageSize), true, ctx);
-            ctx.success({ list, total });
-            return;
+            if (type === "complex") {
+                const [playlist, album, artist, song] = await getComplexList(keyword, ctx);
+                ctx.success({ playlist: playlist[0], album: album[0], artist: artist[0], song: song[0] });
+                return;
+            } else {
+                const [list, total] = await (funs[type] || getSingleList)(keyword, paginate(pageIndex, pageSize), true, ctx);
+                ctx.success({ list, total });
+                return;
+            }
+        } catch (error) {
+            console.log(error);
+
         }
     },
 }
@@ -185,79 +190,102 @@ async function getAlbumList(keyword, paginate, fetchCount = true) {
 
 // 获取艺术家列表
 function getArtistList(keyword, paginate, fetchCount = true) {
-    const query = {
-        $exists: {
-            table: songArtistModel.table,
+    const query = {};
+
+    if (keyword?.trim()) {
+        const value = keyword.trim();
+        query.$exists = {
+            table: artistAliasModel.table,
             joins: [
-                {
-                    table: artistModel.table,
-                    as: "artistTable",
-                    on: { "artistTable.id": songArtistModel.qualifyField("artistId") }
-                },
                 {
                     table: artistAliasModel.table,
                     as: "artistAlias",
                     type: "left",
-                    on: { "artistAlias.artistId": "artistTable.id" }
+                    on: {
+                        "artistAlias.artistId": artistModel.qualifyField("id")
+                    }
                 }
             ],
             query: {
+                [artistAliasModel.qualifyField("artistId")]: { $col: artistModel.qualifyField("id") },
                 $or: [
-                    { "artistTable.name": { $like: `%${artist.trim()}%` } },
-                    { "artistAlias.alias": artist.trim() }
+                    {
+                        [artistModel.qualifyField("name")]: {
+                            $like: `${value}%`
+                        }
+                    },
+                    {
+                        "artistAlias.alias": {
+                            $like: `${value}%`
+                        }
+                    }
                 ]
             }
-        },
+        };
     }
-    const taks = [artistModel.aggregate({
-        fields: artistModel.qualifyFields(['id', 'name', 'alias', 'pinyin', 'gender', 'description', 'sort']),
-        query: query,
-        joins: [
-            {
-                table: uploadModel.table,
-                as: 'uploadAvatar',
-                type: "left",
-                on: { "uploadAvatar.id": artistModel.qualifyField('avatar') },
-                select: [{
-                    type: "raw",
-                    fields: {
-                        "avatar": "uploadAvatar.url",
-                    }
-                }]
-            },
-            {
-                table: uploadModel.table,
-                as: 'uploadCover',
-                type: "left",
-                on: { "uploadCover.id": artistModel.qualifyField('cover') },
-                select: [{
-                    type: "raw",
-                    fields: {
-                        "cover": "uploadCover.url",
-                    }
-                }]
-            }
-        ],
-        group: [artistModel.qualifyField("id")],
-        ...paginate
-    })]
+
+    const tasks = [
+        artistModel.aggregate({
+            fields: artistModel.qualifyFields([
+                "id",
+                "name",
+                "pinyin",
+                "gender",
+                "description",
+                "sort"
+            ]),
+            query,
+            joins: [
+                {
+                    table: uploadModel.table,
+                    as: "uploadAvatar",
+                    type: "left",
+                    on: {
+                        "uploadAvatar.id": artistModel.qualifyField("avatar")
+                    },
+                    select: [{
+                        type: "raw",
+                        fields: {
+                            avatar: "uploadAvatar.url"
+                        }
+                    }]
+                },
+                {
+                    table: uploadModel.table,
+                    as: "uploadCover",
+                    type: "left",
+                    on: {
+                        "uploadCover.id": artistModel.qualifyField("cover")
+                    },
+                    select: [{
+                        type: "raw",
+                        fields: {
+                            cover: "uploadCover.url"
+                        }
+                    }]
+                }
+            ],
+            ...paginate
+        })
+    ];
 
     if (fetchCount) {
-        taks.push(artistModel.count({
-            query,
-            field: artistModel.qualifyField("id"),
-            distinct: true
-        }))
+        tasks.push(
+            artistModel.count({
+                query,
+                field: artistModel.qualifyField("id")
+            })
+        );
     }
 
-    return Promise.all(taks)
+    return Promise.all(tasks);
 }
-
 // 获取单曲列表
 function getSingleList(keyword, paginate, fetchCount = true, ctx) {
     const query = [
         { [songModel.qualifyField("title")]: { $like: `%${keyword}%` } },
         { "artist.name": { $like: `%${keyword}%` } }]
+
     const taks = [getSongList({
         $or: query
     }, { ...paginate, userId: ctx.appUser?.userId })]

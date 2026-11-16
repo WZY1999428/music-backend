@@ -1,5 +1,6 @@
 
-import artistModel, { artistFavoriteModel } from "@/database/model/music/artist.js"
+import artistModel, { artistFavoriteModel, artistAliasModel } from "@/database/model/music/artist.js"
+
 import uploadModel from "@/database/model/upload.js"
 export default {
     action: 'APP获取根据名称获取歌手信息',
@@ -10,7 +11,7 @@ export default {
     handler: async (ctx) => {
         const { artistId } = ctx.request.query;
         $validate(artistId, "歌手id不能为空")
-        const fields = artistModel.qualifyFields(["id", "name", "alias", "avatar", "cover", "pinyin", "firstLetter", "gender", "area", "description", "sort"]);
+        const fields = artistModel.qualifyFields(["id", "name", "avatar", "cover", "pinyin", "firstLetter", "gender", "area", "description", "sort"]);
         const arFieldId = artistModel.qualifyField("id");
         if (ctx.appUser?.userId) {
             fields.push({
@@ -52,7 +53,22 @@ export default {
                         "cover": "uploadCover.url",
                     }
                 }]
-            }]
+            }, {
+                table: artistAliasModel.table,
+                as: "artistAlias",
+                type: "left",
+                on: { "artistAlias.artistId": artistModel.qualifyField("id") },
+                select: [{
+                    type: "jsonArray",
+                    alias: "alias",
+                    fields: {
+                        alias: "artistAlias.alias",
+                        id: "artistAlias.id"
+                    }
+                }]
+            }],
+            group: [artistModel.qualifyField("id")],
+            limit: 1
         })
 
         if (artists.length > 0) {
