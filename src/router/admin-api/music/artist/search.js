@@ -15,7 +15,7 @@ export default {
         const page = paginate(1, 20);
         const result = await artistModel.aggregate({
             query,
-            fields: ["name", "id"],
+            fields: artistModel.qualifyFields(["name", "id"]),
             joins: [
                 {
                     table: artistAliasModel.table,
@@ -24,6 +24,7 @@ export default {
                     on: { "artistAlias.artistId": artistModel.qualifyField("id") }
                 }
             ],
+            group: [artistModel.qualifyField("id")],
             ...page,
         });
         ctx.success(result);
