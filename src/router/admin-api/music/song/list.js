@@ -9,7 +9,7 @@ export default {
     handler: async (ctx) => {
         const { title, artist, dateRange = [], status, pageIndex, pageSize } = ctx.request.query;
         const query = {}
-        if (title && title.trim()) query.title = { $like: `%${title.trim()}%` }
+        if (title && title.trim()) query.title = { $like: `${title.trim()}%` }
         const fields = songModel.qualifyFields();
         if (artist && artist.trim()) {
             query["$exists"] = {
@@ -19,20 +19,31 @@ export default {
                         table: artistModel.table,
                         as: "artistTable",
                         on: {
-                            "artistTable.id": songArtistModel.qualifyField("artistId") 
+                            "artistTable.id": songArtistModel.qualifyField("artistId")
                         }
                     },
                     {
                         table: artistAliasModel.table,
                         as: "artistAlias",
                         type: "left",
-                        on: { "artistAlias.artistId": "artistTable.id" }
+                        on: {
+                            "artistAlias.artistId": "artistTable.id"
+                        }
                     }
                 ],
                 query: {
+                    [songArtistModel.qualifyField("songId")]: {
+                        $col: songModel.qualifyField("id")
+                    },
                     $or: [
-                        { "artistTable.name": { $like: `%${artist.trim()}%` } },
-                        { "artistAlias.alias": artist.trim() }
+                        {
+                            "artistTable.name": {
+                                $like: `${artist.trim()}%`
+                            }
+                        },
+                        {
+                            "artistAlias.alias": artist.trim()
+                        }
                     ]
                 }
             };
@@ -46,6 +57,8 @@ export default {
             const range = toDateTimeRange(dateRange)
             query[songModel.qualifyField("publishDate")] = { $between: range };
         }
+
+
 
 
         const [list, total] = await Promise.all([
