@@ -8,7 +8,10 @@ export default {
         const artists = await artistModel.findMany({})
         await artistAliasModel.withTransaction(async (model) => {
             for (const artist of artists) {
-                const alias = artist.name.split(',');
+                const alias = artist.alias
+                    ?.split(/[，,|]/)
+                    .map(item => item.trim())
+                    .filter(Boolean) || [];
                 if (alias.length) {
                     // 保存别名
                     await model.insertMany(alias.map(alias => ({ artistId: artist.id, alias })))

@@ -1,4 +1,4 @@
-import artistModel from "@/database/model/music/artist.js";
+import artistModel, { artistAliasModel } from "@/database/model/music/artist.js";
 import uploadModel from "@/database/model/upload.js";
 import { dictItemModel, dictTypeModel } from "@/database/model/system/dictionary.js"
 export default {
@@ -9,7 +9,19 @@ export default {
     handler: async (ctx) => {
         const { title, dateRange = [], area, status, pageIndex, pageSize } = ctx.request.query;
         const query = {}
-        if (title && title.trim()) query.name = { $like: `%${title.trim()}%` }
+        let artistAliasJoin = []
+        if (title && title.trim()) {
+            query["$or"] = [
+                { name: { $like: `%${title.trim()}%` } },
+                { "artistAlias.alias": title.trim() }
+            ]
+            artistAliasJoin = [{
+                table: artistAliasModel.table,
+                as: "artistAlias",
+                type: "left",
+                on: { "artistAlias.artistId": artistModel.qualifyField("id") }
+            }]
+        }
 
         if (parseInt(status) === 0 || parseInt(status) === 1) {
             query[artistModel.qualifyField("enabled")] = status;
@@ -64,6 +76,7 @@ export default {
                     ]
                 },
                 ...areaJoins,
+                ...artistAliasJoin,
                 {
                     table: uploadModel.table,
                     as: "upload",
@@ -85,7 +98,7 @@ export default {
             }),
             artistModel.count({
                 query,
-                joins: areaJoins
+                joins: areaJoins.concat(artistAliasJoin)
 
             })
         ])

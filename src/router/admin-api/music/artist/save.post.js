@@ -24,9 +24,8 @@ export default {
                 await syncRelation({
                     model: artistAliasModel,
                     oldList: await artistAliasModel.findMany({ artistId: id }),
-                    list: alias,
-                    key: 'alias',
-                    createInsertData: (alias) => ({ artistId: id, alias })
+                    list: alias,    
+                    createInsertData: (alias) => ({ artistId: id, alias: alias.alias })
                 })
             })
 

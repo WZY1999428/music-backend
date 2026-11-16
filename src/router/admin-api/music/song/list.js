@@ -1,5 +1,5 @@
 import { songModel, songArtistModel } from "@/database/model/music/song.js";
-import artistModel from "@/database/model/music/artist.js";
+import artistModel, { artistAliasModel } from "@/database/model/music/artist.js";
 import uploadModel from "@/database/model/upload.js";
 export default {
     action: '获取歌曲列表',
@@ -16,23 +16,23 @@ export default {
                 table: songArtistModel.table,
                 joins: [
                     {
-                        table: songArtistModel.table,
-                        as: "songArtist",
-                        type: "left",
-                        on: { "songArtist.songId": songModel.qualifyField("id") }
-                    },
-                    {
                         table: artistModel.table,
                         as: "artistTable",
                         on: {
-                            "artistTable.id": "songArtist.artistId"
+                            "artistTable.id": songArtistModel.qualifyField("artistId") 
                         }
+                    },
+                    {
+                        table: artistAliasModel.table,
+                        as: "artistAlias",
+                        type: "left",
+                        on: { "artistAlias.artistId": "artistTable.id" }
                     }
                 ],
                 query: {
                     $or: [
                         { "artistTable.name": { $like: `%${artist.trim()}%` } },
-                        { "artistTable.alias": { $like: `%${artist.trim()}%` } },
+                        { "artistAlias.alias": artist.trim() }
                     ]
                 }
             };
@@ -92,7 +92,7 @@ export default {
                                 }
                             }
                         ]
-                    },
+                    }
                 ],
                 group: [fields[0]],
                 sort: { createdAt: "asc" },

@@ -1,5 +1,5 @@
 
-import artistModel from "@/database/model/music/artist.js"
+import artistModel, { artistAliasModel } from "@/database/model/music/artist.js"
 import uploadModel from "@/database/model/upload.js"
 import { songModel, songArtistModel } from "@/database/model/music/song.js"
 import { albumModel, albumArtistModel } from "@/database/model/music/album.js"
@@ -214,10 +214,28 @@ function getArtistList(keyword, paginate, fetchCount = true) {
             }
         ],
         query: {
-            $or: [
-                { name: { $like: `%${keyword}%` } },
-                { alias: { $like: `%${keyword}%` } },
-            ],
+            $exists: {
+                table: songArtistModel.table,
+                joins: [
+                    {
+                        table: artistModel.table,
+                        as: "artistTable",
+                        on: { "artistTable.id": songArtistModel.qualifyField("artistId") }
+                    },
+                    {
+                        table: artistAliasModel.table,
+                        as: "artistAlias",
+                        type: "left",
+                        on: { "artistAlias.artistId": "artistTable.id" }
+                    }
+                ],
+                query: {
+                    $or: [
+                        { "artistTable.name": { $like: `%${artist.trim()}%` } },
+                        { "artistAlias.alias": artist.trim() }
+                    ]
+                }
+            },
             [artistModel.qualifyField("enabled")]: 1
         },
         ...paginate
