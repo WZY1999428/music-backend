@@ -12,8 +12,8 @@ export default {
         let artistAliasJoin = []
         if (title && title.trim()) {
             query["$or"] = [
-                { name: { $like: `%${title.trim()}%` } },
-                { "artistAlias.alias": title.trim() }
+                { name: { $like: `${title.trim()}%` } },
+                { "artistAlias.alias": { $like: `${title.trim()}%` } }
             ]
             artistAliasJoin = [{
                 table: artistAliasModel.table,
