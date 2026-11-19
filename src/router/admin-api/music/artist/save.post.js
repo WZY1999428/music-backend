@@ -19,13 +19,15 @@ export default {
         try {
             const params = { name, avatar: avatar.id, cover: cover.id, sort, gender, area, enabled, createUserId, description, isHot }
             await artistModel.withTransaction(async (model) => {
-                id ? await model.updateOne({ id }, params) : await model.insertOne(params)
+                const result = id ? await model.updateOne({ id }, params) : await model.insertOne(params)
+                const artistId = result.insertId || id
+
                 // 同步歌手别名
                 await syncRelation({
                     model: artistAliasModel,
-                    oldList: await artistAliasModel.findMany({ artistId: id }),
-                    list: alias,    
-                    createInsertData: (alias) => ({ artistId: id, alias: alias.alias })
+                    oldList: await artistAliasModel.findMany({ artistId: artistId }),
+                    list: alias,
+                    createInsertData: (alias) => ({ artistId: artistId, alias: alias.alias })
                 })
             })
 

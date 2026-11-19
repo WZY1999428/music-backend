@@ -2,6 +2,7 @@ import { mysqlErrCode, valkeyCode } from "../utils/errorCode.js";
 export default () => {
     return async (ctx, next) => {
         ctx.path = ctx.path.replace(/\/+/g, "/");
+        console.log(ctx.path);
         ctx.success = (data, message = "操作成功") => {
             ctx.body = {
                 code: 0,

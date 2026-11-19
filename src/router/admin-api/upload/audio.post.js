@@ -44,7 +44,7 @@ export default {
                 name: { $in: matedata.common.artist.split("/").map(a => a.trim()).filter(Boolean) }
             }, { fields: ["id", "name"] })
         }
-        const url = file.path.replace(/\\/g, "/").replace(uploadPath, "");
+        const url = file.path.replace(/\\+/g, "/").replace(uploadPath, "");
         const result = await uploadModel.insertOne({
             originalName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
             filename: file.filename,
