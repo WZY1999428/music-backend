@@ -24,10 +24,10 @@ export default {
 
             await playlistModel.withTransaction(async (model) => {
                 const result = id ? await model.updateOne({ id }, params) : await model.insertOne(params)
-                if (result.insertId) {
-                    await playlistStatsModel.insertOne({ playlistId: result.insertId, favoriteTotal: 0, playTotal: 0, clickTotal: 0 })
+                if (result.insertData) {
+                    await playlistStatsModel.insertOne({ playlistId: result.insertData.id, favoriteTotal: 0, playTotal: 0, clickTotal: 0 })
                 }
-                const playlistId = result.insertId || id
+                const playlistId = result.insertData?.id || id
                 // 同步标签
                 await syncRelation({
                     model: playlistTagModel,

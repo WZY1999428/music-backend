@@ -14,6 +14,4 @@ const bannerSchema = new BaseSchema({
 
 const bannerModel = await odm.model('banner', bannerSchema);
 
-
-
 export default bannerModel;  

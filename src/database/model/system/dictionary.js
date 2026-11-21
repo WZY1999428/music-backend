@@ -11,7 +11,7 @@ const dictTypeSchema = new BaseSchema({
 
 
 const dictItemSchema = new BaseSchema({
-    dictId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["itemValue"] },
+    dictId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["itemValue"] },
     title: { type: DataType.VarChar, length: 50, nullable: false, uniqueGroup: ["itemValue"] },
     value: { type: DataType.VarChar, length: 50, nullable: false, uniqueGroup: ["itemValue"] },
     //extData 扩展字段，应对各种临时/备用需求

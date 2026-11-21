@@ -41,9 +41,8 @@ export async function handler(ctx) {
         mimeType: file.mimetype,
         type
     };
-   
     const result = await uploadModel.insertOne(fileInfo);
-    fileInfo.id = result.insertId;
+    fileInfo.id = result.insertData.id;
     ctx.success(fileInfo);
 };
 

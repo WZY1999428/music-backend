@@ -42,7 +42,7 @@ export default {
 
             // 新增用户，获取插入后的 ID
             if (!userId) {
-                userId = result.insertId;
+                userId = result.insertData.id;
             }
 
             // 编辑用户时，获取原来的角色和部门

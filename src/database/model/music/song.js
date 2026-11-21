@@ -4,7 +4,7 @@ import { DataType, Schema } from "mysql-dsl/schema"
 const songSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false }, // 歌名（如：晴天）
     mvUrl: { type: DataType.VarChar, length: 255, nullable: true }, // 歌名（如：晴天）
-    cover: { type: DataType.Int, nullable: true }, // 封面图 文件id
+    cover: { type: DataType.VarChar, length: 36, nullable: true }, // 封面图 文件id
     lang: { type: DataType.VarChar, length: 20, nullable: true }, // 语言
     playTotal: { type: DataType.BigInt, nullable: false, default: 0 }, // 播放次数
     clickTotal: { type: DataType.BigInt, nullable: false, default: 0 }, // 点击次数
@@ -15,20 +15,20 @@ const songSchema = new BaseSchema({
 });
 
 const songArtistSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_artist"] },   // 歌曲id
-    artistId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_artist"] },    // 演唱者 id
+    songId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_artist"] },   // 歌曲id
+    artistId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_artist"] },    // 演唱者 id
 });
 
 
 const songLangSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_lang"] },   // 歌曲id
+    songId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_lang"] },   // 歌曲id
     lang: { type: DataType.VarChar, length: 20, nullable: false, uniqueGroup: ["song_lang"] },    // 语言
 });
 
 
 const songAudioSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_audio"] },   // 歌曲id
-    fileId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_audio"] },    // 文件id
+    songId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_audio"] },   // 歌曲id
+    fileId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_audio"] },    // 文件id
     duration: { type: DataType.Int, nullable: false }, // 时长（秒）
     format: { type: DataType.VarChar, length: 20, nullable: false },   // 格式
     quality: { type: DataType.VarChar, length: 20, nullable: false },  // 质量
@@ -39,7 +39,7 @@ const songAudioSchema = new BaseSchema({
 
 
 const songLyricSchema = new BaseSchema({
-    songId: { type: DataType.Int, nullable: false },   // 歌曲id
+    songId: { type: DataType.VarChar, length: 36, nullable: false },   // 歌曲id
     title: { type: DataType.VarChar, length: 255, nullable: false }, // 歌词标题
     lang: { type: DataType.VarChar, length: 20, nullable: false },   // 语言
     sort: { type: DataType.Int, nullable: false },   // 排序
@@ -49,12 +49,12 @@ const songLyricSchema = new BaseSchema({
 });
 
 const favoriteSchema = new Schema({
-    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_user_favorite"] },   // 歌曲id
-    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["song_user_favorite"] },    // 用户id
+    songId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_user_favorite"] },   // 歌曲id
+    userId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_user_favorite"] },    // 用户id
 });
 
 const songTypeSchema = new Schema({
-    songId: { type: DataType.Int, nullable: false, uniqueGroup: ["song_type"] },   // 歌曲id
+    songId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["song_type"] },   // 歌曲id
     type: { type: DataType.VarChar, length: 20, nullable: false, uniqueGroup: ["song_type"] },    // 类型
 });
 

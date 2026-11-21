@@ -58,11 +58,8 @@ for (const song of songList) {
             }
         ]
         const result = await request.post('/music/song/save', form)
-        console.log(result.data);
 
     } catch (error) {
-        console.log(error);
-
         notInsert.push(song)
     }
 }

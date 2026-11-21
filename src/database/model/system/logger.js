@@ -4,7 +4,7 @@ const { DataType } = await import("mysql-dsl/schema");
 
 const logSchema = new BaseSchema({
     // 1. 操作主体信息（谁干的）
-    userId: { type: DataType.BigInt, nullable: true },         // 操作人 ID（未登录/系统触发可为空）
+    userId: { type:  DataType.VarChar, length: 36, nullable: true },         // 操作人 ID（未登录/系统触发可为空）
     username: { type: DataType.VarChar, length: 100 },         // 操作人账号/姓名（冗余保存，防止用户被删后日志失效）
     nickname: { type: DataType.VarChar, length: 100 },         // 操作人昵称（冗余保存，防止用户被删后日志失效）
     roleName: { type: DataType.VarChar, length: 100 },         // 操作时的角色/部门名称

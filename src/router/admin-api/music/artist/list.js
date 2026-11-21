@@ -7,7 +7,7 @@ export default {
     enableLog: false,
     /** @type {Controller} */
     handler: async (ctx) => {
-        const { title, dateRange = [], area, status, pageIndex, pageSize } = ctx.request.query;
+        const { title, dateRange = [], area, gender, status, pageIndex, pageSize } = ctx.request.query;
         const query = {}
         let artistAliasJoin = []
         if (title && title.trim()) {
@@ -32,27 +32,41 @@ export default {
             query[artistModel.qualifyField("createdAt")] = { $between: range };
         }
 
-        let areaJoins = []
-        if (area) {
-            query["dictItem.value"] = area
+        const queryJoins = []
 
-            areaJoins = [
+        if (gender) {
+            query["genderDictItem.value"] = gender
+            queryJoins.push(...[
                 {
                     table: dictTypeModel.table,
-                    as: "dictType",
-                    on: { "dictType.code": { $eq: "ARTIST_REGION" } }
+                    as: "genderType",
+                    on: { "genderType.code": { $eq: "ARTIST_GENDER" } }
                 },
                 {
                     table: dictItemModel.table,
-                    as: "dictItem",
-                    on: { "dictItem.dictId": "dictType.id", [artistModel.qualifyField("area")]: "dictItem.value" }
+                    as: "genderDictItem",
+                    on: { "genderDictItem.dictId": "genderType.id", [artistModel.qualifyField("gender")]: "genderDictItem.value" }
                 },
-            ]
+            ])
+        }
+
+        if (area) {
+            query["areaDictItem.value"] = area
+            queryJoins.push(...[
+                {
+                    table: dictTypeModel.table,
+                    as: "areaType",
+                    on: { "areaType.code": { $eq: "ARTIST_REGION" } }
+                },
+                {
+                    table: dictItemModel.table,
+                    as: "areaDictItem",
+                    on: { "areaDictItem.dictId": "areaType.id", [artistModel.qualifyField("area")]: "areaDictItem.value" }
+                },
+            ])
         }
 
         const page = paginate(pageIndex, pageSize);
-
-
         const fields = artistModel.qualifyFields();
         const [list, total] = await Promise.all([
             artistModel.aggregate({
@@ -75,7 +89,7 @@ export default {
                         }
                     ]
                 },
-                ...areaJoins,
+                ...queryJoins,
                 ...artistAliasJoin,
                 {
                     table: uploadModel.table,
@@ -99,7 +113,7 @@ export default {
             }),
             artistModel.count({
                 query,
-                joins: areaJoins.concat(artistAliasJoin),
+                joins: queryJoins.concat(artistAliasJoin),
                 field: artistModel.qualifyField("id"),
                 distinct: true
             })

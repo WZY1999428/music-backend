@@ -9,24 +9,27 @@ const roleSchema = new BaseSchema({
 
 const rolePermissionSchema = new BaseSchema({
     roleId: {
-        type: DataType.Int,
+        type: DataType.VarChar,
+        length: 36,
         nullable: false,
         uniqueGroup: ["permission"],
     },
 
     routeId: {
-        type: DataType.Int,
+        type: DataType.VarChar, 
+        length: 36,
         nullable: false
     },
 
     permissionId: {
-        type: DataType.Int,
+        type: DataType.VarChar, 
+        length: 36,
         nullable: true,
         uniqueGroup: ["permission"],
     },
 
     permissionType: {
-        type: DataType.TinyInt,
+        type: DataType.Int,
         default: 1,
         nullable: false,
         uniqueGroup: ["permission"],

@@ -16,53 +16,51 @@ export default {
         if (!cover || !cover.id) {
             return ctx.fail("歌曲封面不能为空")
         }
-        try {
-            await songModel.withTransaction(async (model) => {
-                const params = {
-                    title,
-                    cover: cover.id,
-                    mvUrl: mvUrl?.id,
-                    publishDate: formatDate(publishDate),
-                    enabled,
-                    createUserId: ctx.user.userId
-                }
-                const result = id
-                    ? await model.updateOne({ id }, params)
-                    : await model.insertOne(params)
+        await songModel.withTransaction(async (model) => {
+            const params = {
+                title,
+                cover: cover.id,
+                mvUrl: mvUrl?.id,
+                publishDate: formatDate(publishDate),
+                enabled,
+                createUserId: ctx.user.userId
+            }
+            const result = id
+                ? await model.updateOne({ id }, params)
+                : await model.insertOne(params)
 
-                const songId = result.insertId || id
-                // 同步歌手
-                await syncRelation({
-                    model: songArtistModel,
-                    oldList: await songArtistModel.findMany({ songId }),
-                    list: singerList,
-                    key: 'artistId',
-                    createInsertData: (artistId) => ({ songId, artistId })
-                })
-                // 同步音频
-                await syncRelation({
-                    model: songAudioModel,
-                    oldList: await songAudioModel.findMany({ songId }),
-                    list: audioList,
-                    key: 'fileId',
-                    createInsertData: (audio) => songAudioInfo(songId, audio)
-                })
+            console.log("songIdsongIdsongId", id);
+            const songId = result.insertData?.id || id
+            console.log("songIdsongIdsongId", songId);
 
-                // 同步歌曲类型
-                await syncRelation({
-                    model: songTypeModel,
-                    oldList: await songTypeModel.findMany({ songId }),
-                    list: songTypes,
-                    key: 'type',
-                    createInsertData: (type) => ({ songId, type })
-                })
+            // 同步歌手
+            await syncRelation({
+                model: songArtistModel,
+                oldList: await songArtistModel.findMany({ songId }),
+                list: singerList,
+                key: 'artistId',
+                createInsertData: (artistId) => ({ songId, artistId })
+            })
+            // 同步音频
+            await syncRelation({
+                model: songAudioModel,
+                oldList: await songAudioModel.findMany({ songId }),
+                list: audioList,
+                key: 'fileId',
+                createInsertData: (audio) => songAudioInfo(songId, audio)
             })
 
-            ctx.success(null, id ? "更新成功" : "添加成功")
-        } catch (error) {
-            if (error.code == "ER_DUP_ENTRY") return ctx.fail("协议编号已存在")
-            ctx.fail(error.message)
-        }
+            // 同步歌曲类型
+            await syncRelation({
+                model: songTypeModel,
+                oldList: await songTypeModel.findMany({ songId }),
+                list: songTypes,
+                key: 'type',
+                createInsertData: (type) => ({ songId, type })
+            })
+        })
+
+        ctx.success(null, id ? "更新成功" : "添加成功")
     },
 }
 

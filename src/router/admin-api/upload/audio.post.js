@@ -56,7 +56,7 @@ export default {
         })
 
         ctx.success({
-            fileId: result.insertId,
+            fileId: result.insertData.id,
             url: url,
             filename: file.filename,
             size: file.size,

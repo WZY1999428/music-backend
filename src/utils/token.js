@@ -15,11 +15,11 @@ export async function getAdminToken(key) {
 export async function generateAppToken(data) {
     const rawUuid = crypto.randomUUID();
     const token = rawUuid.replace(/-/g, '');
-    await valkey.setToken(token, data, "app-api", "EX", process.env.JWT_EXPIRE);
+    await valkey.setToken(token, data, "app-api", "EX", process.env.JWT_APP_EXPIRE);
     return token;
 }
 
 
 export default async function getAppToken(key) {
-    return await valkey.getToken(key, 60 * 60 * 24, "app-api");
+    return await valkey.getToken(key, process.env.JWT_APP_EXPIRE, "app-api");
 }

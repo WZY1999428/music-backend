@@ -8,6 +8,8 @@ export default {
     handler: async (ctx) => {
         const { playlistId, songId } = ctx.request.query;
         const userId = ctx.appUser.userId;
+        userPlaylistModel.qualifyField
+        userPlaylistModel.qualifyFields()
         const exists = await userPlaylistModel.findOne({ id: playlistId, userId: userId })
         if (!exists) {
             ctx.fail('歌单不存在或无权限');

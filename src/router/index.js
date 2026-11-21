@@ -6,7 +6,6 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
 
-
         ctx.body = `<h1>111</h1>`;
     },
 }

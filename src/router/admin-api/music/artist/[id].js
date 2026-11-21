@@ -7,7 +7,6 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         const { id } = ctx.request.params;
-        console.log(artistModel.qualifyFields());
         const artist = await artistModel.aggregate({
             fields: artistModel.qualifyFields(),
             query: { [artistModel.qualifyField("id")]: id },

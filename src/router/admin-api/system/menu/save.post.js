@@ -67,7 +67,7 @@ export default {
                 } else {
                     const result = await model.insertOne(params)
                     if (Array.isArray(permissions) && permissions.length) {
-                        await menuPermissionsModel.insertMany(buildBtns(permissions, result.insertId))
+                        await menuPermissionsModel.insertMany(buildBtns(permissions, result.insertData.id))
                     }
                     msg = "添加成功"
                 }

@@ -6,13 +6,13 @@ export default {
     /** @type {Controller} */
     handler: async (ctx) => {
         const { songId, pageIndex, pageSize } = ctx.request.query;
-        if(!songId){
+        if (!songId) {
             return ctx.fail('歌曲ID不能为空');
         }
         const page = paginate(pageIndex, pageSize);
         const [list, total] = await Promise.all([
             songLyricModel.findMany({ songId }, { ...page }),
-            songLyricModel.count({ songId })
+            songLyricModel.count({ query: { songId } })
         ])
         ctx.success({
             list,

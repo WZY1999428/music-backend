@@ -3,7 +3,7 @@ import { DataType, Schema } from "mysql-dsl/schema"
 
 const playlistSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false },
-    cover: { type: DataType.BigInt, nullable: false },
+    cover: { type: DataType.VarChar, length: 36, nullable: false },
     isHot: { type: DataType.Int, default: 0 },
     sort: { type: DataType.Int, default: 0 },
     createUserId: { type: DataType.BigInt, nullable: false },
@@ -12,26 +12,26 @@ const playlistSchema = new BaseSchema({
 });
 
 const playlistSongSchema = new Schema({
-    playlistId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_song"] },  // 歌单ID
-    songId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_song"] },  // 歌曲ID
+    playlistId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["playlist_song"] },  // 歌单ID
+    songId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["playlist_song"] },  // 歌曲ID
 });
 
 
 const playlistTagSchema = new Schema({
-    playlistId: { type: DataType.Int, nullable: false , uniqueGroup: ["playlist_tag"] },  // 歌单ID
-    tag: { type: DataType.VarChar, length: 50, nullable: false , uniqueGroup: ["playlist_tag"] },  // 标签
+    playlistId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["playlist_tag"] },  // 歌单ID
+    tag: { type: DataType.VarChar, length: 50, nullable: false, uniqueGroup: ["playlist_tag"] },  // 标签
 });
 
 const playlistStatsSchema = new BaseSchema({
-    playlistId: { type: DataType.Int, nullable: false, unique: true },  // 歌单ID
+    playlistId: { type: DataType.VarChar, length: 36, nullable: false, unique: true },  // 歌单ID
     favoriteTotal: { type: DataType.BigInt, nullable: false, default: 0 },  // 收藏总数
     playTotal: { type: DataType.BigInt, nullable: false, default: 0 },  // 播放总数
     clickTotal: { type: DataType.BigInt, nullable: false, default: 0 },  // 点击总数
 });
 
 const favoriteSchema = new BaseSchema({
-    playlistId: { type: DataType.Int, nullable: false, uniqueGroup: ["favorite_playlist"] },  // 歌单ID
-    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["favorite_playlist"] },  // 用户ID
+    playlistId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["favorite_playlist"] },  // 歌单ID
+    userId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["favorite_playlist"] },  // 用户ID
 });
 
 export const playlistSongModel = await odm.model('music_playlist_song', playlistSongSchema);

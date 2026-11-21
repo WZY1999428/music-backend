@@ -11,10 +11,6 @@ export default {
         if (!songIds || !songIds.length) {
             return ctx.fail("歌曲id不能为空")
         }
-
-        console.log(songIds);
-
-
         const album = await albumModel.findOne({ id: albumId })
         if (!album) return ctx.fail("专辑不存在")
         await albumSongModel.deleteMany({ albumId, songId: { $in: songIds } })

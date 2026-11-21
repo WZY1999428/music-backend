@@ -3,7 +3,7 @@ import { DataType, Schema } from "mysql-dsl/schema"
 
 const albumSchema = new BaseSchema({
     title: { type: DataType.VarChar, length: 255, nullable: false }, // 专辑名（如：叶惠美）
-    cover: { type: DataType.Int, nullable: true }, // 封面图 文件id
+    cover: { type: DataType.VarChar, length: 36, nullable: true }, // 封面图 文件id
     // 1. 发行与发行信息
     releaseDate: { type: DataType.VarChar, length: 50, nullable: true }, // 发行日期（如："2003-07-31"）
     company: { type: DataType.VarChar, length: 255, nullable: true },    // 发行公司 / 唱片公司（如："杰威尔音乐"）
@@ -22,22 +22,22 @@ const albumSchema = new BaseSchema({
 
 
 const albumArtistSchema = new Schema({
-    albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },   // 专辑id
-    artistId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_artistId"] },    // 演唱者 id
+    albumId: { type: DataType.VarChar, length: 36, nullable: false, groupUnique: ["albumId_artistId"] },   // 专辑id
+    artistId: { type: DataType.VarChar, length: 36, nullable: false, groupUnique: ["albumId_artistId"] },    // 演唱者 id
 });
 
 
 const albumSongSchema = new Schema({
-    albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
-    songId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
+    albumId: { type: DataType.VarChar, length: 36, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
+    songId: { type: DataType.VarChar, length: 36, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
     sort: { type: DataType.Int, default: 0 }, // 排序
 });
 
 
 
 const favoriteArostSchema = new BaseSchema({
-    albumId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
-    userId: { type: DataType.BigInt, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
+    albumId: { type: DataType.VarChar, length: 36, nullable: false, groupUnique: ["albumId_songId"] }, // 专辑ID
+    userId: { type: DataType.VarChar, length: 36, nullable: false, groupUnique: ["albumId_songId"] }, // 歌曲ID
 });
 
 

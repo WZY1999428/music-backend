@@ -77,7 +77,7 @@ class EnhancedValkey extends Valkey {
         }
     }
 
-    getToken = async (key, time = 1800, prefix = "admin-api") => {
+    getToken = async (key, time = process.env.JWT_EXPIRE, prefix = "admin-api") => {
         const tokenKey = `${prefix}:token:${key}`;
         const data = await this.getObject(tokenKey);
 
@@ -104,17 +104,9 @@ class EnhancedValkey extends Valkey {
 
     setToken = async (key, value, prefix = "admin-api", ...args) => await this.setObject(`${prefix}:token:${key}`, value, ...args)
     delToken = async (key, prefix = "admin-api") => await this.del(`${prefix}:token:${key}`)
-
-    getTokenTtl = async (key, prefix = "admin-api") => await this.ttl(`${prefix}:token:${key}`)
-    setTokenTtl = async (key, ttl, prefix = "admin-api") => await this.expire(`${prefix}:token:${key}`, ttl)
-
     
     verifyMobileVerificationCode = async (phone, value) => await this.#verificationCode("mobile", phone, value)
     setMobileVerificationCode = async (phone, value) => await this.#setVerificationCode("mobile", phone, value)
-
-    verifyEmailCode = async (email, value) => await this.#verificationCode("email", email, value)
-
-    setEmailCode = async (email, value) => await this.#setVerificationCode("email", email, value)
 
     setCaptcha = async (key, value) => await this.set(`captcha:${key}`, value, "EX", 60)
     getCaptcha = async (key) => await this.get(`captcha:${key}`)

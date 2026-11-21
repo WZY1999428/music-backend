@@ -23,9 +23,9 @@ export default {
                     return { method: method.trim(), path: rest.join(":").trim() };
                 })
 
-                if (result.insertId) {
+                if (result.insertData) {
                     if (apiListData.length > 0) {
-                        await apiModel.insertMany(apiListData.map(({ method, path }) => ({ method, path, permissionsId: result.insertId })))
+                        await apiModel.insertMany(apiListData.map(({ method, path }) => ({ method, path, permissionsId: result.insertData.id })))
                     }
                 } else {
                     const apis = await apiModel.findMany({ permissionsId: id })

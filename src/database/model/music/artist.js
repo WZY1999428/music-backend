@@ -4,9 +4,9 @@ import { DataType } from "mysql-dsl/schema"
 const artistSchema = new BaseSchema({
     // 1. 基础信息
     name: { type: DataType.VarChar, length: 100, nullable: false, unique: true },        // 歌手/乐队名称 (如: 周杰伦 / Mayday)
-    avatar: { type: DataType.BigInt, nullable: false },      // 歌手头像/封面图片地址
-    cover: { type: DataType.BigInt, nullable: true },       // 歌手主页大背景图 (可选)
-    createUserId: { type: DataType.BigInt, nullable: true },       // 歌手主页大背景图 (可选)
+    avatar: { type: DataType.VarChar, length: 36, nullable: false },      // 歌手头像/封面图片地址
+    cover: { type: DataType.VarChar, length: 36, nullable: true },       // 歌手主页大背景图 
+    createUserId: { type: DataType.VarChar, length: 36, nullable: true },       
     // 2. 检索与分类
     pinyin: { type: DataType.VarChar, length: 100, nullable: true, index: true },      // 拼音简写 (用于首字母检索，如: zjl)
     firstLetter: { type: DataType.VarChar, length: 1, nullable: true },  // 姓氏首字母 (用于 A-Z 歌手筛选，如: Z)
@@ -24,13 +24,13 @@ const artistSchema = new BaseSchema({
 
 
 const favoriteSchema = new BaseSchema({
-    artistId: { type: DataType.VarChar, length: 100, nullable: false, unique: true },// 歌手/乐队ID
-    userId: { type: DataType.VarChar, length: 100, nullable: true },   // 用户ID
+    artistId: { type: DataType.VarChar, length: 36, nullable: false, unique: true },// 歌手/乐队ID
+    userId: { type: DataType.VarChar, length: 36, nullable: true },   // 用户ID
 });
 
 
 const artistAliasSchema = new BaseSchema({
-    artistId: { type: DataType.VarChar, length: 100, nullable: false, uniqueGroup: ['artist_alias'] },// 歌手/乐队ID
+    artistId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ['artist_alias'] },// 歌手/乐队ID
     alias: { type: DataType.VarChar, length: 100, nullable: true, uniqueGroup: ['artist_alias'] },   // 别名
 });
 

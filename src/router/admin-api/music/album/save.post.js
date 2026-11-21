@@ -35,7 +35,7 @@ export default {
                     ? await model.updateOne({ id }, params)
                     : await model.insertOne(params)
 
-                const albumId = result.insertId || id
+                const albumId = result.insertData.id || id
                 
                 // 同步歌手
                 await syncRelation({

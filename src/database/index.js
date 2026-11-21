@@ -1,7 +1,14 @@
 import MySqlODM from "mysql-dsl"
 import { Schema, DataType } from "mysql-dsl/schema";
 // export const odm = new MySqlODM({ debug: process.NODE_ENV != "production" });
-export const odm = new MySqlODM({ logger: false });
+const workerId = Number(process.env.NODE_APP_INSTANCE ?? 0);
+export const odm = new MySqlODM({
+    logger: false,
+    snowflake: {
+        workerId,
+        datacenterId: 1
+    }
+});
 const { MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE } = process.env;
 export async function initDb() {
     await odm.use({
@@ -24,9 +31,10 @@ export class BaseSchema extends Schema {
     constructor(fields) {
         super({
             id: {
-                type: DataType.BigInt,
+                type: DataType.VarChar,
+                length: 36,
                 primaryKey: true,
-                autoIncrement: { start: 10000, enabled: true }
+                snowflake: true
             },
             ...fields, // 传入的具体业务字段放在中间
             createdAt: {

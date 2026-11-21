@@ -20,8 +20,7 @@ export default {
             const params = { name, avatar: avatar.id, cover: cover.id, sort, gender, area, enabled, createUserId, description, isHot }
             await artistModel.withTransaction(async (model) => {
                 const result = id ? await model.updateOne({ id }, params) : await model.insertOne(params)
-                const artistId = result.insertId || id
-
+                const artistId = result.insertData?.id || id
                 // 同步歌手别名
                 await syncRelation({
                     model: artistAliasModel,

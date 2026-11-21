@@ -3,7 +3,7 @@ import { DataType } from "mysql-dsl/schema";
 
 
 const routeSchema = new BaseSchema({
-    parentId: { type: DataType.BigInt, default: 0, uniqueGroup: ['parentIdSort'] },
+    parentId: { type: DataType.VarChar, length: 36, default: 0, uniqueGroup: ['parentIdSort'] },
     title: { type: DataType.VarChar, length: 255, nullable: false },
     type: { type: DataType.Int, default: 1, nullable: false },
     icon: { type: DataType.VarChar, length: 255, nullable: true },
@@ -18,14 +18,14 @@ const routeSchema = new BaseSchema({
 
 
 const menuPermissionsSchema = new BaseSchema({
-    routeId: { type: DataType.BigInt, nullable: false, uniqueGroup: ['route_permission'] },
+    routeId: { type:  DataType.VarChar, length: 36, nullable: false, uniqueGroup: ['route_permission'] },
     name: { type: DataType.VarChar, length: 100, nullable: false },
     permission: { type: DataType.VarChar, length: 255, nullable: false, unique: true, uniqueGroup: ['route_permission'] },
     enabled: { type: DataType.Int, default: 1 },
 });
 
 const apiSchema = new BaseSchema({
-    permissionsId: { type: DataType.BigInt, nullable: false, },
+    permissionsId: { type:  DataType.VarChar, length: 36, nullable: false, },
     method: { type: DataType.VarChar, length: 10, nullable: false },
     path: { type: DataType.VarChar, length: 255, nullable: false },
 });

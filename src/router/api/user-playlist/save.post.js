@@ -15,6 +15,6 @@ export default {
         const result = id ?
             await userPlaylistModel.updateOne({ id, userId: userId }, { title, description, cover: cover.id })
             : await userPlaylistModel.insertOne({ title, description, cover: cover.id, userId: userId })
-        ctx.success(null,result.insertId ? "创建成功" : "更新成功"); 
+        ctx.success(null, result.insertData ? "创建成功" : "更新成功");
     },
 }

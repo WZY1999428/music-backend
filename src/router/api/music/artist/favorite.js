@@ -24,6 +24,11 @@ export default {
             },
         })
 
+        artistModel.execute()
+        artistModel.withCheckout((execute)=>{
+
+        })
+
         const result = await artistModel.aggregate({
             fields,
             joins: [
@@ -61,10 +66,6 @@ export default {
                 [artistModel.qualifyField("enabled")]: 1
             },
         })
-
-        console.log(result);
-        
-
         ctx.success(result)
     }
 }

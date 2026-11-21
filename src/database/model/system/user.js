@@ -13,15 +13,15 @@ const userSchema = new BaseSchema({
 });
 
 const userRoleSchema = new BaseSchema({
-    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_role_unique"] },
-    roleId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_role_unique"] },
+    userId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["user_role_unique"] },
+    roleId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["user_role_unique"] },
 });
 
 
 
 const userDeptSchema = new BaseSchema({
-    userId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_dept_unique"] },
-    deptId: { type: DataType.BigInt, nullable: false, uniqueGroup: ["user_dept_unique"] },
+    userId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["user_dept_unique"] },
+    deptId: { type: DataType.VarChar, length: 36, nullable: false, uniqueGroup: ["user_dept_unique"] },
 });
 
 const userModel = await odm.model('system_user', userSchema);

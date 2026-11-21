@@ -45,7 +45,6 @@ export async function syncRelation({
 
     // 新数据已经删除的关系
     const deleteList = oldList.filter(item => !newSet.has(item[key] || item))
-    console.log(deleteList, oldList);
     if (deleteList.length) {
         await model.deleteMany({ [key]: { $in: deleteList.map(item => item[key]) } })
     }
