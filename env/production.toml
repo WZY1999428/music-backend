@@ -25,6 +25,6 @@ path = "./.output"
 
 
 [public]
-path = "/home/本地磁盘2"
+path = "./public"
 upload = "/home/本地磁盘2"
   
