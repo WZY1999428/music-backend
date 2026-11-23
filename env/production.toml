@@ -11,7 +11,7 @@ host = "127.0.0.1"
 port = 3306
 username = "root"
 password = "7ExJ,wc4Q58@2TRD"
-database = "koa-serve"
+database = "media-demo"
 # Server 配置
 [server]
 port = 8849
@@ -26,5 +26,5 @@ path = "./.output"
 
 [public]
 path = "./public"
-upload = "/home/本地磁盘2"
+upload = "/home/本地磁盘2/demo"
   

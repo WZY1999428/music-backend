@@ -11,7 +11,7 @@ host = "192.168.0.105"
 port = 3306
 username = "hkta"
 password = "7ExJ,wc4Q58@2TRD"
-database = "koa-serve-dev"
+database = "media-demo"
 # Server 配置
 [server]
 port = 8849
