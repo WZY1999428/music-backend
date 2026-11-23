@@ -14,7 +14,7 @@ const logSchema = new BaseSchema({
     logType: { type: DataType.VarChar, length: 255 }, // 日志类型：OPERATION(操作), LOGIN(登录), SYSTEM(报错/系统)
     // 3. 网络与请求环境（在哪干的）
     method: { type: DataType.VarChar, length: 10 },            // HTTP 方法：GET, POST, PUT, DELETE
-    requestUrl: { type: DataType.VarChar, length: 255 },                      // 请求的完整 URL / 路由 path
+    requestUrl: { type: DataType.Text },                      // 请求的完整 URL / 路由 path
     ip: { type: DataType.VarChar, length: 45 },                // 客户端 IP 地址（支持 IPv6）
     userAgent: { type: DataType.VarChar, length: 255 },                       // 浏览器/客户端环境标示
     // 4. 数据与报错详情（细节现场）

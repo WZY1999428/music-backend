@@ -9,9 +9,9 @@ const request = axios.create({
         Authorization: '407dbbc655f54874a4680465a6a4b8cd',
     }
 })
-const dir = "Y:/music"
 
 
+const dir = ""
 const files = new Map(fs.readdirSync(dir).map(file => [file.split(path.sep).pop().replace(/-\d+-\d+(?=\.(flac|mp3|wav)$)/, ""), file]))
 
 const notInsert = []

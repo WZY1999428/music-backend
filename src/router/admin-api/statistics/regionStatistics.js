@@ -1,9 +1,10 @@
 import { dictItemModel, dictTypeModel } from "@/database/model/system/dictionary.js"
-import { songTypeModel } from "@/database/model/music/song.js"
+import artistModel from "@/database/model/music/artist.js"
 
 export default {
-    action: '音乐类型统计',
-    logType: 'SONG_TYPE_STATISTICS',
+    action: '地区歌手统计',
+    enableLog: false,
+    logType: 'REGION_STATISTICS',
     /** @type {Controller} */
     handler: async (ctx) => {
         const fields = dictItemModel.qualifyFields(["title", "value"]);
@@ -16,15 +17,17 @@ export default {
                 {
                     table: dictTypeModel.table,
                     as: "dictType",
-                    on: { "dictType.code": { $eq: "MUSIC_CATEGORY" }, [dictItemModel.qualifyField("dictId")]: "dictType.id" }
+                    on: { "dictType.code": { $eq: "ARTIST_REGION" }, [dictItemModel.qualifyField("dictId")]: "dictType.id" }
                 },
                 {
-                    table: songTypeModel.table,
-                    as: "songType",
-                    on: { "songType.type": dictItemModel.qualifyField("value") },
-                    select: [{ type: "raw", fields: { "total": "COUNT(songType.songId)" } }]
+                    table: artistModel.table,
+                    as: "artist",
+                    type: "left",
+                    on: { "artist.area": dictItemModel.qualifyField("value") },
+                    select: [{ type: "raw", fields: { "total": "COUNT(artist.id)" } }]
                 }
             ],
+            sort: { "total": "desc" },
             group: fields
         })
 
