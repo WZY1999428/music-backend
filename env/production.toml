@@ -2,19 +2,19 @@
 [valkey]
 host = "127.0.0.1"
 port = 6379         
-username = "hkta"
-password = "a7454796209"
+username = ""
+password = ""
 db = 1
 # Mysql 配置
 [mysql]
 host = "127.0.0.1"
 port = 3306
-username = "root"
-password = "7ExJ,wc4Q58@2TRD"
-database = "media-demo"
+username = ""
+password = ""
+database = ""
 # Server 配置
 [server]
-port = 8849
+port = 8848
 # JWT 配置
 [jwt]
 expire = 5400
@@ -26,5 +26,5 @@ path = "./.output"
 
 [public]
 path = "./public"
-upload = "/home/本地磁盘2/demo"
+upload = "/home/本地磁盘2"
   
