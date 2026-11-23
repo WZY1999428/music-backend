@@ -1,4 +1,5 @@
 import userModel from "@/database/model/system/user.js"
+import uploadModel from "@/database/model/upload.js";
 import { NORMAL_ENABLED_USER_QUERY } from "@/utils/query.js"
 export default {
     action: '获取系统用户列表',
@@ -12,7 +13,20 @@ export default {
         if (nickname) query.nickname = { $like: `%${nickname}%` };
         const page = paginate(pageIndex, pageSize)
         const [list, total] = await Promise.all([
-            userModel.findMany({ ...query, ...NORMAL_ENABLED_USER_QUERY }, { ...page, sort: { createdAt: 'desc' }, fields: ['id', 'username', 'nickname', 'email', 'phone', 'createdAt', 'updatedAt', 'avatar'] }),
+            userModel.aggregate({
+                fields: userModel.qualifyFields(['id', 'username', 'nickname', 'email', 'phone', 'createdAt', 'updatedAt', 'avatar', "enabled"]),
+                query: { ...query, ...NORMAL_ENABLED_USER_QUERY },
+                joins: [{
+                    table: uploadModel.table,
+                    as: "upload",
+                    type: "left",
+                    on: { "upload.id": userModel.qualifyField("avatar") },
+                    select: [{ type: "raw", fields: { "avatar": "upload.url" } }]
+                }],
+                group: userModel.qualifyFields(["id"]),
+                sort: { createdAt: 'desc' },
+                ...page,
+            }),
             userModel.count({ query: { ...query, ...NORMAL_ENABLED_USER_QUERY } })
         ])
         ctx.success({

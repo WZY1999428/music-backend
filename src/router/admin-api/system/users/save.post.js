@@ -1,4 +1,5 @@
 import userModel, { userRoleModel, userDeptModel } from "@/database/model/system/user.js"
+import { hashPassword, verifyPassword } from "@/utils/password.js";
 
 export default {
     action: '系统用户注册/编辑',
@@ -34,9 +35,9 @@ export default {
             return ctx.fail("该账号已被使用请重新输入");
         }
 
-        const result = await userModel.withTransaction(async (model) => {
+        await userModel.withTransaction(async (model) => {
             const params = { username, email, nickname, avatar, phone, enabled };
-            if (password) params.password = password;
+            if (password) params.password = await hashPassword(password);
 
             const result = userId ? await model.updateOne({ id: userId }, params) : await model.insertOne(params);
 
